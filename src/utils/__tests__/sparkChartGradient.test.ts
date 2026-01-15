@@ -1,16 +1,16 @@
-import {
-  calculateSparkLinePoints,
-  generateSparkLinePath,
-  generateLineGradientDef,
-} from '../sparkChartGradient';
+import { calculateSparkLinePoints, generateSparkLinePath, generateLineGradientDef } from '../sparkChartGradient';
 import { GrafanaTheme2 } from '@grafana/data';
 
 // Mock the colorUtils module
 jest.mock('../colorUtils', () => ({
   getColorFromScheme: jest.fn((scheme: string, normalizedValue: number) => {
     // Simple mock: return color based on normalized value
-    if (normalizedValue <= 0.33) {return 'rgb(0, 255, 0)';} // Green
-    if (normalizedValue <= 0.66) {return 'rgb(255, 255, 0)';} // Yellow
+    if (normalizedValue <= 0.33) {
+      return 'rgb(0, 255, 0)';
+    } // Green
+    if (normalizedValue <= 0.66) {
+      return 'rgb(255, 255, 0)';
+    } // Yellow
     return 'rgb(255, 0, 0)'; // Red
   }),
 }));
@@ -370,28 +370,8 @@ describe('sparkChartGradient', () => {
       const width = 100;
       const height = 50;
 
-      const result1 = generateLineGradientDef(
-        data,
-        colorScheme,
-        min,
-        max,
-        mockTheme,
-        width,
-        height,
-        'linear',
-        false
-      );
-      const result2 = generateLineGradientDef(
-        data,
-        colorScheme,
-        min,
-        max,
-        mockTheme,
-        width,
-        height,
-        'linear',
-        false
-      );
+      const result1 = generateLineGradientDef(data, colorScheme, min, max, mockTheme, width, height, 'linear', false);
+      const result2 = generateLineGradientDef(data, colorScheme, min, max, mockTheme, width, height, 'linear', false);
 
       expect(result1.gradientId).not.toBe(result2.gradientId);
     });

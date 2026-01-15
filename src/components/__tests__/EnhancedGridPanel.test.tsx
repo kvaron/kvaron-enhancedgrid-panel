@@ -7,19 +7,13 @@ import { EnhancedGridOptions } from '../../types';
 // Mock the Grafana runtime PanelDataErrorView
 jest.mock('@grafana/runtime', () => ({
   PanelDataErrorView: ({ panelId, data }: any) => (
-    <div data-testid="panel-data-error-view">
-      No data available for panel {panelId}
-    </div>
+    <div data-testid="panel-data-error-view">No data available for panel {panelId}</div>
   ),
 }));
 
 // Mock the Grid component
 jest.mock('../Grid/Grid', () => ({
-  Grid: ({ data }: any) => (
-    <div data-testid="grid">
-      Grid with {data.length} rows
-    </div>
-  ),
+  Grid: ({ data }: any) => <div data-testid="grid">Grid with {data.length} rows</div>,
 }));
 
 // Mock ErrorBoundary as a passthrough

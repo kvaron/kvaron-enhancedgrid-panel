@@ -183,13 +183,13 @@ export function generateColorShade(baseColor: string, position: number): string 
   // At position 0: 30% of original color (dark)
   // At position 0.5: original color
   // At position 1: blend with white to 90% lightness
-  
+
   let r: number, g: number, b: number;
-  
+
   if (clampedPosition < 0.5) {
     // Dark to original (0 to 0.5)
     const t = clampedPosition * 2; // 0 to 1
-    const darkFactor = 0.3 + (t * 0.7); // 0.3 to 1.0
+    const darkFactor = 0.3 + t * 0.7; // 0.3 to 1.0
     r = Math.round(rgb.r * darkFactor);
     g = Math.round(rgb.g * darkFactor);
     b = Math.round(rgb.b * darkFactor);
@@ -226,7 +226,7 @@ export function getClassicPaletteColor(index: number, theme: GrafanaTheme2): str
     theme.visualization.getColorByName('light-yellow'),
     theme.visualization.getColorByName('light-red'),
   ];
-  
+
   return classicColors[index % classicColors.length];
 }
 
@@ -306,17 +306,7 @@ const DEFAULT_STACK_COLORS = ['#73BF69', '#F2CC0C', '#FF9830', '#F2495C', '#B877
  * @returns Hex color string
  */
 export function getSparkChartSegmentColor(params: SparkChartColorParams): string {
-  const {
-    index,
-    value,
-    normalizedValue,
-    dataLength,
-    colorMode,
-    solidColor,
-    colorScheme,
-    stackColors,
-    theme,
-  } = params;
+  const { index, value, normalizedValue, dataLength, colorMode, solidColor, colorScheme, stackColors, theme } = params;
 
   // Check for pre-defined stack colors first
   if (stackColors && stackColors[index] !== undefined) {

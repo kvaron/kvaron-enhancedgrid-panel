@@ -51,10 +51,7 @@ export const DataRangeGradientRuleEditor: React.FC<StandardEditorProps<Highlight
   const rule = value;
 
   // Get available numeric fields from data
-  const numericFields =
-    context.data[0]?.fields
-      .filter((f) => f.type === FieldType.number)
-      .map((f) => f.name) || [];
+  const numericFields = context.data[0]?.fields.filter((f) => f.type === FieldType.number).map((f) => f.name) || [];
 
   // Get all available fields for target fields
   const availableFields = context.data[0]?.fields.map((f) => f.name) || [];
@@ -70,7 +67,9 @@ export const DataRangeGradientRuleEditor: React.FC<StandardEditorProps<Highlight
   }));
 
   const updateSourceField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       dataRangeSourceField: selected.value,
@@ -78,7 +77,9 @@ export const DataRangeGradientRuleEditor: React.FC<StandardEditorProps<Highlight
   };
 
   const updateRangeMode = (selected: ComboboxOption<'auto' | 'manual'> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       dataRangeMode: selected.value,
@@ -106,7 +107,9 @@ export const DataRangeGradientRuleEditor: React.FC<StandardEditorProps<Highlight
   };
 
   const updateColorScheme = (selected: SelectableValue<string>) => {
-    if (!selected?.value) { return; }
+    if (!selected?.value) {
+      return;
+    }
     onChange({
       ...rule,
       dataRangeColorScheme: selected.value,

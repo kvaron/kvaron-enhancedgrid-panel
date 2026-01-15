@@ -16,8 +16,6 @@ export function useFilteredIcons(search: string): string[] {
       return availableIcons;
     }
     const searchLower = search.toLowerCase();
-    return availableIcons.filter(icon =>
-      icon.toLowerCase().includes(searchLower)
-    );
+    return availableIcons.filter((icon) => icon.toLowerCase().includes(searchLower));
   }, [availableIcons, search]);
 }

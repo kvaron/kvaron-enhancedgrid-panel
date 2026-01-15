@@ -41,9 +41,7 @@ export function calculateSparkLinePoints(
 
     // When all values are the same (range is effectively 0), render at middle height
     // Add tiny alternating variation (0.1px) to force SVG rendering of horizontal lines
-    const y = max === min
-      ? height / 2 + (index % 2 === 0 ? 0.1 : -0.1)
-      : height - normalizedValue * height;
+    const y = max === min ? height / 2 + (index % 2 === 0 ? 0.1 : -0.1) : height - normalizedValue * height;
 
     return { x, y, normalizedValue };
   });
@@ -247,9 +245,7 @@ export function generateLineGradientDef(
     }
 
     // Remove duplicate offsets and ensure proper ordering
-    const uniqueStops = allStops.filter((stop, index, arr) =>
-      index === 0 || stop.offset !== arr[index - 1].offset
-    );
+    const uniqueStops = allStops.filter((stop, index, arr) => index === 0 || stop.offset !== arr[index - 1].offset);
     allStops = uniqueStops;
   }
 

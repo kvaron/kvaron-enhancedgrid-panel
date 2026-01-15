@@ -59,24 +59,32 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
 
   // Process emoji data
   const emojisByCategory = useMemo(() => {
-    if (!emojiData) return new Map<number, CompactEmoji[]>();
+    if (!emojiData) {
+      return new Map<number, CompactEmoji[]>();
+    }
 
     const categories = new Map<number, CompactEmoji[]>();
 
     emojiData.forEach((emoji) => {
       // Skip component emojis (skin tones, etc.)
-      if (emoji.group === 2) return;
+      if (emoji.group === 2) {
+        return;
+      }
 
       // Skip country flags (regional indicators that don't render in Chrome/Windows)
       // Country flags are composed of two Regional Indicator characters (U+1F1E6 - U+1F1FF)
       // Keep other flags like checkered flag, white flag, rainbow flag, etc.
-      const codePoints = Array.from(emoji.unicode).map(char => char.codePointAt(0) || 0);
-      const isCountryFlag = codePoints.length === 2 &&
-        codePoints.every(cp => cp >= 0x1F1E6 && cp <= 0x1F1FF);
+      const codePoints = Array.from(emoji.unicode).map((char) => char.codePointAt(0) || 0);
+      const isCountryFlag = codePoints.length === 2 && codePoints.every((cp) => cp >= 0x1f1e6 && cp <= 0x1f1ff);
 
-      if (isCountryFlag) return;
+      if (isCountryFlag) {
+        return;
+      }
 
       const category = emoji.group;
+      if (category === undefined) {
+        return;
+      }
       if (!categories.has(category)) {
         categories.set(category, []);
       }
@@ -101,8 +109,10 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
 
     emojisByCategory.forEach((emojis) => {
       emojis.forEach((emoji) => {
-        if (emoji.label?.toLowerCase().includes(query) ||
-            emoji.tags?.some(tag => tag.toLowerCase().includes(query))) {
+        if (
+          emoji.label?.toLowerCase().includes(query) ||
+          emoji.tags?.some((tag) => tag.toLowerCase().includes(query))
+        ) {
           filtered.push(emoji);
         }
       });
@@ -111,9 +121,12 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
     setFilteredEmojis(filtered);
   }, [searchQuery, emojisByCategory]);
 
-  const handleEmojiClick = useCallback((emoji: CompactEmoji) => {
-    onSelect(emoji.unicode);
-  }, [onSelect]);
+  const handleEmojiClick = useCallback(
+    (emoji: CompactEmoji) => {
+      onSelect(emoji.unicode);
+    },
+    [onSelect]
+  );
 
   const handleClearEmoji = useCallback(() => {
     onSelect('');
@@ -130,150 +143,153 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
     }
   }, []);
 
-  const styles = useMemo(() => ({
-    container: css({
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      overflow: 'hidden',
-    }),
-    searchWrapper: css({
-      padding: theme.spacing(1, 1, 0, 1),
-      position: 'relative',
-      flexShrink: 0,
-    }),
-    searchIcon: css({
-      position: 'absolute',
-      left: theme.spacing(2),
-      top: '50%',
-      transform: 'translateY(-50%)',
-      pointerEvents: 'none',
-      color: theme.colors.text.secondary,
-    }),
-    search: css({
-      width: '100%',
-      padding: theme.spacing(1, 1, 1, 4),
-      border: `1px solid ${theme.colors.border.medium}`,
-      borderRadius: theme.shape.radius.default,
-      backgroundColor: theme.colors.background.primary,
-      color: theme.colors.text.primary,
-      fontSize: theme.typography.fontSize,
-      '&:focus': {
-        outline: `2px solid ${theme.colors.primary.border}`,
-        outlineOffset: '-2px',
-      },
-      '&::placeholder': {
+  const styles = useMemo(
+    () => ({
+      container: css({
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        overflow: 'hidden',
+      }),
+      searchWrapper: css({
+        padding: theme.spacing(1, 1, 0, 1),
+        position: 'relative',
+        flexShrink: 0,
+      }),
+      searchIcon: css({
+        position: 'absolute',
+        left: theme.spacing(2),
+        top: '50%',
+        transform: 'translateY(-50%)',
+        pointerEvents: 'none',
         color: theme.colors.text.secondary,
-      },
+      }),
+      search: css({
+        width: '100%',
+        padding: theme.spacing(1, 1, 1, 4),
+        border: `1px solid ${theme.colors.border.medium}`,
+        borderRadius: theme.shape.radius.default,
+        backgroundColor: theme.colors.background.primary,
+        color: theme.colors.text.primary,
+        fontSize: theme.typography.fontSize,
+        '&:focus': {
+          outline: `2px solid ${theme.colors.primary.border}`,
+          outlineOffset: '-2px',
+        },
+        '&::placeholder': {
+          color: theme.colors.text.secondary,
+        },
+      }),
+      viewport: css({
+        flex: 1,
+        overflow: 'auto',
+        minHeight: 0,
+        padding: theme.spacing(1),
+      }),
+      category: css({
+        marginBottom: theme.spacing(2),
+      }),
+      categoryHeader: css({
+        position: 'sticky',
+        top: 0,
+        backgroundColor: theme.colors.background.primary,
+        color: theme.colors.text.secondary,
+        fontWeight: theme.typography.fontWeightMedium,
+        fontSize: theme.typography.bodySmall.fontSize,
+        padding: theme.spacing(1, 0.5),
+        marginBottom: theme.spacing(0.5),
+        borderRadius: theme.shape.radius.default,
+        zIndex: 1,
+        backdropFilter: 'blur(4px)',
+        boxShadow: `0 1px 2px ${theme.colors.background.primary}`,
+      }),
+      grid: css({
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(32px, 1fr))',
+        gap: theme.spacing(0.5),
+      }),
+      emojiButton: css({
+        padding: theme.spacing(0.75),
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        borderRadius: theme.shape.radius.default,
+        fontSize: '1.25em',
+        transition: 'background-color 0.2s',
+        minWidth: '32px',
+        height: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        '&:hover': {
+          backgroundColor: theme.colors.action.hover,
+        },
+        '&:focus-visible': {
+          outline: `2px solid ${theme.colors.primary.border}`,
+          outlineOffset: '-2px',
+        },
+      }),
+      empty: css({
+        textAlign: 'center',
+        padding: theme.spacing(2),
+        color: theme.colors.text.secondary,
+      }),
+      loading: css({
+        textAlign: 'center',
+        padding: theme.spacing(2),
+        color: theme.colors.text.secondary,
+      }),
+      categoryButtons: css({
+        display: 'flex',
+        gap: theme.spacing(0.5),
+        padding: theme.spacing(1),
+        overflowX: 'auto',
+        flexShrink: 0,
+        borderBottom: `1px solid ${theme.colors.border.weak}`,
+        '&::-webkit-scrollbar': {
+          height: '6px',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          backgroundColor: theme.colors.border.medium,
+          borderRadius: '3px',
+        },
+      }),
+      categoryButton: css({
+        padding: theme.spacing(0.75),
+        border: 'none',
+        background: 'transparent',
+        cursor: 'pointer',
+        borderRadius: theme.shape.radius.default,
+        fontSize: '1.25em',
+        transition: 'background-color 0.2s',
+        minWidth: '32px',
+        height: '32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        '&:hover': {
+          backgroundColor: theme.colors.action.hover,
+        },
+        '&[data-active="true"]': {
+          backgroundColor: theme.colors.action.selected,
+        },
+      }),
+      noEmojiOption: css({
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        padding: theme.spacing(1.5, 1),
+        cursor: 'pointer',
+        borderRadius: theme.shape.radius.default,
+        transition: 'background-color 0.2s',
+        marginBottom: theme.spacing(1),
+        '&:hover': {
+          backgroundColor: theme.colors.action.hover,
+        },
+      }),
     }),
-    viewport: css({
-      flex: 1,
-      overflow: 'auto',
-      minHeight: 0,
-      padding: theme.spacing(1),
-    }),
-    category: css({
-      marginBottom: theme.spacing(2),
-    }),
-    categoryHeader: css({
-      position: 'sticky',
-      top: 0,
-      backgroundColor: theme.colors.background.primary,
-      color: theme.colors.text.secondary,
-      fontWeight: theme.typography.fontWeightMedium,
-      fontSize: theme.typography.bodySmall.fontSize,
-      padding: theme.spacing(1, 0.5),
-      marginBottom: theme.spacing(0.5),
-      borderRadius: theme.shape.radius.default,
-      zIndex: 1,
-      backdropFilter: 'blur(4px)',
-      boxShadow: `0 1px 2px ${theme.colors.background.primary}`,
-    }),
-    grid: css({
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fill, minmax(32px, 1fr))',
-      gap: theme.spacing(0.5),
-    }),
-    emojiButton: css({
-      padding: theme.spacing(0.75),
-      border: 'none',
-      background: 'transparent',
-      cursor: 'pointer',
-      borderRadius: theme.shape.radius.default,
-      fontSize: '1.25em',
-      transition: 'background-color 0.2s',
-      minWidth: '32px',
-      height: '32px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      '&:hover': {
-        backgroundColor: theme.colors.action.hover,
-      },
-      '&:focus-visible': {
-        outline: `2px solid ${theme.colors.primary.border}`,
-        outlineOffset: '-2px',
-      },
-    }),
-    empty: css({
-      textAlign: 'center',
-      padding: theme.spacing(2),
-      color: theme.colors.text.secondary,
-    }),
-    loading: css({
-      textAlign: 'center',
-      padding: theme.spacing(2),
-      color: theme.colors.text.secondary,
-    }),
-    categoryButtons: css({
-      display: 'flex',
-      gap: theme.spacing(0.5),
-      padding: theme.spacing(1),
-      overflowX: 'auto',
-      flexShrink: 0,
-      borderBottom: `1px solid ${theme.colors.border.weak}`,
-      '&::-webkit-scrollbar': {
-        height: '6px',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        backgroundColor: theme.colors.border.medium,
-        borderRadius: '3px',
-      },
-    }),
-    categoryButton: css({
-      padding: theme.spacing(0.75),
-      border: 'none',
-      background: 'transparent',
-      cursor: 'pointer',
-      borderRadius: theme.shape.radius.default,
-      fontSize: '1.25em',
-      transition: 'background-color 0.2s',
-      minWidth: '32px',
-      height: '32px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      '&:hover': {
-        backgroundColor: theme.colors.action.hover,
-      },
-      '&[data-active="true"]': {
-        backgroundColor: theme.colors.action.selected,
-      },
-    }),
-    noEmojiOption: css({
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'flex-start',
-      padding: theme.spacing(1.5, 1),
-      cursor: 'pointer',
-      borderRadius: theme.shape.radius.default,
-      transition: 'background-color 0.2s',
-      marginBottom: theme.spacing(1),
-      '&:hover': {
-        backgroundColor: theme.colors.action.hover,
-      },
-    }),
-  }), [theme]);
+    [theme]
+  );
 
   // Render emojis grouped by category (when no search) or flat list (when searching)
   const renderContent = () => {
@@ -319,9 +335,7 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
               }
             }}
           >
-            <div className={styles.categoryHeader}>
-              {CATEGORY_LABELS[categoryId] || `Category ${categoryId}`}
-            </div>
+            <div className={styles.categoryHeader}>{CATEGORY_LABELS[categoryId] || `Category ${categoryId}`}</div>
             <div className={styles.grid}>
               {emojis.map((emoji) => (
                 <button

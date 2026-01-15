@@ -162,20 +162,14 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
           onChange={(v) => v && updateGroupOperator(v.value)}
           width={12}
         />
-        <span style={{ fontSize: '0.9em', opacity: 0.7 }}>
-          (Combines all items below with {group.logicalOperator})
-        </span>
+        <span style={{ fontSize: '0.9em', opacity: 0.7 }}>(Combines all items below with {group.logicalOperator})</span>
       </div>
 
       {/* Render all items in the group */}
       {group.items.map((item, index) => (
         <div key={item.id}>
           {/* Show operator badge between items */}
-          {index > 0 && (
-            <div className={styles.operatorBadge}>
-              {group.logicalOperator}
-            </div>
-          )}
+          {index > 0 && <div className={styles.operatorBadge}>{group.logicalOperator}</div>}
 
           {isConditionGroup(item) ? (
             // Render nested group
@@ -187,11 +181,7 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
                 depth={depth + 1}
               />
               <div style={{ position: 'absolute', top: 4, right: 4 }}>
-                <IconButton
-                  name="trash-alt"
-                  tooltip="Remove group"
-                  onClick={() => removeItem(index)}
-                />
+                <IconButton name="trash-alt" tooltip="Remove group" onClick={() => removeItem(index)} />
               </div>
             </div>
           ) : (
@@ -203,9 +193,7 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
                   <Combobox
                     options={fieldOptions}
                     value={item.sourceField}
-                    onChange={(v) =>
-                      v && updateItem(index, { ...item, sourceField: v.value })
-                    }
+                    onChange={(v) => v && updateItem(index, { ...item, sourceField: v.value })}
                     width={20}
                   />
                 </InlineField>
@@ -215,9 +203,7 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
                   <Combobox
                     options={OPERATOR_OPTIONS}
                     value={item.operator}
-                    onChange={(v) =>
-                      v && updateItem(index, { ...item, operator: v.value })
-                    }
+                    onChange={(v) => v && updateItem(index, { ...item, operator: v.value })}
                     width={20}
                   />
                 </InlineField>
@@ -233,7 +219,8 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
                         ]}
                         value={item.compareType}
                         onChange={(v) =>
-                          v && updateItem(index, {
+                          v &&
+                          updateItem(index, {
                             ...item,
                             compareType: v.value as 'value' | 'field',
                           })
@@ -274,11 +261,7 @@ export const ConditionGroupBuilder: React.FC<ConditionGroupBuilderProps> = ({
                 )}
 
                 {/* Remove button */}
-                <IconButton
-                  name="trash-alt"
-                  tooltip="Remove condition"
-                  onClick={() => removeItem(index)}
-                />
+                <IconButton name="trash-alt" tooltip="Remove condition" onClick={() => removeItem(index)} />
               </InlineFieldRow>
             </div>
           )}

@@ -75,9 +75,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "Status"
-            ],
+            "targetFields": ["Status"],
             "valueMappingField": "Status",
             "valueMappings": [
               {
@@ -120,9 +118,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "Score"
-            ]
+            "targetFields": ["Score"]
           },
           {
             "conditionGroup": {
@@ -147,9 +143,7 @@
               "backgroundColor": "#F2495C",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "Amount"
-            ]
+            "targetFields": ["Amount"]
           },
           {
             "enabled": true,
@@ -166,9 +160,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "TrendLine"
-            ]
+            "targetFields": ["TrendLine"]
           },
           {
             "enabled": true,
@@ -183,9 +175,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "BarData"
-            ]
+            "targetFields": ["BarData"]
           },
           {
             "enabled": true,
@@ -201,9 +191,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "StackData"
-            ]
+            "targetFields": ["StackData"]
           },
           {
             "enabled": true,
@@ -220,9 +208,7 @@
               "backgroundColor": "#ff0000",
               "textColor": "#ffffff"
             },
-            "targetFields": [
-              "BulletData"
-            ]
+            "targetFields": ["BulletData"]
           }
         ],
         "includeCount": true,

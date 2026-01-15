@@ -22,10 +22,7 @@ export interface EnhancedRowContext extends RowContext {
  * Evaluate a threshold rule against a row context.
  * Returns the style from the matching threshold level, or baseStyle if no match.
  */
-function evaluateThresholdRule(
-  rule: HighlightRule,
-  context: RowContext
-): CellStyle | null {
+function evaluateThresholdRule(rule: HighlightRule, context: RowContext): CellStyle | null {
   // Check if threshold field is defined
   if (!rule.thresholdField) {
     return null;
@@ -33,7 +30,7 @@ function evaluateThresholdRule(
 
   // Get the value from the row
   const rawValue = context.row[rule.thresholdField];
-  
+
   // Convert to number and validate
   const numValue = Number(rawValue);
   if (isNaN(numValue)) {
@@ -63,10 +60,7 @@ function evaluateThresholdRule(
  * Evaluate a value mapping rule against a row context.
  * Returns the style from the matching value mapping, or null if no match.
  */
-function evaluateValueMappingRule(
-  rule: HighlightRule,
-  context: RowContext
-): CellStyle | null {
+function evaluateValueMappingRule(rule: HighlightRule, context: RowContext): CellStyle | null {
   // Check if value mapping field is defined
   if (!rule.valueMappingField) {
     return null;
@@ -95,10 +89,7 @@ function evaluateValueMappingRule(
  * Evaluate a data range gradient rule against a row context.
  * Returns a style with gradient color applied to background or foreground.
  */
-function evaluateDataRangeGradientRule(
-  rule: HighlightRule,
-  context: EnhancedRowContext
-): CellStyle | null {
+function evaluateDataRangeGradientRule(rule: HighlightRule, context: EnhancedRowContext): CellStyle | null {
   // Validate required fields
   if (!rule.dataRangeSourceField || !rule.dataRangeColorScheme || !rule.dataRangeApplyTo) {
     return null;
@@ -144,7 +135,12 @@ function evaluateDataRangeGradientRule(
   // Handle edge case where min === max
   if (min === max) {
     // All values are the same, use middle of gradient
-    const color = getColorFromScheme(rule.dataRangeColorScheme, 0.5, context.theme, rule.dataRangeReverseGradient ?? false);
+    const color = getColorFromScheme(
+      rule.dataRangeColorScheme,
+      0.5,
+      context.theme,
+      rule.dataRangeReverseGradient ?? false
+    );
     return rule.dataRangeApplyTo === 'background'
       ? { backgroundColor: color, textColor: getContrastingTextColor(color) }
       : { textColor: color };
@@ -155,7 +151,12 @@ function evaluateDataRangeGradientRule(
   const clampedValue = Math.max(0, Math.min(1, normalizedValue));
 
   // Get color from scheme at normalized position
-  const color = getColorFromScheme(rule.dataRangeColorScheme, clampedValue, context.theme, rule.dataRangeReverseGradient ?? false);
+  const color = getColorFromScheme(
+    rule.dataRangeColorScheme,
+    clampedValue,
+    context.theme,
+    rule.dataRangeReverseGradient ?? false
+  );
 
   // Return style based on applyTo setting
   if (rule.dataRangeApplyTo === 'background') {
@@ -177,15 +178,15 @@ function evaluateDataRangeGradientRule(
 function parseSparkChartData(value: any, separator: string): number[] {
   // Handle arrays directly
   if (Array.isArray(value)) {
-    return value.map(v => Number(v)).filter(n => !isNaN(n));
+    return value.map((v) => Number(v)).filter((n) => !isNaN(n));
   }
 
   // Handle strings with separator
   if (typeof value === 'string') {
     return value
       .split(separator)
-      .map(s => Number(s.trim()))
-      .filter(n => !isNaN(n));
+      .map((s) => Number(s.trim()))
+      .filter((n) => !isNaN(n));
   }
 
   return [];
@@ -208,10 +209,7 @@ function sanitizeTooltipText(text: string): string {
  * Evaluate a flags column rule against a row context.
  * Returns a style with custom renderer configuration for flag icons.
  */
-function evaluateFlagsColumnRule(
-  rule: HighlightRule,
-  context: EnhancedRowContext
-): CellStyle | null {
+function evaluateFlagsColumnRule(rule: HighlightRule, context: EnhancedRowContext): CellStyle | null {
   if (!rule.flagDefinitions || rule.flagDefinitions.length === 0) {
     return null;
   }
@@ -274,7 +272,7 @@ function evaluateFlagsColumnRule(
         icon: flagDef.icon,
         iconType: flagDef.iconType,
         color: flagDef.iconColor || context.theme?.colors.text.primary || '#000',
-        tooltip: tooltip
+        tooltip: tooltip,
       });
     }
   }
@@ -285,7 +283,7 @@ function evaluateFlagsColumnRule(
 
   return {
     customRenderer: 'flagsColumn',
-    customRendererConfig: { icons: matchedIcons }
+    customRendererConfig: { icons: matchedIcons },
   };
 }
 
@@ -293,10 +291,7 @@ function evaluateFlagsColumnRule(
  * Evaluate a spark chart rule against a row context.
  * Returns a style with custom renderer configuration.
  */
-function evaluateSparkChartRule(
-  rule: HighlightRule,
-  context: EnhancedRowContext
-): CellStyle | null {
+function evaluateSparkChartRule(rule: HighlightRule, context: EnhancedRowContext): CellStyle | null {
   // Validate required fields
   if (!rule.sparkChartSourceField || !rule.sparkChartMode) {
     return null;
@@ -358,7 +353,7 @@ function evaluateSparkChartRule(
   let scaleMin: number | undefined;
   let scaleMax: number | undefined;
   const scaleMode = rule.sparkChartScaleMode || 'cell';
-  
+
   if (rule.sparkChartMode === 'line' || rule.sparkChartMode === 'bar') {
     switch (scaleMode) {
       case 'cell':
@@ -452,10 +447,7 @@ function evaluateSparkChartRule(
  * Rules are evaluated in priority order (lower number = higher priority).
  * Supports five rule types: conditional, threshold, valueMapping, dataRangeGradient, and sparkChart.
  */
-export function computeCellStyle(
-  rules: HighlightRule[],
-  context: EnhancedRowContext
-): CellStyle | null {
+export function computeCellStyle(rules: HighlightRule[], context: EnhancedRowContext): CellStyle | null {
   // Filter enabled rules
   const enabledRules = rules.filter((rule) => rule.enabled);
 
@@ -466,11 +458,11 @@ export function computeCellStyle(
   for (const rule of sortedRules) {
     // Dispatch to appropriate evaluator based on rule type
     const ruleType = rule.ruleType || 'conditional'; // Default to 'conditional' for backward compatibility
-    
+
     // For flagsColumn rules, skip field checking (they are synthetic columns)
     // and always evaluate when passed to this function
     const skipFieldCheck = ruleType === 'flagsColumn';
-    
+
     // Check if rule applies to this field
     if (!skipFieldCheck) {
       const appliesToField = Array.isArray(rule.targetFields) && rule.targetFields.includes(context.currentField);
@@ -524,11 +516,6 @@ export function computeCellStyle(
 /**
  * Get all rules that apply to a specific field.
  */
-export function getRulesForField(
-  rules: HighlightRule[],
-  fieldName: string
-): HighlightRule[] {
-  return rules.filter(
-    (rule) => Array.isArray(rule.targetFields) && rule.targetFields.includes(fieldName)
-  );
+export function getRulesForField(rules: HighlightRule[], fieldName: string): HighlightRule[] {
+  return rules.filter((rule) => Array.isArray(rule.targetFields) && rule.targetFields.includes(fieldName));
 }

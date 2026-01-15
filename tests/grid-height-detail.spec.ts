@@ -7,7 +7,11 @@ import { test, expect } from '@grafana/plugin-e2e';
  */
 
 test.describe('Grid Height - Detailed Analysis', () => {
-  test('analyze GridBody height vs bodyWrapper height', async ({ gotoPanelEditPage, readProvisionedDashboard, page }) => {
+  test('analyze GridBody height vs bodyWrapper height', async ({
+    gotoPanelEditPage,
+    readProvisionedDashboard,
+    page,
+  }) => {
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
 

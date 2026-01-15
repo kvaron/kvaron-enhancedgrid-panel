@@ -9,6 +9,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 ### 1. Type System Updates ([types.ts](../src/types.ts))
 
 **New Types:**
+
 - `ConditionGroup`: Represents a group of conditions combined with a logical operator (AND/OR)
   - Contains `items` array of conditions or nested groups
   - Has a `logicalOperator` to combine all items
@@ -16,19 +17,22 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 - Type guard functions: `isConditionGroup()` and `isCondition()`
 
 **Updated Types:**
+
 - `HighlightCondition`: Removed `logicalOperator` field (now handled by groups)
-- `HighlightRule`: 
+- `HighlightRule`:
   - New: `conditionGroup?: ConditionGroup`
   - Legacy: `conditions?: HighlightCondition[]` (maintained for backward compatibility)
 
 ### 2. Condition Evaluator ([conditionEvaluator.ts](../src/utils/conditionEvaluator.ts))
 
 **New Functions:**
+
 - `evaluateConditionElement()`: Evaluates either a single condition or a group
 - `evaluateConditionGroup()`: Recursively evaluates nested condition groups
 - Updated `evaluateConditions()`: Simplified for legacy support only
 
 **Key Features:**
+
 - Recursive evaluation of nested groups
 - Short-circuit evaluation for AND/OR operators
 - Safe enum-based operator matching (no code execution)
@@ -37,6 +41,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 ### 3. Highlight Engine ([highlightEngine.ts](../src/utils/highlightEngine.ts))
 
 **Updates:**
+
 - Modified `computeCellStyle()` to support both new `conditionGroup` and legacy `conditions`
 - Automatic fallback for backward compatibility
 - Imports new evaluator functions
@@ -46,6 +51,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 #### New: ConditionGroupBuilder ([ConditionGroupBuilder.tsx](../src/components/ConfigEditor/ConditionGroupBuilder.tsx))
 
 **Features:**
+
 - Visual hierarchy with indentation for nested groups
 - Group operator selector (AND/OR)
 - Add Condition / Add Group buttons
@@ -54,6 +60,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 - Styled borders and backgrounds for clarity
 
 **UI Elements:**
+
 - Group header with operator selector
 - Individual condition rows with field/operator/value inputs
 - Delete buttons for conditions and groups
@@ -62,6 +69,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 #### Updated: HighlightRuleEditor ([HighlightRuleEditor.tsx](../src/components/ConfigEditor/HighlightRuleEditor.tsx))
 
 **Changes:**
+
 - Uses `ConditionGroupBuilder` for new rules
 - Falls back to legacy `ConditionBuilder` for old format
 - Creates new rules with `conditionGroup` instead of `conditions`
@@ -70,11 +78,13 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 ### 5. Migration Utilities ([conditionMigration.ts](../src/utils/conditionMigration.ts))
 
 **Functions:**
+
 - `migrateRuleToConditionGroup()`: Converts single rule from legacy to new format
 - `migrateAllRules()`: Batch migration for multiple rules
 - `conditionGroupToLegacy()`: Converts simple groups back to legacy format
 
 **Migration Strategy:**
+
 - Wraps legacy flat conditions in a single AND group
 - Preserves all existing condition properties
 - Removes legacy `conditions` field after migration
@@ -83,6 +93,7 @@ Successfully implemented support for nested condition groups in the Enhanced Gri
 ### 6. Documentation
 
 Created comprehensive documentation:
+
 - [nested-conditions.md](nested-conditions.md): User guide with examples
 - This summary document for developers
 
@@ -112,30 +123,30 @@ const rule: HighlightRule = {
             sourceField: 'status',
             operator: 'equals',
             compareType: 'value',
-            compareValue: 'active'
+            compareValue: 'active',
           },
           {
             id: 'cond-2',
             sourceField: 'value',
             operator: 'greater_than',
             compareType: 'value',
-            compareValue: 1000
-          }
-        ]
+            compareValue: 1000,
+          },
+        ],
       },
       {
         id: 'cond-3',
         sourceField: 'vip',
         operator: 'equals',
         compareType: 'value',
-        compareValue: true
-      }
-    ]
+        compareValue: true,
+      },
+    ],
   },
   style: {
     backgroundColor: '#ffcc00',
-    textColor: '#000000'
-  }
+    textColor: '#000000',
+  },
 };
 ```
 
@@ -144,6 +155,7 @@ This evaluates to: `(status == "active" AND value > 1000) OR vip == true`
 ## Backward Compatibility
 
 ✅ **Fully backward compatible**:
+
 - Existing rules with `conditions` array continue to work
 - Legacy format automatically supported by evaluator
 - No data migration required on upgrade
@@ -158,6 +170,7 @@ This evaluates to: `(status == "active" AND value > 1000) OR vip == true`
 ## Future Enhancements
 
 Potential improvements:
+
 1. Drag-and-drop reordering of conditions/groups
 2. Collapse/expand groups in UI
 3. Visual expression preview (e.g., "(A && B) || C")

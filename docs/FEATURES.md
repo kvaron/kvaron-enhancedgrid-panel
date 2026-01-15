@@ -35,6 +35,7 @@ The filter button will highlight in blue when a filter is active.
 ### Available Operators by Column Type
 
 #### Numeric Columns
+
 - Equals (=)
 - Not Equals (≠)
 - Greater Than (>)
@@ -46,6 +47,7 @@ The filter button will highlight in blue when a filter is active.
 - Is Not Blank
 
 #### Text Columns
+
 - Contains
 - Equals
 - Starts With
@@ -54,6 +56,7 @@ The filter button will highlight in blue when a filter is active.
 - Is Not Blank
 
 #### Date Columns
+
 - Before
 - After
 - Between
@@ -61,6 +64,7 @@ The filter button will highlight in blue when a filter is active.
 - Is Not Blank
 
 #### Boolean Columns
+
 - Is True
 - Is False
 - Is Blank
@@ -68,6 +72,7 @@ The filter button will highlight in blue when a filter is active.
 ### Filter Examples
 
 **Text - Contains:** Find rows where column contains "laptop"
+
 ```
 Operator: Contains
 Value: laptop
@@ -75,6 +80,7 @@ Result: Matches "Dell Laptop", "Gaming Laptop Pro", etc.
 ```
 
 **Number - Between:** Find values between 100 and 500
+
 ```
 Operator: Between
 Value 1: 100
@@ -83,6 +89,7 @@ Result: Matches any number from 100 to 500 inclusive
 ```
 
 **Date - After:** Find dates after January 1, 2024
+
 ```
 Operator: After
 Value: 2024-01-01
@@ -105,17 +112,20 @@ Control how data is displayed across pages for better performance and usability.
 #### Client-Side Pagination
 
 **How It Works:**
+
 1. All data fetched from datasource once
 2. Filtering and sorting applied in browser
 3. Results paginated in browser
 4. Fast page navigation (no network requests)
 
 **Best For:**
+
 - Datasets under 10,000 rows
 - When you need instant page switching
 - When server doesn't support pagination
 
 **Configuration:**
+
 ```
 Pagination Settings:
 ├─ Pagination Enabled: ✓
@@ -126,17 +136,20 @@ Pagination Settings:
 #### Server-Side Pagination
 
 **How It Works:**
+
 1. Only current page data fetched from datasource
 2. Page navigation triggers new queries
 3. Total count retrieved separately (if supported)
 4. Minimal memory usage
 
 **Best For:**
+
 - Datasets over 10,000 rows
 - OData or SQL datasources
 - When network bandwidth is limited
 
 **Configuration:**
+
 ```
 Pagination Settings:
 ├─ Pagination Enabled: ✓
@@ -171,11 +184,13 @@ Server-Side Settings:
 6. Update datasource query to use variables
 
 **OData Example:**
+
 ```
 https://api.example.com/data?$skip=${gridSkip}&$top=${gridTop}
 ```
 
 **SQL Example:**
+
 ```sql
 SELECT * FROM table
 LIMIT ${gridTop} OFFSET ${gridSkip}
@@ -201,6 +216,7 @@ Apply colors, backgrounds, and styles to cells based on data values.
 Color cells based on numeric value ranges.
 
 **Example: Color sales performance**
+
 ```
 Rule: Sales Performance
 ├─ Apply To: sales_amount
@@ -211,6 +227,7 @@ Rule: Sales Performance
 ```
 
 **Configuration:**
+
 1. Add Rule → Select **Threshold Rule**
 2. Set rule name
 3. Select columns to apply to
@@ -222,6 +239,7 @@ Rule: Sales Performance
 Map specific values to colors and icons.
 
 **Example: Status indicators**
+
 ```
 Rule: Order Status
 ├─ Apply To: status
@@ -232,6 +250,7 @@ Rule: Order Status
 ```
 
 **Configuration:**
+
 1. Add Rule → Select **Value Mapping**
 2. Set rule name
 3. Select column
@@ -243,6 +262,7 @@ Rule: Order Status
 Apply smooth color gradients across value ranges.
 
 **Example: Heat map effect**
+
 ```
 Rule: Temperature Range
 ├─ Apply To: temperature
@@ -252,6 +272,7 @@ Rule: Temperature Range
 ```
 
 **Configuration:**
+
 1. Add Rule → Select **Data Range Gradient**
 2. Set min/mid/max values
 3. Choose color scheme
@@ -262,6 +283,7 @@ Rule: Temperature Range
 Display icon flags based on multiple conditions.
 
 **Example: Alert indicators**
+
 ```
 Rule: Alert Flags
 ├─ Apply To: alerts
@@ -276,6 +298,7 @@ Rule: Alert Flags
 Embed mini line/bar charts in cells.
 
 **Example: Trend visualization**
+
 ```
 Rule: 7-Day Trend
 ├─ Apply To: trend_data
@@ -289,6 +312,7 @@ Rule: 7-Day Trend
 Build complex logical expressions for precise highlighting.
 
 **Simple AND Group:**
+
 ```
 Group (AND)
 ├─ Condition: status == "active"
@@ -298,6 +322,7 @@ Evaluates: status == "active" AND value > 100
 ```
 
 **Mixed Logic:**
+
 ```
 Group (OR)
 ├─ Group (AND)
@@ -309,6 +334,7 @@ Evaluates: (status == "active" AND value > 100) OR priority == "high"
 ```
 
 **Complex Nested:**
+
 ```
 Group (OR)
 ├─ Group (AND)
@@ -319,8 +345,8 @@ Group (OR)
 │  └─ Condition: sales > 800
 └─ Condition: vip == true
 
-Evaluates: (region == "US" AND sales > 1000) OR 
-           (region == "EU" AND sales > 800) OR 
+Evaluates: (region == "US" AND sales > 1000) OR
+           (region == "EU" AND sales > 800) OR
            vip == true
 ```
 
@@ -335,6 +361,7 @@ Evaluates: (region == "US" AND sales > 1000) OR
 ### Condition Operators
 
 **Comparison:**
+
 - `equals` / `not_equals`
 - `greater_than` / `less_than`
 - `greater_than_or_equal` / `less_than_or_equal`
@@ -343,6 +370,7 @@ Evaluates: (region == "US" AND sales > 1000) OR
 - `is_null` / `is_not_null`
 
 **Logical:**
+
 - `AND`: All conditions must be true
 - `OR`: At least one condition must be true
 
@@ -352,6 +380,7 @@ Evaluates: (region == "US" AND sales > 1000) OR
 - **Field**: Compare to another field in the same row
 
 **Example - Field Comparison:**
+
 ```
 Condition: actual > budget
 ├─ Source Field: actual_sales
@@ -382,6 +411,7 @@ Push filtering, sorting, and pagination to your datasource for better performanc
 2. Create these variables:
 
 **Filter Variable:**
+
 ```
 Name: gridFilter
 Type: Text box
@@ -389,6 +419,7 @@ Hide: Variable
 ```
 
 **Sort Variable:**
+
 ```
 Name: gridSort
 Type: Text box
@@ -396,6 +427,7 @@ Hide: Variable
 ```
 
 **Pagination Variables (if using server-side pagination):**
+
 ```
 Name: gridSkip
 Type: Text box
@@ -419,11 +451,13 @@ Hide: Variable
 #### Step 3: Update Datasource Query
 
 **For OData (Infinity Datasource):**
+
 ```
 URL: https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}
 ```
 
 **For PostgreSQL/MySQL:**
+
 ```sql
 SELECT * FROM products
 WHERE ${gridFilter}
@@ -436,11 +470,13 @@ LIMIT ${gridTop} OFFSET ${gridSkip}
 #### OData Format
 
 **Filter Output:**
+
 ```
 status eq 'active' and price gt 100
 ```
 
 **Sort Output:**
+
 ```
 price desc, name asc
 ```
@@ -448,11 +484,13 @@ price desc, name asc
 #### SQL Format
 
 **Filter Output:**
+
 ```
 status = 'active' AND price > 100
 ```
 
 **Sort Output:**
+
 ```
 price DESC, name ASC
 ```
@@ -460,8 +498,9 @@ price DESC, name ASC
 #### JSON Format
 
 **Filter Output:**
+
 ```json
-{"status": "active", "price": {"$gt": 100}}
+{ "status": "active", "price": { "$gt": 100 } }
 ```
 
 ### Testing Server-Side Mode
@@ -491,12 +530,14 @@ If cell coloring isn't working as expected:
 ### Performance Tips
 
 **For Large Datasets:**
+
 - Enable server-side mode
 - Use server-side pagination
 - Limit page size to 50-100 rows
 - Minimize number of highlight rules
 
 **For Complex Highlighting:**
+
 - Combine related conditions into groups
 - Use specific column targeting (avoid "All Columns")
 - Test rules with sample data first
@@ -523,6 +564,7 @@ Use Grafana's theme system to customize panel appearance:
 ### Filters Not Working
 
 **Check:**
+
 - Is column type detected correctly?
 - Is server-side mode configured properly?
 - Are dashboard variables created?
@@ -531,6 +573,7 @@ Use Grafana's theme system to customize panel appearance:
 ### Pagination Issues
 
 **Check:**
+
 - Is pagination enabled?
 - Is page size set correctly?
 - For server-side: Are skip/top variables configured?
@@ -539,6 +582,7 @@ Use Grafana's theme system to customize panel appearance:
 ### Highlighting Not Applied
 
 **Check:**
+
 - Does rule apply to the correct columns?
 - Are conditions correct?
 - Is data in expected format?
@@ -547,6 +591,7 @@ Use Grafana's theme system to customize panel appearance:
 ### Server-Side Not Updating
 
 **Check:**
+
 - Are dashboard variables created and hidden?
 - Is query using variable syntax correctly (${varName})?
 - Is server-side mode enabled?
@@ -559,6 +604,7 @@ Use Grafana's theme system to customize panel appearance:
 ### From Legacy Conditions
 
 Old flat condition lists are automatically migrated to nested groups:
+
 - All conditions wrapped in single AND group
 - No manual changes needed
 - Can enhance with nesting after migration
@@ -566,6 +612,7 @@ Old flat condition lists are automatically migrated to nested groups:
 ### Backward Compatibility
 
 The panel maintains backward compatibility with:
+
 - Old rule formats
 - Legacy configuration options
 - Previous Grafana versions (11.6.0+)

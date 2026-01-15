@@ -3,10 +3,7 @@
  * Run with: node --loader ts-node/esm validation.ts
  */
 
-import {
-  evaluateConditionGroup,
-  RowContext,
-} from './src/utils/conditionEvaluator';
+import { evaluateConditionGroup, RowContext } from './src/utils/conditionEvaluator';
 import { ConditionGroup } from './src/types';
 
 // Test data

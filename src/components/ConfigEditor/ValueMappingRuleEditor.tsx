@@ -43,11 +43,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({
-  value,
-  onChange,
-  context,
-}) => {
+export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({ value, onChange, context }) => {
   const styles = useStyles2(getStyles);
   const rule = value;
 
@@ -65,7 +61,9 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
   }));
 
   const updateValueMappingField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       valueMappingField: selected.value,
@@ -185,11 +183,7 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
                     />
                   </InlineField>
                 </InlineFieldRow>
-                <IconButton
-                  name="trash-alt"
-                  tooltip="Remove value mapping"
-                  onClick={() => removeValueMapping(index)}
-                />
+                <IconButton name="trash-alt" tooltip="Remove value mapping" onClick={() => removeValueMapping(index)} />
               </div>
               <div className={styles.cellStyleWrapper}>
                 <CellStyleEditor
@@ -201,12 +195,7 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
             </div>
           ))}
 
-          <Button
-            icon="plus"
-            variant="secondary"
-            onClick={addValueMapping}
-            className={styles.addButton}
-          >
+          <Button icon="plus" variant="secondary" onClick={addValueMapping} className={styles.addButton}>
             Add Value Mapping
           </Button>
         </Stack>

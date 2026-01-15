@@ -78,18 +78,21 @@ Filter and sort - your database handles it all!
 When you filter "Name" column with "laptop" and sort by "Price" descending:
 
 **OData format generates:**
+
 ```
 gridFilter = contains(tolower(Name), 'laptop')
 gridSort = Price desc
 ```
 
 **SQL format generates:**
+
 ```
 gridFilter = Name ILIKE '%laptop%'
 gridSort = Price DESC
 ```
 
 **Your datasource receives:**
+
 ```
 OData: ?$filter=contains(tolower(Name), 'laptop')&$orderby=Price desc
 SQL:   WHERE Name ILIKE '%laptop%' ORDER BY Price DESC
@@ -104,6 +107,7 @@ A: Check variable names match exactly (case-sensitive)
 
 **Q: Getting empty results?**
 A: Make sure to handle empty variables:
+
 - SQL: Use `WHERE 1=1 ${gridFilter:raw}` (the `1=1` ensures valid SQL when empty)
 - OData: Variables will be empty strings when no filter/sort applied
 
@@ -117,10 +121,12 @@ A: Just toggle "Enable Server-Side Mode" OFF - panel returns to client-side filt
 Each grid can use different variables:
 
 **Grid 1:**
+
 - Filter Variable: `grid1Filter`
 - Sort Variable: `grid1Sort`
 
 **Grid 2:**
+
 - Filter Variable: `grid2Filter`
 - Sort Variable: `grid2Sort`
 

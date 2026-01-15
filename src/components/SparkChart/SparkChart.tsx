@@ -1,7 +1,11 @@
 import React, { useMemo } from 'react';
 import { SparkChartConfig } from '../../types';
 import { getSparkChartSegmentColor, getColorFromScheme } from '../../utils/colorUtils';
-import { generateLineGradientDef, generateSparkLinePath, calculateSparkLinePoints } from '../../utils/sparkChartGradient';
+import {
+  generateLineGradientDef,
+  generateSparkLinePath,
+  calculateSparkLinePoints,
+} from '../../utils/sparkChartGradient';
 
 interface SparkChartProps {
   config: SparkChartConfig;
@@ -60,7 +64,9 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     }
 
     const points = calculateSparkLinePoints(config.data, width, height, min, max);
-    if (points.length < 2) {return null;}
+    if (points.length < 2) {
+      return null;
+    }
 
     const range = max - min || 1;
     const segments: Array<{ path: string; color: string; isVertical: boolean }> = [];
@@ -73,7 +79,12 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
       const prevNormalized = (config.data[i - 1] - min) / range;
 
       // Get color for previous point
-      const prevColor = getColorFromScheme(config.colorScheme, prevNormalized, config.theme, config.reverseGradient ?? false);
+      const prevColor = getColorFromScheme(
+        config.colorScheme,
+        prevNormalized,
+        config.theme,
+        config.reverseGradient ?? false
+      );
 
       // Horizontal segment: from prevPoint to (currPoint.x, prevPoint.y)
       segments.push({
@@ -95,11 +106,25 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     }
 
     return segments;
-  }, [interpolationMode, useGradient, config.data, config.colorScheme, config.theme, config.reverseGradient, min, max, width, height, chartId]);
+  }, [
+    interpolationMode,
+    useGradient,
+    config.data,
+    config.colorScheme,
+    config.theme,
+    config.reverseGradient,
+    min,
+    max,
+    width,
+    height,
+    chartId,
+  ]);
 
   // Generate vertical gradients for step mode
   const verticalGradients = useMemo(() => {
-    if (!stepSegments) {return null;}
+    if (!stepSegments) {
+      return null;
+    }
 
     const points = calculateSparkLinePoints(config.data, width, height, min, max);
     const range = max - min || 1;
@@ -114,28 +139,53 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
         const prevNormalized = (config.data[i - 1] - min) / range;
         const currNormalized = (config.data[i] - min) / range;
 
-        const prevColor = getColorFromScheme(config.colorScheme!, prevNormalized, config.theme, config.reverseGradient ?? false);
-        const currColor = getColorFromScheme(config.colorScheme!, currNormalized, config.theme, config.reverseGradient ?? false);
+        const prevColor = getColorFromScheme(
+          config.colorScheme!,
+          prevNormalized,
+          config.theme,
+          config.reverseGradient ?? false
+        );
+        const currColor = getColorFromScheme(
+          config.colorScheme!,
+          currNormalized,
+          config.theme,
+          config.reverseGradient ?? false
+        );
 
         gradients.push(
-          React.createElement('linearGradient', {
-            key: `step-grad-${chartId}-${i}`,
-            id: `step-grad-${chartId}-${i}`,
-            gradientUnits: 'userSpaceOnUse',
-            x1: currPoint.x,
-            y1: prevPoint.y,
-            x2: currPoint.x,
-            y2: currPoint.y,
-          }, [
-            React.createElement('stop', { key: 'start', offset: '0%', stopColor: prevColor }),
-            React.createElement('stop', { key: 'end', offset: '100%', stopColor: currColor }),
-          ])
+          React.createElement(
+            'linearGradient',
+            {
+              key: `step-grad-${chartId}-${i}`,
+              id: `step-grad-${chartId}-${i}`,
+              gradientUnits: 'userSpaceOnUse',
+              x1: currPoint.x,
+              y1: prevPoint.y,
+              x2: currPoint.x,
+              y2: currPoint.y,
+            },
+            [
+              React.createElement('stop', { key: 'start', offset: '0%', stopColor: prevColor }),
+              React.createElement('stop', { key: 'end', offset: '100%', stopColor: currColor }),
+            ]
+          )
         );
       }
     }
 
     return gradients;
-  }, [stepSegments, config.data, config.colorScheme, config.theme, config.reverseGradient, min, max, width, height, chartId]);
+  }, [
+    stepSegments,
+    config.data,
+    config.colorScheme,
+    config.theme,
+    config.reverseGradient,
+    min,
+    max,
+    width,
+    height,
+    chartId,
+  ]);
 
   // Generate gradient definition for non-step modes
   const { gradientDef, gradientId } = useMemo(() => {
@@ -153,7 +203,18 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
       interpolationMode,
       config.reverseGradient ?? false
     );
-  }, [interpolationMode, useGradient, config.data, config.colorScheme, config.theme, min, max, width, height, config.reverseGradient]);
+  }, [
+    interpolationMode,
+    useGradient,
+    config.data,
+    config.colorScheme,
+    config.theme,
+    min,
+    max,
+    width,
+    height,
+    config.reverseGradient,
+  ]);
 
   // Generate path data for non-step modes
   const pathData = useMemo(() => {
@@ -345,7 +406,7 @@ const SparkBullet: React.FC<ChartComponentProps> = ({ config, width, height, yOf
     const bgBlocks = backgroundValues.map((value, index) => {
       const bgWidth = value * scale;
       const normalizedValue = backgroundValues.length > 1 ? index / (backgroundValues.length - 1) : 0;
-      
+
       // Get background color
       let bgColor = '#CCCCCC';
       if (config.bulletBgColorMode === 'solid' && config.bulletBgColor) {
@@ -435,19 +496,12 @@ const SparkBullet: React.FC<ChartComponentProps> = ({ config, width, height, yOf
             opacity={0.3}
           />
         ))}
-        
+
         {/* Foreground bar */}
         <rect x={0} y={fgY} width={fgWidth} height={fgHeight} fill={fgColor} />
-        
+
         {/* Target line */}
-        <line
-          x1={targetX}
-          y1={0}
-          x2={targetX}
-          y2={height}
-          stroke={lineColor}
-          strokeWidth={2}
-        />
+        <line x1={targetX} y1={0} x2={targetX} y2={height} stroke={lineColor} strokeWidth={2} />
       </g>
     </svg>
   );

@@ -55,7 +55,7 @@ export function transformDataFrame(frame: DataFrame | undefined): {
     if (field.values.length < rowCount) {
       console.warn(
         `[EnhancedGrid] Field "${field.name}" has ${field.values.length} values but frame.length is ${rowCount}. ` +
-        `Some cells may be undefined.`
+          `Some cells may be undefined.`
       );
     }
   }

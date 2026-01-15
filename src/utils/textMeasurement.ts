@@ -139,7 +139,7 @@ export function calculateAllColumnWidths(
   const sampleRows = rows.slice(0, sampleSize);
 
   for (const column of columns) {
-    const cellValues = sampleRows.map(row => {
+    const cellValues = sampleRows.map((row) => {
       const value = row.data ? row.data[column.fieldName] : row[column.fieldName];
       return value != null ? String(value) : '';
     });
@@ -154,15 +154,14 @@ export function calculateAllColumnWidths(
 /**
  * Gets font strings based on compact mode setting.
  */
-export function getFontOptions(compactMode: boolean, compactHeaders: boolean): Pick<ColumnWidthOptions, 'headerFont' | 'cellFont'> {
+export function getFontOptions(
+  compactMode: boolean,
+  compactHeaders: boolean
+): Pick<ColumnWidthOptions, 'headerFont' | 'cellFont'> {
   const fontFamily = 'Roboto, "Helvetica Neue", Arial, sans-serif';
 
   return {
-    headerFont: compactHeaders
-      ? `bold 12px ${fontFamily}`
-      : `bold 13px ${fontFamily}`,
-    cellFont: compactMode
-      ? `12px ${fontFamily}`
-      : `14px ${fontFamily}`,
+    headerFont: compactHeaders ? `bold 12px ${fontFamily}` : `bold 13px ${fontFamily}`,
+    cellFont: compactMode ? `12px ${fontFamily}` : `14px ${fontFamily}`,
   };
 }

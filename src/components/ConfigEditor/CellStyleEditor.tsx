@@ -24,8 +24,7 @@ export const CellStyleEditor: React.FC<CellStyleEditorProps> = ({ value, onChang
   };
 
   const styles = {
-    container: css({
-    }),
+    container: css({}),
     label: css({
       fontSize: theme.typography.bodySmall.fontSize,
       fontWeight: theme.typography.fontWeightMedium,
@@ -171,7 +170,6 @@ export const CellStyleEditor: React.FC<CellStyleEditorProps> = ({ value, onChang
     onChange({ ...value, textDecoration: newDecoration as any });
   };
 
-
   return (
     <div className={styles.container}>
       {label && <div className={styles.label}>{label}</div>}
@@ -274,7 +272,7 @@ export const CellStyleEditor: React.FC<CellStyleEditorProps> = ({ value, onChang
               <div className={styles.columnLabel}>Icon</div>
               <div style={{ position: 'relative' }} ref={iconButtonRef as any}>
                 <Button
-                  icon={value.iconSource === 'grafana' ? value.icon as IconName : undefined}
+                  icon={value.iconSource === 'grafana' ? (value.icon as IconName) : undefined}
                   onClick={() => setIconPickerOpen(!iconPickerOpen)}
                   tooltip="Select icon or emoji"
                   variant="secondary"
@@ -299,4 +297,3 @@ export const CellStyleEditor: React.FC<CellStyleEditorProps> = ({ value, onChang
     </div>
   );
 };
-

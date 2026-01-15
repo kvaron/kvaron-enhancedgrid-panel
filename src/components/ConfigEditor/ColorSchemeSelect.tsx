@@ -1,5 +1,11 @@
 import React, { CSSProperties, useMemo } from 'react';
-import { FieldColorModeId, fieldColorModeRegistry, FieldColorMode, GrafanaTheme2, SelectableValue } from '@grafana/data';
+import {
+  FieldColorModeId,
+  fieldColorModeRegistry,
+  FieldColorMode,
+  GrafanaTheme2,
+  SelectableValue,
+} from '@grafana/data';
 import { Select, useTheme2, useStyles2, ColorPicker, InlineSwitch, InlineField } from '@grafana/ui';
 import { css } from '@emotion/css';
 
@@ -139,7 +145,9 @@ export const ColorSchemeSelect: React.FC<ColorSchemeSelectProps> = ({
         value: mode.id,
         label: mode.name,
         description: mode.description,
-        component: mode.getColors ? () => <FieldColorModeViz mode={mode} theme={theme} reverse={reverseGradient} /> : undefined,
+        component: mode.getColors
+          ? () => <FieldColorModeViz mode={mode} theme={theme} reverse={reverseGradient} />
+          : undefined,
       });
     }
 
@@ -147,11 +155,8 @@ export const ColorSchemeSelect: React.FC<ColorSchemeSelectProps> = ({
   }, [theme, includeFixed, reverseGradient]);
 
   // Show color picker for fixed color or shades mode
-  const showColorPicker = onColorChange && (
-    value === 'fixed' ||
-    value === undefined ||
-    value === FieldColorModeId.Shades
-  );
+  const showColorPicker =
+    onColorChange && (value === 'fixed' || value === undefined || value === FieldColorModeId.Shades);
 
   return (
     <div className={styles.container}>
@@ -166,18 +171,12 @@ export const ColorSchemeSelect: React.FC<ColorSchemeSelectProps> = ({
       />
       {showColorPicker && (
         <div className={styles.colorPickerWrapper}>
-          <ColorPicker
-            color={color || defaultColor}
-            onChange={(newColor) => onColorChange(newColor)}
-          />
+          <ColorPicker color={color || defaultColor} onChange={(newColor) => onColorChange(newColor)} />
         </div>
       )}
       {showReverseToggle && value !== 'fixed' && value !== undefined && (
         <InlineField label="Reverse" transparent>
-          <InlineSwitch
-            value={reverseGradient ?? false}
-            onChange={(e) => onReverseChange?.(e.currentTarget.checked)}
-          />
+          <InlineSwitch value={reverseGradient ?? false} onChange={(e) => onReverseChange?.(e.currentTarget.checked)} />
         </InlineField>
       )}
     </div>

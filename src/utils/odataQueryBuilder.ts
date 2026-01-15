@@ -324,7 +324,10 @@ export function buildSQLQuery(
  * Builds a generic query parameter format (for non-OData APIs)
  * Can be customized based on your API's requirements
  */
-export function buildGenericQuery(filters: FilterState, sortState: SortState): {
+export function buildGenericQuery(
+  filters: FilterState,
+  sortState: SortState
+): {
   filter: string;
   sort: string;
 } {
@@ -346,9 +349,7 @@ export function buildGenericQuery(filters: FilterState, sortState: SortState): {
   // Build sort string
   let sortString = '';
   if (sortState.field) {
-    sortString = sortState.direction === 'desc'
-      ? `-${sortState.field}`
-      : sortState.field;
+    sortString = sortState.direction === 'desc' ? `-${sortState.field}` : sortState.field;
   }
 
   return {

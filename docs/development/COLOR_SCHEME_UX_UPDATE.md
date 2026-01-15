@@ -1,6 +1,7 @@
 # Color Scheme UX Update
 
 ## Overview
+
 Updated the Data Range Gradient rule editor to use Grafana's built-in UI pattern for color scheme selection, replacing the plain dropdown with an interactive menu button that displays gradient previews.
 
 ## Changes Made
@@ -8,12 +9,15 @@ Updated the Data Range Gradient rule editor to use Grafana's built-in UI pattern
 ### Component: DataRangeGradientRuleEditor.tsx
 
 #### 1. Updated Imports
+
 Added necessary components from @grafana/ui:
+
 - `Menu` - For dropdown menu functionality
 - `ToolbarButton` - For the button trigger that matches Grafana's UI patterns
 - `useState` - For managing menu state (imported but available for future use)
 
 #### 2. Updated Styles
+
 Replaced the preview container styles with new styles for the color scheme button:
 
 ```typescript
@@ -43,17 +47,20 @@ menuItemLabel: css`
 #### 3. New Helper Functions
 
 **generateGradientCSS(schemeId: string)**
+
 - Generates a CSS gradient string for a given color scheme
 - Creates 50 color stops for smooth gradient rendering
 - Used for both menu items and the button display
 
 **selectedSchemeLabel**
+
 - Computed value that finds and displays the label for the currently selected color scheme
 - Falls back to "Select color scheme" if none selected
 
 #### 4. Replaced UI Component
 
 **Before:** Plain Select dropdown
+
 ```tsx
 <Combobox
   options={colorSchemeOptions}
@@ -65,6 +72,7 @@ menuItemLabel: css`
 ```
 
 **After:** Menu with ToolbarButton trigger
+
 ```tsx
 <Menu
   renderMenuItems={() => (
@@ -91,12 +99,7 @@ menuItemLabel: css`
   )}
 >
   {(props) => (
-    <ToolbarButton
-      {...props}
-      className={styles.colorSchemeButton}
-      variant="canvas"
-      icon="palette"
-    >
+    <ToolbarButton {...props} className={styles.colorSchemeButton} variant="canvas" icon="palette">
       {rule.dataRangeColorScheme ? (
         <div className={styles.menuItemContent}>
           <div
@@ -133,4 +136,5 @@ menuItemLabel: css`
 - All 10 working color schemes (GrYlRd, RdYlGr, BlYlRd, YlRd, BlPu, YlBl, Blues, Reds, Greens, Purples) are supported
 
 ## Build Status
+
 ✅ Build successful with no errors or warnings

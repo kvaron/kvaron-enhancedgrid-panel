@@ -24,14 +24,14 @@ export function detectColumnType(field: Field, sampleValues?: any[]): ColumnType
 
   // If field type is not conclusive, analyze sample values
   if (sampleValues && sampleValues.length > 0) {
-    const nonNullValues = sampleValues.filter(v => v != null && v !== '');
+    const nonNullValues = sampleValues.filter((v) => v != null && v !== '');
 
     if (nonNullValues.length === 0) {
       return 'text'; // Default to text for empty columns
     }
 
     // Check if all non-null values are numbers
-    const allNumbers = nonNullValues.every(v => {
+    const allNumbers = nonNullValues.every((v) => {
       if (typeof v === 'number') {
         return true;
       }
@@ -47,7 +47,7 @@ export function detectColumnType(field: Field, sampleValues?: any[]): ColumnType
     }
 
     // Check if all non-null values are booleans
-    const allBooleans = nonNullValues.every(v => {
+    const allBooleans = nonNullValues.every((v) => {
       if (typeof v === 'boolean') {
         return true;
       }
@@ -63,7 +63,7 @@ export function detectColumnType(field: Field, sampleValues?: any[]): ColumnType
     }
 
     // Check if values look like dates
-    const allDates = nonNullValues.every(v => {
+    const allDates = nonNullValues.every((v) => {
       if (v instanceof Date) {
         return true;
       }

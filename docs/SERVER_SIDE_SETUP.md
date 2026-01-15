@@ -53,6 +53,7 @@ https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort
 ```
 
 **Example with filters applied:**
+
 - User filters: Name contains "laptop", Category contains "electronics"
 - Generated URL: `https://api.example.com/odata/Products?$filter=contains(tolower(Name), 'laptop') and contains(tolower(Category), 'electronics')&$orderby=Price desc`
 
@@ -69,6 +70,7 @@ ORDER BY ${gridSort:raw}
 **Important**: Use the `:raw` format specifier to prevent escaping.
 
 **Example with filters applied:**
+
 - User filters: name contains "laptop"
 - User sorts by: price DESC
 - Generated query:
@@ -93,6 +95,7 @@ With JSON format selected, the variables will contain JSON-encoded values.
 Add default handling for when no filters/sorts are applied:
 
 **PostgreSQL/MySQL:**
+
 ```sql
 SELECT * FROM products
 WHERE 1=1 ${gridFilter:raw}
@@ -102,6 +105,7 @@ ORDER BY ${gridSort:raw}
 This ensures the query is valid even when variables are empty.
 
 **OData:**
+
 ```
 https://api.example.com/odata/Products?${gridFilter:queryparam}&${gridSort:queryparam}
 ```
@@ -111,16 +115,19 @@ https://api.example.com/odata/Products?${gridFilter:queryparam}&${gridSort:query
 ### OData Format
 
 **Filter Output:**
+
 ```
 contains(tolower(Name), 'laptop') and contains(tolower(Price), '999')
 ```
 
 **Sort Output:**
+
 ```
 Price desc
 ```
 
 **Usage in URL:**
+
 ```
 ?$filter=contains(tolower(Name), 'laptop')&$orderby=Price desc
 ```
@@ -128,16 +135,19 @@ Price desc
 ### SQL Format
 
 **Filter Output (WHERE clause):**
+
 ```
 Name ILIKE '%laptop%' AND Price ILIKE '%999%'
 ```
 
 **Sort Output (ORDER BY clause):**
+
 ```
 Price DESC
 ```
 
 **Usage in Query:**
+
 ```sql
 SELECT * FROM products
 WHERE Name ILIKE '%laptop%' AND Price ILIKE '%999%'
@@ -147,14 +157,17 @@ ORDER BY Price DESC
 ### JSON Format
 
 **Filter Output:**
+
 ```json
-{"Name":"laptop","Price":"999"}
+{ "Name": "laptop", "Price": "999" }
 ```
 
 **Sort Output:**
+
 ```
 -Price
 ```
+
 (Minus sign indicates descending)
 
 ## Testing Your Setup
@@ -169,17 +182,20 @@ ORDER BY Price DESC
 ## Troubleshooting
 
 ### Variables not updating
+
 - Check that variable names match exactly (case-sensitive)
 - Ensure variables are created at the dashboard level
 - Verify "Server-Side Mode" is enabled
 
 ### Query not filtering/sorting
+
 - Check datasource query syntax
 - Use `:raw` format specifier in SQL queries
 - Verify API endpoint supports the query format
 - Check browser network tab to see actual request
 
 ### Empty results
+
 - Ensure empty variable handling is in place
 - Check if API requires specific parameter format
 - Verify column names match exactly between panel and datasource
@@ -198,10 +214,12 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 ## Examples by Datasource
 
 ### Infinity Datasource (OData)
+
 - Format: OData
 - URL: `https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${gridFilter}&$orderby=${gridSort}`
 
 ### PostgreSQL
+
 - Format: SQL
 - Query:
   ```sql
@@ -211,5 +229,6 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
   ```
 
 ### Infinity Datasource (Custom API)
+
 - Format: JSON
 - URL: `https://api.example.com/data?filters=${gridFilter}&sort=${gridSort}`

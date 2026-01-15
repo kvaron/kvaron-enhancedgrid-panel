@@ -21,9 +21,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
 
   const totalPages = totalRows != null ? Math.ceil(totalRows / pageSize) : null;
   const startRow = currentPage * pageSize + 1;
-  const endRow = totalRows != null
-    ? Math.min((currentPage + 1) * pageSize, totalRows)
-    : (currentPage + 1) * pageSize;
+  const endRow = totalRows != null ? Math.min((currentPage + 1) * pageSize, totalRows) : (currentPage + 1) * pageSize;
 
   const canGoPrevious = currentPage > 0;
   const canGoNext = totalPages != null ? currentPage < totalPages - 1 : true;
@@ -88,7 +86,9 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   };
 
   const handlePageSizeChange = (option: ComboboxOption<number> | null) => {
-    if (!option) { return; }
+    if (!option) {
+      return;
+    }
     const newPageSize = option.value;
     onPageSizeChange(newPageSize);
     // Reset to first page when changing page size
@@ -141,9 +141,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             max={totalPages || undefined}
             className={styles.pageInput}
           />
-          {totalPages != null && (
-            <span style={{ fontSize: '13px' }}>of {totalPages}</span>
-          )}
+          {totalPages != null && <span style={{ fontSize: '13px' }}>of {totalPages}</span>}
         </div>
 
         <Button
@@ -174,7 +172,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
         <span>Rows per page:</span>
         <Combobox
           value={pageSize}
-          options={pageSizeOptions.map(size => ({ label: String(size), value: size }))}
+          options={pageSizeOptions.map((size) => ({ label: String(size), value: size }))}
           onChange={handlePageSizeChange}
           width={16}
         />

@@ -111,7 +111,9 @@ export const EnhancedIconPicker: React.FC<EnhancedIconPickerProps> = ({
     }),
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <>

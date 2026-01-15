@@ -84,7 +84,9 @@ test.describe('Grid Height - Debug Measurements', () => {
     console.log(`Actual body height:     ${bodyWrapperHeight}px`);
     console.log(`Difference:             ${bodyWrapperHeight - expectedBodyHeight}px`);
     console.log('');
-    console.log(`Sum check:              ${headerHeight + bodyWrapperHeight + paginationHeight}px (should equal ${containerHeight}px)`);
+    console.log(
+      `Sum check:              ${headerHeight + bodyWrapperHeight + paginationHeight}px (should equal ${containerHeight}px)`
+    );
     console.log(`Sum difference:         ${containerHeight - (headerHeight + bodyWrapperHeight + paginationHeight)}px`);
     console.log('');
     console.log(`Scroll container info:`);

@@ -79,7 +79,7 @@ export const FlagsColumnRuleEditor: React.FC<FlagsColumnRuleEditorProps> = ({
     // Get all existing flags column rules from panel options
     const allRules = context.options?.highlightRules || [];
     const flagsRules = allRules.filter((r: HighlightRule) => r.ruleType === 'flagsColumn' && r.id !== rule.id);
-    
+
     // Find highest number
     let maxNum = 0;
     flagsRules.forEach((r: HighlightRule) => {
@@ -88,7 +88,7 @@ export const FlagsColumnRuleEditor: React.FC<FlagsColumnRuleEditorProps> = ({
         maxNum = Math.max(maxNum, parseInt(match[1], 10));
       }
     });
-    
+
     return `flags${maxNum + 1}`;
   };
 
@@ -185,9 +185,7 @@ export const FlagsColumnRuleEditor: React.FC<FlagsColumnRuleEditorProps> = ({
           {(rule.flagDefinitions || []).map((flag, index) => (
             <div key={flag.id} className={styles.flagDefinition}>
               <div className={styles.flagHeader}>
-                <div className={styles.flagTitle}>
-                  Flag {index + 1}
-                </div>
+                <div className={styles.flagTitle}>Flag {index + 1}</div>
                 <IconButton
                   name="trash-alt"
                   tooltip="Remove flag"
@@ -206,7 +204,7 @@ export const FlagsColumnRuleEditor: React.FC<FlagsColumnRuleEditorProps> = ({
 
                 <div style={{ position: 'relative' }}>
                   <Button
-                    icon={flag.iconSource === 'grafana' ? flag.icon as IconName : undefined}
+                    icon={flag.iconSource === 'grafana' ? (flag.icon as IconName) : undefined}
                     onClick={() => setIconPickerOpen(iconPickerOpen === index ? null : index)}
                     tooltip="Select icon or emoji"
                     variant="secondary"

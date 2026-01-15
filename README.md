@@ -16,7 +16,7 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
   - **Data Range Gradients**: Apply color gradients across value ranges
   - **Flags Columns**: Display icon flags based on conditions
   - **SparkCharts**: Embed mini-charts within cells
-  
+
 ![Highlight Rules](docs/screenshots/04-highlight-rules-config.png)
 ![Nested Conditions](docs/screenshots/06-nested-condition-groups.png)
 
@@ -51,12 +51,12 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
 
 ### Development Tools
 
-| Tool | Version | Purpose |
-| ---- | ------- | ------- |
-| TypeScript | 5.9 | Type-safe JavaScript |
-| Webpack | 5.x | Module bundler |
-| Jest | 30.x | Unit testing framework |
-| Playwright | 1.x | End-to-end testing |
+| Tool       | Version | Purpose                |
+| ---------- | ------- | ---------------------- |
+| TypeScript | 5.9     | Type-safe JavaScript   |
+| Webpack    | 5.x     | Module bundler         |
+| Jest       | 30.x    | Unit testing framework |
+| Playwright | 1.x     | End-to-end testing     |
 
 ## Installation
 
@@ -130,13 +130,13 @@ For issues, feature requests, or questions:
 
 ### Runtime Dependencies
 
-| Package | Version | Purpose |
-| ------- | ------- | ------- |
-| [react-window](https://github.com/bvaughn/react-window) | 2.x | Virtual scrolling for efficient rendering of large datasets |
-| [@emotion/css](https://emotion.sh/) | 11.x | CSS-in-JS styling |
-| [@grafana/ui](https://grafana.com/developers/plugin-tools/) | 12.x | Grafana UI component library |
-| [@grafana/data](https://grafana.com/developers/plugin-tools/) | 12.x | Grafana data utilities and types |
-| [@grafana/runtime](https://grafana.com/developers/plugin-tools/) | 12.x | Grafana runtime APIs |
+| Package                                                          | Version | Purpose                                                     |
+| ---------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
+| [react-window](https://github.com/bvaughn/react-window)          | 2.x     | Virtual scrolling for efficient rendering of large datasets |
+| [@emotion/css](https://emotion.sh/)                              | 11.x    | CSS-in-JS styling                                           |
+| [@grafana/ui](https://grafana.com/developers/plugin-tools/)      | 12.x    | Grafana UI component library                                |
+| [@grafana/data](https://grafana.com/developers/plugin-tools/)    | 12.x    | Grafana data utilities and types                            |
+| [@grafana/runtime](https://grafana.com/developers/plugin-tools/) | 12.x    | Grafana runtime APIs                                        |
 
 ## License
 

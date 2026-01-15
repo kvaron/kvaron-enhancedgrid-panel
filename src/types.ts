@@ -69,13 +69,13 @@ export interface HighlightCondition {
 // Condition group (supports nested groups for complex logic like (A && B) || C)
 export interface ConditionGroup {
   id: string;
-  
+
   // Type discriminator
   type: 'group';
-  
+
   // Logical operator to combine items in this group (AND/OR)
   logicalOperator: LogicalOperator;
-  
+
   // Items can be either individual conditions or nested groups
   items: Array<HighlightCondition | ConditionGroup>;
 }
@@ -118,12 +118,12 @@ export function isEmoji(value: IconValue, allIcons: string[]): boolean {
 export interface FlagDefinition {
   id: string;
   name: string;
-  conditionGroup: ConditionGroup;  // Reuse existing condition system
+  conditionGroup: ConditionGroup; // Reuse existing condition system
   icon: IconValue;
   iconSource?: IconSource; // Optional for backward compatibility (defaults to 'grafana')
   iconType?: 'mono' | 'default' | 'solid';
   iconColor?: string;
-  tooltipText?: string;  // Custom tooltip with {columnName} interpolation support
+  tooltipText?: string; // Custom tooltip with {columnName} interpolation support
 }
 
 // Cell style definition
@@ -363,7 +363,7 @@ export interface EnhancedGridOptions {
   filterStyle: FilterStyle;
 
   // Frozen columns (count-based)
-  freezeLeftColumns: number;  // Number of columns to freeze on the left (0 = none)
+  freezeLeftColumns: number; // Number of columns to freeze on the left (0 = none)
   freezeRightColumns: number; // Number of columns to freeze on the right (0 = none)
 
   // Striping

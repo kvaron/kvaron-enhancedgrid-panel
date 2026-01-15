@@ -322,12 +322,7 @@ export function validateMeasurements(
   const templateResult = validateGridTemplates(measurements);
   const frozenResult = validateFrozenSections(measurements);
 
-  const allErrors = [
-    ...alignmentResult.errors,
-    ...rowResult.errors,
-    ...templateResult.errors,
-    ...frozenResult.errors,
-  ];
+  const allErrors = [...alignmentResult.errors, ...rowResult.errors, ...templateResult.errors, ...frozenResult.errors];
 
   return {
     valid: allErrors.length === 0,

@@ -7,15 +7,7 @@ import { ErrorBoundary } from './ErrorBoundary';
 
 interface Props extends PanelProps<EnhancedGridOptions> {}
 
-export const EnhancedGridPanel: React.FC<Props> = ({
-  options,
-  data,
-  width,
-  height,
-  fieldConfig,
-  id,
-}) => {
-
+export const EnhancedGridPanel: React.FC<Props> = ({ options, data, width, height, fieldConfig, id }) => {
   // Get global highlight rules
   const allHighlightRules = useMemo(() => {
     return options.highlightRules || [];
@@ -23,25 +15,12 @@ export const EnhancedGridPanel: React.FC<Props> = ({
 
   // Error handling
   if (data.series.length === 0) {
-    return (
-      <PanelDataErrorView
-        fieldConfig={fieldConfig}
-        panelId={id}
-        data={data}
-        needsStringField={false}
-      />
-    );
+    return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField={false} />;
   }
 
   return (
     <ErrorBoundary>
-      <Grid
-        data={data.series[0]}
-        options={options}
-        width={width}
-        height={height}
-        highlightRules={allHighlightRules}
-      />
+      <Grid data={data.series[0]} options={options} width={width} height={height} highlightRules={allHighlightRules} />
     </ErrorBoundary>
   );
 };

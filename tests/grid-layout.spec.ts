@@ -48,7 +48,11 @@ test.describe('Grid Layout - Baseline Tests', () => {
     expect(measurements.rowHeights.variance).toBe(DEFAULT_TOLERANCES.rowHeightVariance);
   });
 
-  test('baseline configuration - verify visible content', async ({ gotoPanelEditPage, readProvisionedDashboard, page }) => {
+  test('baseline configuration - verify visible content', async ({
+    gotoPanelEditPage,
+    readProvisionedDashboard,
+    page,
+  }) => {
     const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
     const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
 

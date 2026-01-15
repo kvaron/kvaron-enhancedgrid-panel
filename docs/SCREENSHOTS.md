@@ -64,66 +64,79 @@ cp tests/screenshots/*.png docs/screenshots/
 The script captures the following screenshots for documentation:
 
 ### Panel Overview
+
 - **File:** `01-panel-overview.png`
 - **Shows:** Full panel with data grid, headers, and basic layout
 - **Used in:** README.md hero image
 
 ### Column Filtering
+
 - **File:** `02-column-filter-dropdown.png`
 - **Shows:** Filter dropdown with operator selection and value input
 - **Used in:** README.md features, FEATURES.md column filtering section
 
 ### Pagination Controls
+
 - **File:** `03-pagination-controls.png`
 - **Shows:** Pagination bar with page numbers, next/previous buttons
 - **Used in:** FEATURES.md pagination section
 
 ### Highlight Rules Configuration
+
 - **File:** `04-highlight-rules-config.png`
 - **Shows:** Panel settings sidebar with highlight rules section
 - **Used in:** README.md features, FEATURES.md highlighting section
 
 ### Condition Builder UI
+
 - **File:** `05-condition-builder.png`
 - **Shows:** Condition builder interface for creating new rules
 - **Used in:** FEATURES.md condition configuration
 
 ### Nested Condition Groups
+
 - **File:** `06-nested-condition-groups.png`
 - **Shows:** Visual hierarchy of nested AND/OR condition groups
 - **Used in:** README.md features, FEATURES.md nested conditions
 
 ### Server-Side Settings
+
 - **File:** `07-server-side-settings.png`
 - **Shows:** Server-side mode configuration panel
 - **Used in:** README.md features, SERVER_SIDE_SETUP.md
 
 ### Threshold Rule Example
+
 - **File:** `08-threshold-rule.png`
 - **Shows:** Threshold rule editor with value ranges and colors
 - **Used in:** FEATURES.md threshold rules
 
 ### Value Mapping Rule
+
 - **File:** `09-value-mapping-rule.png`
 - **Shows:** Value mapping editor with value-to-color mappings
 - **Used in:** FEATURES.md value mapping
 
 ### Data Range Gradient
+
 - **File:** `10-data-range-gradient.png`
 - **Shows:** Gradient rule editor with color scheme selector
 - **Used in:** FEATURES.md gradient rules
 
 ### SparkChart Configuration
+
 - **File:** `11-sparkchart-config.png`
 - **Shows:** SparkChart rule editor
 - **Used in:** FEATURES.md sparkchart section
 
 ### Flags Column Example
+
 - **File:** `12-flags-column.png`
 - **Shows:** Flags column with icon indicators
 - **Used in:** FEATURES.md flags column
 
 ### Colored Cells Example
+
 - **File:** `13-colored-cells.png`
 - **Shows:** Grid with various cell highlighting applied
 - **Used in:** README.md examples section
@@ -144,20 +157,20 @@ Example:
 test('02 - Column Filtering', async ({ gotoPanelEditPage, readProvisionedDashboard, page }) => {
   const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
   const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
-  
+
   // Adjust wait time if needed
   await page.waitForTimeout(2000); // Increased from 1000ms
-  
+
   // Update selector if UI changes
   const filterButton = page.locator('[data-testid="filter-button"]').first();
   if (await filterButton.isVisible()) {
     await filterButton.click();
     await page.waitForTimeout(500);
-    
+
     // Capture specific region instead of full page
-    await page.screenshot({ 
+    await page.screenshot({
       path: 'tests/screenshots/02-column-filter-dropdown.png',
-      clip: { x: 0, y: 100, width: 800, height: 400 } // Custom region
+      clip: { x: 0, y: 100, width: 800, height: 400 }, // Custom region
     });
   }
 });
@@ -171,17 +184,17 @@ Add new test cases to capture additional screenshots:
 test('14 - New Feature', async ({ gotoPanelEditPage, readProvisionedDashboard, page }) => {
   const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
   const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
-  
+
   await page.waitForTimeout(1000);
-  
+
   // Navigate to your feature
   const featureButton = page.locator('button:has-text("New Feature")');
   await featureButton.click();
-  
+
   // Capture screenshot
-  await page.screenshot({ 
+  await page.screenshot({
     path: 'tests/screenshots/14-new-feature.png',
-    fullPage: false 
+    fullPage: false,
   });
 });
 ```
@@ -219,9 +232,9 @@ const button = page.locator('.my-button-class');
 **Solution:** Use `clip` option
 
 ```typescript
-await page.screenshot({ 
+await page.screenshot({
   path: 'output.png',
-  clip: { x: 100, y: 100, width: 600, height: 400 }
+  clip: { x: 100, y: 100, width: 600, height: 400 },
 });
 ```
 
@@ -262,6 +275,7 @@ The automated screenshots require extensive panel configuration. For release doc
 ### Screenshot Checklist
 
 #### 01-panel-overview.png
+
 - **What to show:** Full panel with data grid
 - **Steps:**
   1. Add Enhanced Grid panel to dashboard
@@ -272,6 +286,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** README.md hero image
 
 #### 02-column-filter-dropdown.png
+
 - **What to show:** Filter dropdown UI
 - **Steps:**
   1. Hover over a column header
@@ -282,6 +297,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** README.md, FEATURES.md
 
 #### 03-pagination-controls.png
+
 - **What to show:** Pagination bar
 - **Steps:**
   1. Enable pagination in panel settings (Page size: 10)
@@ -291,6 +307,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 04-highlight-rules-config.png
+
 - **What to show:** Panel settings sidebar with Highlight Rules section
 - **Steps:**
   1. Enter panel edit mode
@@ -301,6 +318,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** README.md, FEATURES.md
 
 #### 05-condition-builder.png
+
 - **What to show:** Condition builder interface
 - **Steps:**
   1. In Highlight Rules, click "Add Rule"
@@ -311,6 +329,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 06-nested-condition-groups.png
+
 - **What to show:** Visual hierarchy of nested AND/OR groups
 - **Steps:**
   1. Create a rule with nested condition groups
@@ -321,6 +340,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** README.md, FEATURES.md
 
 #### 07-server-side-settings.png
+
 - **What to show:** Server-side configuration panel
 - **Steps:**
   1. In panel settings, scroll to "Server-Side" section
@@ -331,6 +351,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** README.md, SERVER_SIDE_SETUP.md
 
 #### 08-threshold-rule.png
+
 - **What to show:** Threshold rule editor
 - **Steps:**
   1. Add new Highlight Rule
@@ -341,6 +362,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 09-value-mapping-rule.png
+
 - **What to show:** Value mapping editor
 - **Steps:**
   1. Add new Highlight Rule
@@ -351,6 +373,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 10-data-range-gradient.png
+
 - **What to show:** Gradient rule editor with color scheme
 - **Steps:**
   1. Add new Highlight Rule
@@ -361,6 +384,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 11-sparkchart-config.png
+
 - **What to show:** SparkChart rule configuration
 - **Steps:**
   1. Add new Highlight Rule
@@ -371,6 +395,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 12-flags-column.png
+
 - **What to show:** Flags column with icons
 - **Steps:**
   1. Create a Flags Column rule
@@ -381,6 +406,7 @@ The automated screenshots require extensive panel configuration. For release doc
 - **Used in:** FEATURES.md
 
 #### 13-colored-cells.png
+
 - **What to show:** Grid with various cell highlighting
 - **Steps:**
   1. Configure 3-4 different highlight rules (threshold, value mapping, gradient)

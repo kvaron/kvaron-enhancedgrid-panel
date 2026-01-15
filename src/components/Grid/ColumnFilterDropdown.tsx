@@ -51,15 +51,9 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
 
   // Initialize state from current filter or defaults
   const defaultOperator = columnType === 'number' ? 'eq' : 'contains';
-  const [operator, setOperator] = useState<FilterOperator>(
-    currentFilter?.operator || defaultOperator
-  );
-  const [value, setValue] = useState<string>(
-    currentFilter?.value?.toString() || ''
-  );
-  const [value2, setValue2] = useState<string>(
-    currentFilter?.value2?.toString() || ''
-  );
+  const [operator, setOperator] = useState<FilterOperator>(currentFilter?.operator || defaultOperator);
+  const [value, setValue] = useState<string>(currentFilter?.value?.toString() || '');
+  const [value2, setValue2] = useState<string>(currentFilter?.value2?.toString() || '');
 
   const needsValue = operator !== 'blank' && operator !== 'not_blank';
   const needsValue2 = operator === 'between';
@@ -191,19 +185,12 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
     <div className={styles.container} onClick={(e) => e.stopPropagation()}>
       <div className={styles.row}>
         <label className={styles.label}>Operator</label>
-        <Combobox
-          value={operator}
-          options={operatorOptions}
-          onChange={handleOperatorChange}
-          width={30}
-        />
+        <Combobox value={operator} options={operatorOptions} onChange={handleOperatorChange} width={30} />
       </div>
 
       {needsValue && (
         <div className={styles.row}>
-          <label className={styles.label}>
-            {needsValue2 ? 'From' : 'Value'}
-          </label>
+          <label className={styles.label}>{needsValue2 ? 'From' : 'Value'}</label>
           <Input
             type={columnType === 'number' ? 'number' : 'text'}
             value={value}

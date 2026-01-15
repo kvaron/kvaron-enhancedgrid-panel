@@ -57,11 +57,7 @@ const stackScaleModeOptions: Array<ComboboxOption<'full' | 'column' | 'global'>>
   { label: 'Column', value: 'global' },
 ];
 
-export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({
-  value,
-  onChange,
-  context,
-}) => {
+export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({ value, onChange, context }) => {
   const styles = useStyles2(getStyles);
   const rule = value;
 
@@ -80,7 +76,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
 
   // Update handlers
   const updateSourceField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartSourceField: selected.value,
@@ -90,7 +88,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateMode = (selected: ComboboxOption<'line' | 'bar' | 'stack' | 'bullet'> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartMode: selected.value,
@@ -105,7 +105,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateColorScheme = (selected: SelectableValue<string>) => {
-    if (!selected?.value) { return; }
+    if (!selected?.value) {
+      return;
+    }
     if (selected.value === 'fixed') {
       onChange({
         ...rule,
@@ -180,7 +182,7 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
 
   const addStackColor = () => {
     const stackColors = { ...(rule.sparkChartStackColors || {}) };
-    const maxIndex = Math.max(-1, ...Object.keys(stackColors).map(k => parseInt(k, 10)));
+    const maxIndex = Math.max(-1, ...Object.keys(stackColors).map((k) => parseInt(k, 10)));
     stackColors[maxIndex + 1] = '#3274D9';
     onChange({
       ...rule,
@@ -204,7 +206,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateStackScaleField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartStackScaleField: selected.value,
@@ -213,7 +217,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateScaleMode = (selected: ComboboxOption<'cell' | 'column' | 'global'> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartScaleMode: selected.value,
@@ -221,7 +227,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateScaleField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartScaleField: selected.value,
@@ -236,7 +244,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateBulletBgColorMode = (selected: SelectableValue<string>) => {
-    if (!selected?.value) { return; }
+    if (!selected?.value) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartBulletBgColorMode: selected.value === 'fixed' ? 'solid' : 'scheme',
@@ -252,7 +262,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateBulletFgColorMode = (selected: SelectableValue<string>) => {
-    if (!selected?.value) { return; }
+    if (!selected?.value) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartBulletFgColorMode: selected.value === 'fixed' ? 'solid' : 'scheme',
@@ -268,7 +280,9 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
   };
 
   const updateBulletLineColorMode = (selected: SelectableValue<string>) => {
-    if (!selected?.value) { return; }
+    if (!selected?.value) {
+      return;
+    }
     onChange({
       ...rule,
       sparkChartBulletLineColorMode: selected.value === 'fixed' ? 'solid' : 'scheme',
@@ -307,10 +321,7 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
 
       {/* State Timeline Toggle (Bar Mode Only) */}
       {rule.sparkChartMode === 'bar' && (
-        <Field 
-          label="State Timeline Mode" 
-          description="Fix vertical scaling and remove spacing between bars"
-        >
+        <Field label="State Timeline Mode" description="Fix vertical scaling and remove spacing between bars">
           <RadioButtonGroup
             options={[
               { label: 'Off', value: 'off' },
@@ -322,36 +333,31 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
         </Field>
       )}
 
-      {/* Data Separator */ }
+      {/* Data Separator */}
       <Field label="Data Separator" description="Character used to split string values (e.g., comma, pipe)">
-        <Input
-          value={rule.sparkChartDataSeparator || ','}
-          onChange={updateDataSeparator}
-          placeholder=','
-          width={10}
-        />
+        <Input value={rule.sparkChartDataSeparator || ','} onChange={updateDataSeparator} placeholder="," width={10} />
       </Field>
 
       {/* Color Selection (Line, Bar, Stack only) */}
       {rule.sparkChartMode !== 'bullet' && (
-      <Field label="Color" description="Select a gradient scheme or fixed color">
-        <ColorSchemeSelect
-          value={
-            rule.sparkChartColorScheme === FieldColorModeId.Shades
-              ? FieldColorModeId.Shades
-              : rule.sparkChartColorMode === 'scheme' && rule.sparkChartColorScheme
-              ? rule.sparkChartColorScheme
-              : 'fixed'
-          }
-          onChange={updateColorScheme}
-          color={rule.sparkChartSolidColor}
-          onColorChange={updateSolidColor}
-          defaultColor="#3274D9"
-          showReverseToggle={true}
-          reverseGradient={rule.sparkChartReverseGradient}
-          onReverseChange={(reverse) => onChange({ ...rule, sparkChartReverseGradient: reverse })}
-        />
-      </Field>
+        <Field label="Color" description="Select a gradient scheme or fixed color">
+          <ColorSchemeSelect
+            value={
+              rule.sparkChartColorScheme === FieldColorModeId.Shades
+                ? FieldColorModeId.Shades
+                : rule.sparkChartColorMode === 'scheme' && rule.sparkChartColorScheme
+                  ? rule.sparkChartColorScheme
+                  : 'fixed'
+            }
+            onChange={updateColorScheme}
+            color={rule.sparkChartSolidColor}
+            onColorChange={updateSolidColor}
+            defaultColor="#3274D9"
+            showReverseToggle={true}
+            reverseGradient={rule.sparkChartReverseGradient}
+            onReverseChange={(reverse) => onChange({ ...rule, sparkChartReverseGradient: reverse })}
+          />
+        </Field>
       )}
 
       {/* Scale Mode for Line and Bar Charts */}
@@ -463,9 +469,7 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
           <Field label="Background Color" description="Color scheme for background blocks">
             <ColorSchemeSelect
               value={
-                rule.sparkChartBulletBgColorMode === 'solid'
-                  ? 'fixed'
-                  : rule.sparkChartBulletBgColorScheme || 'fixed'
+                rule.sparkChartBulletBgColorMode === 'solid' ? 'fixed' : rule.sparkChartBulletBgColorScheme || 'fixed'
               }
               onChange={updateBulletBgColorMode}
               color={rule.sparkChartBulletBgColor}
@@ -481,9 +485,7 @@ export const SparkChartRuleEditor: React.FC<StandardEditorProps<HighlightRule>> 
           <Field label="Foreground Bar Color" description="Color scheme for foreground bar">
             <ColorSchemeSelect
               value={
-                rule.sparkChartBulletFgColorMode === 'solid'
-                  ? 'fixed'
-                  : rule.sparkChartBulletFgColorScheme || 'fixed'
+                rule.sparkChartBulletFgColorMode === 'solid' ? 'fixed' : rule.sparkChartBulletFgColorScheme || 'fixed'
               }
               onChange={updateBulletFgColorMode}
               color={rule.sparkChartBulletFgColor}

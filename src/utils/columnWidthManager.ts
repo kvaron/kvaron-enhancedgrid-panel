@@ -34,25 +34,27 @@ export function calculateColumnMetrics(
   rowNumberWidth = 50
 ): ColumnMetrics {
   // Check if we're in flexible mode (columns have minWidth instead of width)
-  const isFlexibleMode = columns.some(col => col.minWidth && !col.width);
+  const isFlexibleMode = columns.some((col) => col.minWidth && !col.width);
 
   if (isFlexibleMode) {
     // Flexible mode: use minmax() for columns, don't calculate totalWidth
     const rowNumPart = showRowNumbers ? `${rowNumberWidth}px ` : '';
-    const columnParts = columns.map((col) => {
-      if (col.width) {
-        return `${col.width}px`;  // Explicit width (e.g., flags columns)
-      }
-      if (col.minWidth) {
-        return `minmax(${col.minWidth}px, 1fr)`;  // Flexible with minimum
-      }
-      return 'minmax(auto, 1fr)';  // Fully flexible fallback
-    }).join(' ');
+    const columnParts = columns
+      .map((col) => {
+        if (col.width) {
+          return `${col.width}px`; // Explicit width (e.g., flags columns)
+        }
+        if (col.minWidth) {
+          return `minmax(${col.minWidth}px, 1fr)`; // Flexible with minimum
+        }
+        return 'minmax(auto, 1fr)'; // Fully flexible fallback
+      })
+      .join(' ');
     const gridTemplateColumns = (rowNumPart + columnParts).trim();
 
     // In flexible mode, we don't calculate totalWidth as columns expand to fill space
     return {
-      columns: columns.map(col => ({ fieldName: col.fieldName, width: col.minWidth || 80 })),
+      columns: columns.map((col) => ({ fieldName: col.fieldName, width: col.minWidth || 80 })),
       totalWidth: undefined,
       gridTemplateColumns,
       isFlexible: true,

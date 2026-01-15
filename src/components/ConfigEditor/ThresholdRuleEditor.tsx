@@ -45,11 +45,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
 });
 
-export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({
-  value,
-  onChange,
-  context,
-}) => {
+export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> = ({ value, onChange, context }) => {
   const styles = useStyles2(getStyles);
   const rule = value;
   const [editingThreshold, setEditingThreshold] = useState<string | null>(null);
@@ -65,10 +61,7 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
   }, []);
 
   // Get available numeric fields from data
-  const numericFields =
-    context.data[0]?.fields
-      .filter((f) => f.type === FieldType.number)
-      .map((f) => f.name) || [];
+  const numericFields = context.data[0]?.fields.filter((f) => f.type === FieldType.number).map((f) => f.name) || [];
 
   // Get all available fields for target fields
   const availableFields = context.data[0]?.fields.map((f) => f.name) || [];
@@ -84,7 +77,9 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
   }));
 
   const updateThresholdField = (selected: ComboboxOption<string> | null) => {
-    if (!selected) { return; }
+    if (!selected) {
+      return;
+    }
     onChange({
       ...rule,
       thresholdField: selected.value,
@@ -137,8 +132,8 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
   };
 
   // Sort threshold levels by minValue for display, but delay sorting when editing
-  const sortedLevels = editingThreshold 
-    ? (rule.thresholdLevels || []) 
+  const sortedLevels = editingThreshold
+    ? rule.thresholdLevels || []
     : [...(rule.thresholdLevels || [])].sort((a, b) => a.minValue - b.minValue);
 
   return (
@@ -168,10 +163,7 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
 
       {/* Base Style */}
       <Field label="Base Style" description="Style applied when value is below all thresholds">
-        <CellStyleEditor
-          value={rule.baseStyle || { backgroundColor: 'transparent' }}
-          onChange={updateBaseStyle}
-        />
+        <CellStyleEditor value={rule.baseStyle || { backgroundColor: 'transparent' }} onChange={updateBaseStyle} />
       </Field>
 
       {/* Threshold Levels */}
@@ -180,7 +172,7 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
           {sortedLevels.map((level, index) => {
             // Find the original index for update operations
             const originalIndex = (rule.thresholdLevels || []).findIndex((l) => l.id === level.id);
-            
+
             return (
               <div key={level.id} className={styles.thresholdLevelContainer}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -229,12 +221,7 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
             );
           })}
 
-          <Button
-            icon="plus"
-            variant="secondary"
-            onClick={addThresholdLevel}
-            className={styles.addButton}
-          >
+          <Button icon="plus" variant="secondary" onClick={addThresholdLevel} className={styles.addButton}>
             Add Threshold Level
           </Button>
         </Stack>

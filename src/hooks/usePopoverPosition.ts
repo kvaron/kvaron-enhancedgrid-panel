@@ -44,7 +44,7 @@ export function usePopoverPosition(
         sidebarElement = sidebarElement.parentElement;
       }
 
-      const availableWidth = sidebarWidth - (SPACING * 2);
+      const availableWidth = sidebarWidth - SPACING * 2;
       const newPosition: Position = {
         bottom: window.innerHeight - trigger.top + SPACING,
       };

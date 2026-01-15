@@ -25,7 +25,7 @@ test.describe('Grid Height - Prop Value', () => {
       const computedStyle = window.getComputedStyle(el);
 
       // Try to find the React fiber to get the actual prop
-      const fiberKey = Object.keys(el).find(key => key.startsWith('__reactFiber'));
+      const fiberKey = Object.keys(el).find((key) => key.startsWith('__reactFiber'));
       let reactProps = null;
       if (fiberKey) {
         const fiber = (el as any)[fiberKey];

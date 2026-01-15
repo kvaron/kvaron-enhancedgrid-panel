@@ -60,7 +60,7 @@ export function classifyColumns(
   const rightWidth = calculateWidth(right);
 
   // Check if center columns are in flexible mode (have minWidth but not width)
-  const centerHasFlexibleColumns = center.some(col => col.minWidth && !col.width);
+  const centerHasFlexibleColumns = center.some((col) => col.minWidth && !col.width);
   if (centerHasFlexibleColumns) {
     // Don't apply width constraint in flexible mode
     centerWidth = undefined;
@@ -106,17 +106,17 @@ export function buildGridTemplateColumns(
   const dataCols = columns
     .map((col) => {
       if (col.width) {
-        return `${col.width}px`;  // Explicit width
+        return `${col.width}px`; // Explicit width
       }
       if (col.minWidth) {
         // For center scrollable columns, allow flexible layout
         // For left/right frozen columns, use fixed width
         if (allowFlexible) {
-          return `minmax(${col.minWidth}px, 1fr)`;  // Flexible with minimum
+          return `minmax(${col.minWidth}px, 1fr)`; // Flexible with minimum
         }
-        return `${col.minWidth}px`;  // Fixed width for frozen columns
+        return `${col.minWidth}px`; // Fixed width for frozen columns
       }
-      return `${DEFAULT_COLUMN_WIDTH}px`;  // Fallback
+      return `${DEFAULT_COLUMN_WIDTH}px`; // Fallback
     })
     .join(' ');
   return rowNumCol + dataCols;

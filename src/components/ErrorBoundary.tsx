@@ -40,14 +40,10 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className={styles.container}>
           <div className={styles.icon}>⚠️</div>
           <div className={styles.title}>Something went wrong</div>
-          <div className={styles.message}>
-            The grid encountered an error while rendering.
-          </div>
+          <div className={styles.message}>The grid encountered an error while rendering.</div>
           <details className={styles.details}>
             <summary>Error details</summary>
-            <pre className={styles.errorText}>
-              {this.state.error?.message || 'Unknown error'}
-            </pre>
+            <pre className={styles.errorText}>{this.state.error?.message || 'Unknown error'}</pre>
           </details>
         </div>
       );

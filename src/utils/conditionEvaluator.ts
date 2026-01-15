@@ -11,10 +11,7 @@ export interface RowContext {
  * Safely evaluate a single condition against a row context.
  * NO code execution - only enum-based operator matching.
  */
-export function evaluateCondition(
-  condition: HighlightCondition,
-  context: RowContext
-): boolean {
+export function evaluateCondition(condition: HighlightCondition, context: RowContext): boolean {
   const sourceValue = context.row[condition.sourceField];
 
   // Get comparison value (either fixed value or from another field)
@@ -45,11 +42,7 @@ function toNumber(value: any): number | null {
  * Evaluate a single operator comparison.
  * Pure function with no side effects or code execution.
  */
-function evaluateOperator(
-  sourceValue: any,
-  operator: ComparisonOperator,
-  compareValue: any
-): boolean {
+function evaluateOperator(sourceValue: any, operator: ComparisonOperator, compareValue: any): boolean {
   switch (operator) {
     case 'equals':
       // Try numeric comparison first, then fall back to strict equality
@@ -94,24 +87,32 @@ function evaluateOperator(
     }
 
     case 'contains':
-      return typeof sourceValue === 'string' &&
-             typeof compareValue === 'string' &&
-             sourceValue.toLowerCase().includes(compareValue.toLowerCase());
+      return (
+        typeof sourceValue === 'string' &&
+        typeof compareValue === 'string' &&
+        sourceValue.toLowerCase().includes(compareValue.toLowerCase())
+      );
 
     case 'not_contains':
-      return typeof sourceValue === 'string' &&
-             typeof compareValue === 'string' &&
-             !sourceValue.toLowerCase().includes(compareValue.toLowerCase());
+      return (
+        typeof sourceValue === 'string' &&
+        typeof compareValue === 'string' &&
+        !sourceValue.toLowerCase().includes(compareValue.toLowerCase())
+      );
 
     case 'starts_with':
-      return typeof sourceValue === 'string' &&
-             typeof compareValue === 'string' &&
-             sourceValue.toLowerCase().startsWith(compareValue.toLowerCase());
+      return (
+        typeof sourceValue === 'string' &&
+        typeof compareValue === 'string' &&
+        sourceValue.toLowerCase().startsWith(compareValue.toLowerCase())
+      );
 
     case 'ends_with':
-      return typeof sourceValue === 'string' &&
-             typeof compareValue === 'string' &&
-             sourceValue.toLowerCase().endsWith(compareValue.toLowerCase());
+      return (
+        typeof sourceValue === 'string' &&
+        typeof compareValue === 'string' &&
+        sourceValue.toLowerCase().endsWith(compareValue.toLowerCase())
+      );
 
     case 'is_null':
       return sourceValue === null || sourceValue === undefined;
@@ -125,15 +126,10 @@ function evaluateOperator(
   }
 }
 
-
-
 /**
  * Evaluate a condition element (either a single condition or a group).
  */
-export function evaluateConditionElement(
-  element: ConditionElement,
-  context: RowContext
-): boolean {
+export function evaluateConditionElement(element: ConditionElement, context: RowContext): boolean {
   if (isConditionGroup(element)) {
     return evaluateConditionGroup(element, context);
   }
@@ -144,10 +140,7 @@ export function evaluateConditionElement(
  * Recursively evaluate a condition group.
  * Supports nested groups like (A && B) || C.
  */
-export function evaluateConditionGroup(
-  group: ConditionGroup,
-  context: RowContext
-): boolean {
+export function evaluateConditionGroup(group: ConditionGroup, context: RowContext): boolean {
   if (group.items.length === 0) {
     return false;
   }

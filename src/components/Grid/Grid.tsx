@@ -32,13 +32,7 @@ interface GridProps {
   highlightRules: HighlightRule[];
 }
 
-export const Grid: React.FC<GridProps> = ({
-  data,
-  options,
-  width,
-  height,
-  highlightRules,
-}) => {
+export const Grid: React.FC<GridProps> = ({ data, options, width, height, highlightRules }) => {
   const theme = useTheme2();
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -76,9 +70,7 @@ export const Grid: React.FC<GridProps> = ({
     // Debounce URL updates to prevent excessive API calls during rapid changes
     urlUpdateTimeoutRef.current = setTimeout(() => {
       const sortState = { field: sortField, direction: sortDirection };
-      const paginationState: PaginationState | null = options.serverSidePagination
-        ? { currentPage, pageSize }
-        : null;
+      const paginationState: PaginationState | null = options.serverSidePagination ? { currentPage, pageSize } : null;
 
       let filterQuery = '';
       let sortQuery = '';
@@ -154,10 +146,7 @@ export const Grid: React.FC<GridProps> = ({
   ]);
 
   // Transform data
-  const { columns, rows } = useMemo(
-    () => transformDataFrame(data),
-    [data]
-  );
+  const { columns, rows } = useMemo(() => transformDataFrame(data), [data]);
 
   // Build fieldConfig map from data fields
   const fieldConfigMap = useMemo(() => {
@@ -175,9 +164,7 @@ export const Grid: React.FC<GridProps> = ({
 
   // Inject synthetic flags columns
   const columnsWithFlags = useMemo(() => {
-    const flagsRules = highlightRules.filter(r =>
-      r.enabled && r.ruleType === 'flagsColumn'
-    );
+    const flagsRules = highlightRules.filter((r) => r.enabled && r.ruleType === 'flagsColumn');
 
     if (flagsRules.length === 0) {
       return columns;
@@ -187,7 +174,7 @@ export const Grid: React.FC<GridProps> = ({
     const firstColumns: any[] = [];
     const lastColumns: any[] = [];
 
-    flagsRules.forEach(rule => {
+    flagsRules.forEach((rule) => {
       // Create synthetic field for the flags column
       const syntheticField: any = {
         name: rule.flagsColumnName || 'flags',
@@ -257,7 +244,7 @@ export const Grid: React.FC<GridProps> = ({
 
     // Auto-sizing is disabled - check if we should use flexible layout
     // Check if ANY column has explicit width set (excluding flags columns)
-    const hasAnyExplicitWidth = columnsWithFlags.some(col => {
+    const hasAnyExplicitWidth = columnsWithFlags.some((col) => {
       const fieldConf = fieldConfigMap[col.fieldName];
       return (fieldConf?.width || col.width) && !col.isFlagsColumn;
     });
@@ -283,7 +270,7 @@ export const Grid: React.FC<GridProps> = ({
           maxWidth: MAX_COLUMN_WIDTH,
         });
 
-        return { ...column, minWidth };  // Store as minWidth, not width
+        return { ...column, minWidth }; // Store as minWidth, not width
       });
     }
 
@@ -319,10 +306,7 @@ export const Grid: React.FC<GridProps> = ({
   }, [autoSizedColumns, options.freezeLeftColumns, options.freezeRightColumns, options.showRowNumbers]);
 
   // Check if frozen columns are enabled
-  const frozenColumnsEnabled = hasFrozenColumns(
-    options.freezeLeftColumns || 0,
-    options.freezeRightColumns || 0
-  );
+  const frozenColumnsEnabled = hasFrozenColumns(options.freezeLeftColumns || 0, options.freezeRightColumns || 0);
 
   // Calculate min/max ranges for numeric fields (used by dataRangeGradient rules with auto-detect mode)
   const fieldRanges = useMemo(() => {
@@ -570,11 +554,18 @@ export const Grid: React.FC<GridProps> = ({
   // Initialize with estimated height (will be updated by ResizeObserver)
   const estimatedBodyHeight = useMemo(() => {
     // Estimate by subtracting header and pagination from total height
-    const headerSize = options.showHeader ? (options.compactHeaders ? 24 : (options.headerHeight || 60)) : 0;
+    const headerSize = options.showHeader ? (options.compactHeaders ? 24 : options.headerHeight || 60) : 0;
     const filterSize = options.showHeader && options.filterStyle === 'filterRow' ? 32 : 0;
     const paginationSize = options.paginationEnabled ? 58 : 0; // Updated to 58 based on actual measurement
     return Math.max(0, height - headerSize - filterSize - paginationSize);
-  }, [height, options.showHeader, options.compactHeaders, options.headerHeight, options.filterStyle, options.paginationEnabled]);
+  }, [
+    height,
+    options.showHeader,
+    options.compactHeaders,
+    options.headerHeight,
+    options.filterStyle,
+    options.paginationEnabled,
+  ]);
 
   const [bodyWrapperHeight, setBodyWrapperHeight] = useState(estimatedBodyHeight);
 
@@ -629,7 +620,14 @@ export const Grid: React.FC<GridProps> = ({
         setBodyWrapperHeight(newHeight);
       }
     });
-  }, [height, options.showHeader, options.compactHeaders, options.headerHeight, options.filterStyle, options.paginationEnabled]);
+  }, [
+    height,
+    options.showHeader,
+    options.compactHeaders,
+    options.headerHeight,
+    options.filterStyle,
+    options.paginationEnabled,
+  ]);
 
   // Scroll synchronization effect - bidirectional sync following react-base-table pattern
   // This ensures header and body stay in sync when either is scrolled
@@ -646,7 +644,9 @@ export const Grid: React.FC<GridProps> = ({
 
     // Sync header scroll when body scrolls
     const handleBodyScroll = () => {
-      if (syncInProgress) {return;}
+      if (syncInProgress) {
+        return;
+      }
       syncInProgress = true;
       // Use requestAnimationFrame to batch updates like react-base-table does
       requestAnimationFrame(() => {
@@ -657,7 +657,9 @@ export const Grid: React.FC<GridProps> = ({
 
     // Sync body scroll when header scrolls (bidirectional - new feature)
     const handleHeaderScroll = () => {
-      if (syncInProgress) {return;}
+      if (syncInProgress) {
+        return;
+      }
       syncInProgress = true;
       requestAnimationFrame(() => {
         bodyScrollContainer.scrollLeft = headerScrollContainer.scrollLeft;
@@ -731,29 +733,32 @@ export const Grid: React.FC<GridProps> = ({
   // This allows flexbox to naturally size the body based on available space
   const bodyHeight = bodyWrapperHeight;
 
-  const styles = useMemo(() => ({
-    container: css`
-      display: flex;
-      flex-direction: column;
-      width: ${width}px;
-      height: ${height}px;
-      background: ${theme.colors.background.primary};
-      border: 1px solid ${theme.colors.border.weak};
-      overflow: hidden;
-    `,
-    headerWrapper: css`
-      flex: 0 0 auto;
-    `,
-    bodyWrapper: css`
-      flex: 1 1 auto;
-      min-height: 0;
-      width: 100%;
-      overflow: hidden;
-    `,
-    paginationWrapper: css`
-      flex: 0 0 auto;
-    `,
-  }), [width, height, theme.colors.background.primary, theme.colors.border.weak]);
+  const styles = useMemo(
+    () => ({
+      container: css`
+        display: flex;
+        flex-direction: column;
+        width: ${width}px;
+        height: ${height}px;
+        background: ${theme.colors.background.primary};
+        border: 1px solid ${theme.colors.border.weak};
+        overflow: hidden;
+      `,
+      headerWrapper: css`
+        flex: 0 0 auto;
+      `,
+      bodyWrapper: css`
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        overflow: hidden;
+      `,
+      paginationWrapper: css`
+        flex: 0 0 auto;
+      `,
+    }),
+    [width, height, theme.colors.background.primary, theme.colors.border.weak]
+  );
 
   return (
     <div

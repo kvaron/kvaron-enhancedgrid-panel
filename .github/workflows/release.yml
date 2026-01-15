@@ -24,6 +24,6 @@ jobs:
           # Uncomment to enable plugin signing for Grafana marketplace publishing
           # (For more info: https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin#generate-an-access-policy-token)
           # policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
-          
+
           # Create GitHub release with the built plugin
           create_release: true

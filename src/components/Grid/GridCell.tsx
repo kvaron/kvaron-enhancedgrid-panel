@@ -30,7 +30,6 @@ export const GridCell: React.FC<GridCellProps> = ({
   compactMode = false,
   fieldConfig,
 }) => {
-
   // Compute highlight style for this cell
   const highlightStyle = useMemo(() => {
     if (isRowNumber) {
@@ -48,7 +47,7 @@ export const GridCell: React.FC<GridCellProps> = ({
 
     // If this is a flags column, only evaluate its specific rule
     if ((column as any).isFlagsColumn && (column as any).flagsRuleId) {
-      const flagsRule = highlightRules.find(r => r.id === (column as any).flagsRuleId);
+      const flagsRule = highlightRules.find((r) => r.id === (column as any).flagsRuleId);
       if (flagsRule) {
         return computeCellStyle([flagsRule], context);
       }
@@ -56,7 +55,7 @@ export const GridCell: React.FC<GridCellProps> = ({
     }
 
     // For data columns, exclude flagsColumn rules
-    const dataColumnRules = highlightRules.filter(r => r.ruleType !== 'flagsColumn');
+    const dataColumnRules = highlightRules.filter((r) => r.ruleType !== 'flagsColumn');
     return computeCellStyle(dataColumnRules, context);
   }, [column, row, highlightRules, fieldRanges, sparkChartGlobalRanges, theme, isRowNumber]);
 
@@ -93,12 +92,12 @@ export const GridCell: React.FC<GridCellProps> = ({
   const cellStyles = useMemo(() => {
     const padding = compactMode ? '4px 8px' : '8px 12px';
     const fontSize = compactMode ? '12px' : '14px';
-    
+
     // Generate box-shadow for border if needed (doesn't affect layout)
-    const borderBoxShadow = highlightStyle?.borderColor 
+    const borderBoxShadow = highlightStyle?.borderColor
       ? `inset 0 0 0 ${highlightStyle.borderWidth || 1}px ${highlightStyle.borderColor}`
       : '';
-    
+
     // Determine background and text color
     // Priority: highlightStyle > columnFieldConfig > defaults
     // Note: Row number cells should not inherit column styling
@@ -137,7 +136,7 @@ export const GridCell: React.FC<GridCellProps> = ({
     } else if (!isRowNumber && fieldConfig?.columnTextDecoration) {
       textDecoration = fieldConfig.columnTextDecoration;
     }
-    
+
     const baseStyle = css`
       display: flex;
       align-items: center;
@@ -148,7 +147,13 @@ export const GridCell: React.FC<GridCellProps> = ({
       text-overflow: ellipsis;
       white-space: nowrap;
       text-align: ${isRowNumber ? 'center' : column.align};
-      justify-content: ${isRowNumber ? 'center' : column.align === 'center' ? 'center' : column.align === 'right' ? 'flex-end' : 'flex-start'};
+      justify-content: ${isRowNumber
+        ? 'center'
+        : column.align === 'center'
+          ? 'center'
+          : column.align === 'right'
+            ? 'flex-end'
+            : 'flex-start'};
       background: ${backgroundColor};
       background-clip: padding-box;
       color: ${textColor};
@@ -160,14 +165,7 @@ export const GridCell: React.FC<GridCellProps> = ({
     `;
 
     return baseStyle;
-  }, [
-    theme,
-    column.align,
-    highlightStyle,
-    fieldConfig,
-    isRowNumber,
-    compactMode,
-  ]);
+  }, [theme, column.align, highlightStyle, fieldConfig, isRowNumber, compactMode]);
 
   // Container style for icon layout
   const containerStyles = useMemo(() => {
@@ -186,8 +184,7 @@ export const GridCell: React.FC<GridCellProps> = ({
   // Determine icon position based on column alignment
   // Right-aligned columns: icon on left (far side from text start)
   // Left/center-aligned columns: icon on right (far side from text start)
-  const effectiveIconPosition = highlightStyle?.iconPosition ||
-    (column.align === 'right' ? 'left' : 'right');
+  const effectiveIconPosition = highlightStyle?.iconPosition || (column.align === 'right' ? 'left' : 'right');
 
   return (
     <div ref={cellRef} className={cellStyles} title={displayValue} data-testid="grid-cell">
@@ -206,18 +203,20 @@ export const GridCell: React.FC<GridCellProps> = ({
             textOverflow: 'ellipsis',
             justifyContent: 'center',
             alignItems: 'center',
-            flexWrap: 'nowrap'
+            flexWrap: 'nowrap',
           }}
         >
           {highlightStyle.customRendererConfig?.icons?.map((iconData: any, idx: number) => (
             <Tooltip
               key={idx}
               content={
-                <div style={{
-                  whiteSpace: 'normal',
-                  maxWidth: '400px',
-                  wordWrap: 'break-word'
-                }}>
+                <div
+                  style={{
+                    whiteSpace: 'normal',
+                    maxWidth: '400px',
+                    wordWrap: 'break-word',
+                  }}
+                >
                   {iconData.tooltip}
                 </div>
               }
@@ -234,23 +233,19 @@ export const GridCell: React.FC<GridCellProps> = ({
         </div>
       ) : highlightStyle?.icon ? (
         <span className={containerStyles}>
-          {effectiveIconPosition === 'left' && (
-            highlightStyle.iconSource === 'emoji' ? (
+          {effectiveIconPosition === 'left' &&
+            (highlightStyle.iconSource === 'emoji' ? (
               <span style={{ fontSize: '1.2em', lineHeight: 1 }}>{highlightStyle.icon}</span>
             ) : (
               <Icon name={highlightStyle.icon as IconName} type={highlightStyle.iconType || 'default'} size="sm" />
-            )
-          )}
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {displayValue}
-          </span>
-          {effectiveIconPosition === 'right' && (
-            highlightStyle.iconSource === 'emoji' ? (
+            ))}
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValue}</span>
+          {effectiveIconPosition === 'right' &&
+            (highlightStyle.iconSource === 'emoji' ? (
               <span style={{ fontSize: '1.2em', lineHeight: 1 }}>{highlightStyle.icon}</span>
             ) : (
               <Icon name={highlightStyle.icon as IconName} type={highlightStyle.iconType || 'default'} size="sm" />
-            )
-          )}
+            ))}
         </span>
       ) : (
         displayValue

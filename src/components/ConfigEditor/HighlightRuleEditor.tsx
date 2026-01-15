@@ -14,7 +14,7 @@ import {
   Icon,
   IconButton,
   Stack,
-  useStyles2
+  useStyles2,
 } from '@grafana/ui';
 import { HighlightRule } from '../../types';
 import { ConditionGroupBuilder } from './ConditionGroupBuilder';
@@ -25,7 +25,9 @@ import { SparkChartRuleEditor } from './SparkChartRuleEditor';
 import { FlagsColumnRuleEditor } from './FlagsColumnRuleEditor';
 import { CellStyleEditor } from './CellStyleEditor';
 
-const ruleTypeOptions: Array<ComboboxOption<'conditional' | 'threshold' | 'valueMapping' | 'dataRangeGradient' | 'sparkChart' | 'flagsColumn'>> = [
+const ruleTypeOptions: Array<
+  ComboboxOption<'conditional' | 'threshold' | 'valueMapping' | 'dataRangeGradient' | 'sparkChart' | 'flagsColumn'>
+> = [
   { label: 'Conditional Logic', value: 'conditional' },
   { label: 'Threshold', value: 'threshold' },
   { label: 'Value Mapping', value: 'valueMapping' },
@@ -96,19 +98,13 @@ const getStyles = (theme: GrafanaTheme2) => ({
   }),
 });
 
-export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>> = ({
-  value,
-  onChange,
-  context,
-}) => {
+export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>> = ({ value, onChange, context }) => {
   const rules = value || [];
   const styles = useStyles2(getStyles);
-  
+
   // State for expanded rules (collapsed by default)
-  const [expandedRules, setExpandedRules] = useState<Set<string>>(
-    new Set()
-  );
-  
+  const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
+
   // State for rule name editing
   const [editingRuleName, setEditingRuleName] = useState<string | null>(null);
 
@@ -117,7 +113,7 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
 
   // Toggle rule expansion
   const toggleRuleExpansion = (ruleId: string) => {
-    setExpandedRules(prev => {
+    setExpandedRules((prev) => {
       const next = new Set(prev);
       if (next.has(ruleId)) {
         next.delete(ruleId);
@@ -180,13 +176,13 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
     };
 
     // Add new rule to expanded set
-    setExpandedRules(prev => new Set([...prev, newRuleId]));
+    setExpandedRules((prev) => new Set([...prev, newRuleId]));
     onChange([...rules, newRule]);
   };
 
   const removeRule = (index: number) => {
     const removedRule = rules[index];
-    setExpandedRules(prev => {
+    setExpandedRules((prev) => {
       const next = new Set(prev);
       next.delete(removedRule.id);
       return next;
@@ -210,7 +206,7 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
                 const currentRuleType = rule.ruleType || 'conditional';
                 const isExpanded = expandedRules.has(rule.id);
                 const isEditing = editingRuleName === rule.id;
-                
+
                 return (
                   <Draggable key={rule.id} draggableId={rule.id} index={index}>
                     {(provided, snapshot) => (
@@ -295,229 +291,230 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
                         {/* Rule content - only visible when expanded */}
                         {isExpanded && (
                           <div id={`rule-content-${rule.id}`} className={styles.ruleContent}>
+                            {/* Rule Type Selector */}
+                            <Field label="Rule Type" description="Select the type of rule to apply">
+                              <Combobox
+                                options={ruleTypeOptions}
+                                value={currentRuleType}
+                                onChange={(v) => {
+                                  if (!v) {
+                                    return;
+                                  }
+                                  const newRuleType = v.value;
+                                  const updates: Partial<HighlightRule> = { ruleType: newRuleType };
 
-            {/* Rule Type Selector */}
-            <Field label="Rule Type" description="Select the type of rule to apply">
-              <Combobox
-                options={ruleTypeOptions}
-                value={currentRuleType}
-                onChange={(v) => {
-                    if (!v) { return; }
-                    const newRuleType = v.value;
-                    const updates: Partial<HighlightRule> = { ruleType: newRuleType };
-                    
-                    // Clear type-specific properties when changing type
-                    if (newRuleType === 'conditional') {
-                      updates.thresholdField = undefined;
-                      updates.thresholdLevels = undefined;
-                      updates.baseStyle = undefined;
-                      updates.valueMappingField = undefined;
-                      updates.valueMappings = undefined;
-                      updates.dataRangeSourceField = undefined;
-                      updates.dataRangeMode = undefined;
-                      updates.dataRangeMin = undefined;
-                      updates.dataRangeMax = undefined;
-                      updates.dataRangeColorScheme = undefined;
-                      updates.dataRangeApplyTo = undefined;
-                    } else if (newRuleType === 'threshold') {
-                      updates.conditionGroup = undefined;
-                      updates.valueMappingField = undefined;
-                      updates.valueMappings = undefined;
-                      updates.dataRangeSourceField = undefined;
-                      updates.dataRangeMode = undefined;
-                      updates.dataRangeMin = undefined;
-                      updates.dataRangeMax = undefined;
-                      updates.dataRangeColorScheme = undefined;
-                      updates.dataRangeApplyTo = undefined;
-                    } else if (newRuleType === 'valueMapping') {
-                      updates.conditionGroup = undefined;
-                      updates.thresholdField = undefined;
-                      updates.thresholdLevels = undefined;
-                      updates.baseStyle = undefined;
-                      updates.dataRangeSourceField = undefined;
-                      updates.dataRangeMode = undefined;
-                      updates.dataRangeMin = undefined;
-                      updates.dataRangeMax = undefined;
-                      updates.dataRangeColorScheme = undefined;
-                      updates.dataRangeApplyTo = undefined;
-                    } else if (newRuleType === 'dataRangeGradient') {
-                      updates.conditionGroup = undefined;
-                      updates.thresholdField = undefined;
-                      updates.thresholdLevels = undefined;
-                      updates.baseStyle = undefined;
-                      updates.valueMappingField = undefined;
-                      updates.valueMappings = undefined;
-                      updates.sparkChartSourceField = undefined;
-                      updates.sparkChartMode = undefined;
-                      updates.sparkChartDataSeparator = undefined;
-                      updates.sparkChartColorMode = undefined;
-                      updates.sparkChartSolidColor = undefined;
-                      updates.sparkChartColorScheme = undefined;
-                      updates.sparkChartHeight = undefined;
-                      updates.sparkChartStackColors = undefined;
-                    } else if (newRuleType === 'sparkChart') {
-                      updates.conditionGroup = undefined;
-                      updates.thresholdField = undefined;
-                      updates.thresholdLevels = undefined;
-                      updates.baseStyle = undefined;
-                      updates.valueMappingField = undefined;
-                      updates.valueMappings = undefined;
-                      updates.dataRangeSourceField = undefined;
-                      updates.dataRangeMode = undefined;
-                      updates.dataRangeMin = undefined;
-                      updates.dataRangeMax = undefined;
-                      updates.dataRangeColorScheme = undefined;
-                      updates.dataRangeApplyTo = undefined;
-                    } else if (newRuleType === 'flagsColumn') {
-                      updates.conditionGroup = undefined;
-                      updates.thresholdField = undefined;
-                      updates.thresholdLevels = undefined;
-                      updates.baseStyle = undefined;
-                      updates.valueMappingField = undefined;
-                      updates.valueMappings = undefined;
-                      updates.dataRangeSourceField = undefined;
-                      updates.dataRangeMode = undefined;
-                      updates.dataRangeMin = undefined;
-                      updates.dataRangeMax = undefined;
-                      updates.dataRangeColorScheme = undefined;
-                      updates.dataRangeApplyTo = undefined;
-                      updates.sparkChartSourceField = undefined;
-                      updates.sparkChartMode = undefined;
-                      updates.sparkChartDataSeparator = undefined;
-                      updates.sparkChartColorMode = undefined;
-                      updates.sparkChartSolidColor = undefined;
-                      updates.sparkChartColorScheme = undefined;
-                      updates.sparkChartHeight = undefined;
-                      updates.sparkChartStackColors = undefined;
-                    }
+                                  // Clear type-specific properties when changing type
+                                  if (newRuleType === 'conditional') {
+                                    updates.thresholdField = undefined;
+                                    updates.thresholdLevels = undefined;
+                                    updates.baseStyle = undefined;
+                                    updates.valueMappingField = undefined;
+                                    updates.valueMappings = undefined;
+                                    updates.dataRangeSourceField = undefined;
+                                    updates.dataRangeMode = undefined;
+                                    updates.dataRangeMin = undefined;
+                                    updates.dataRangeMax = undefined;
+                                    updates.dataRangeColorScheme = undefined;
+                                    updates.dataRangeApplyTo = undefined;
+                                  } else if (newRuleType === 'threshold') {
+                                    updates.conditionGroup = undefined;
+                                    updates.valueMappingField = undefined;
+                                    updates.valueMappings = undefined;
+                                    updates.dataRangeSourceField = undefined;
+                                    updates.dataRangeMode = undefined;
+                                    updates.dataRangeMin = undefined;
+                                    updates.dataRangeMax = undefined;
+                                    updates.dataRangeColorScheme = undefined;
+                                    updates.dataRangeApplyTo = undefined;
+                                  } else if (newRuleType === 'valueMapping') {
+                                    updates.conditionGroup = undefined;
+                                    updates.thresholdField = undefined;
+                                    updates.thresholdLevels = undefined;
+                                    updates.baseStyle = undefined;
+                                    updates.dataRangeSourceField = undefined;
+                                    updates.dataRangeMode = undefined;
+                                    updates.dataRangeMin = undefined;
+                                    updates.dataRangeMax = undefined;
+                                    updates.dataRangeColorScheme = undefined;
+                                    updates.dataRangeApplyTo = undefined;
+                                  } else if (newRuleType === 'dataRangeGradient') {
+                                    updates.conditionGroup = undefined;
+                                    updates.thresholdField = undefined;
+                                    updates.thresholdLevels = undefined;
+                                    updates.baseStyle = undefined;
+                                    updates.valueMappingField = undefined;
+                                    updates.valueMappings = undefined;
+                                    updates.sparkChartSourceField = undefined;
+                                    updates.sparkChartMode = undefined;
+                                    updates.sparkChartDataSeparator = undefined;
+                                    updates.sparkChartColorMode = undefined;
+                                    updates.sparkChartSolidColor = undefined;
+                                    updates.sparkChartColorScheme = undefined;
+                                    updates.sparkChartHeight = undefined;
+                                    updates.sparkChartStackColors = undefined;
+                                  } else if (newRuleType === 'sparkChart') {
+                                    updates.conditionGroup = undefined;
+                                    updates.thresholdField = undefined;
+                                    updates.thresholdLevels = undefined;
+                                    updates.baseStyle = undefined;
+                                    updates.valueMappingField = undefined;
+                                    updates.valueMappings = undefined;
+                                    updates.dataRangeSourceField = undefined;
+                                    updates.dataRangeMode = undefined;
+                                    updates.dataRangeMin = undefined;
+                                    updates.dataRangeMax = undefined;
+                                    updates.dataRangeColorScheme = undefined;
+                                    updates.dataRangeApplyTo = undefined;
+                                  } else if (newRuleType === 'flagsColumn') {
+                                    updates.conditionGroup = undefined;
+                                    updates.thresholdField = undefined;
+                                    updates.thresholdLevels = undefined;
+                                    updates.baseStyle = undefined;
+                                    updates.valueMappingField = undefined;
+                                    updates.valueMappings = undefined;
+                                    updates.dataRangeSourceField = undefined;
+                                    updates.dataRangeMode = undefined;
+                                    updates.dataRangeMin = undefined;
+                                    updates.dataRangeMax = undefined;
+                                    updates.dataRangeColorScheme = undefined;
+                                    updates.dataRangeApplyTo = undefined;
+                                    updates.sparkChartSourceField = undefined;
+                                    updates.sparkChartMode = undefined;
+                                    updates.sparkChartDataSeparator = undefined;
+                                    updates.sparkChartColorMode = undefined;
+                                    updates.sparkChartSolidColor = undefined;
+                                    updates.sparkChartColorScheme = undefined;
+                                    updates.sparkChartHeight = undefined;
+                                    updates.sparkChartStackColors = undefined;
+                                  }
 
-                    updateRule(index, updates);
-                  }}
-                  width={30}
-                />
-              </Field>
+                                  updateRule(index, updates);
+                                }}
+                                width={30}
+                              />
+                            </Field>
 
-            {/* Target fields (only for conditional rules) */}
-            {currentRuleType === 'conditional' && (
-              <InlineFieldRow>
-                <InlineField label="Apply to" labelWidth={12}>
-                  <MultiCombobox
-                    options={availableFields.map((f) => ({ label: f, value: f }))}
-                    value={Array.isArray(rule.targetFields) ? rule.targetFields : []}
-                    onChange={(selected) => {
-                      updateRule(index, { targetFields: selected.map((s) => s.value) });
-                    }}
-                    enableAllOption={false}
-                    width={30}
-                  />
-                </InlineField>
-              </InlineFieldRow>
-            )}
+                            {/* Target fields (only for conditional rules) */}
+                            {currentRuleType === 'conditional' && (
+                              <InlineFieldRow>
+                                <InlineField label="Apply to" labelWidth={12}>
+                                  <MultiCombobox
+                                    options={availableFields.map((f) => ({ label: f, value: f }))}
+                                    value={Array.isArray(rule.targetFields) ? rule.targetFields : []}
+                                    onChange={(selected) => {
+                                      updateRule(index, { targetFields: selected.map((s) => s.value) });
+                                    }}
+                                    enableAllOption={false}
+                                    width={30}
+                                  />
+                                </InlineField>
+                              </InlineFieldRow>
+                            )}
 
-            {/* Conditional rendering based on rule type */}
-            {currentRuleType === 'conditional' && (
-              <>
-                {/* Conditions */}
-                <Field label="Conditions" style={{ marginTop: 16, marginBottom: 16 }}>
-                  <div>
-                    {rule.conditionGroup ? (
-                      <ConditionGroupBuilder
-                        group={rule.conditionGroup}
-                        onChange={(conditionGroup) => updateRule(index, { conditionGroup })}
-                        availableFields={availableFields}
-                      />
-                    ) : (
-                      <div>No conditions defined</div>
-                    )}
-                  </div>
-                </Field>
+                            {/* Conditional rendering based on rule type */}
+                            {currentRuleType === 'conditional' && (
+                              <>
+                                {/* Conditions */}
+                                <Field label="Conditions" style={{ marginTop: 16, marginBottom: 16 }}>
+                                  <div>
+                                    {rule.conditionGroup ? (
+                                      <ConditionGroupBuilder
+                                        group={rule.conditionGroup}
+                                        onChange={(conditionGroup) => updateRule(index, { conditionGroup })}
+                                        availableFields={availableFields}
+                                      />
+                                    ) : (
+                                      <div>No conditions defined</div>
+                                    )}
+                                  </div>
+                                </Field>
 
-                {/* Style */}
-                <Field label="Style" style={{ marginTop: 16 }}>
-                  <div className={styles.cellStyleWrapper}>
-                    <CellStyleEditor
-                      value={rule.style}
-                      onChange={(style) => updateRule(index, { style })}
-                    />
-                  </div>
-                </Field>
-              </>
-            )}
+                                {/* Style */}
+                                <Field label="Style" style={{ marginTop: 16 }}>
+                                  <div className={styles.cellStyleWrapper}>
+                                    <CellStyleEditor
+                                      value={rule.style}
+                                      onChange={(style) => updateRule(index, { style })}
+                                    />
+                                  </div>
+                                </Field>
+                              </>
+                            )}
 
-            {currentRuleType === 'threshold' && (
-              <ThresholdRuleEditor
-                value={rule}
-                onChange={(updatedRule) => {
-                  if (updatedRule) {
-                    const updated = [...rules];
-                    updated[index] = updatedRule;
-                    onChange(updated);
-                  }
-                }}
-                context={context}
-                item={{} as any}
-              />
-            )}
+                            {currentRuleType === 'threshold' && (
+                              <ThresholdRuleEditor
+                                value={rule}
+                                onChange={(updatedRule) => {
+                                  if (updatedRule) {
+                                    const updated = [...rules];
+                                    updated[index] = updatedRule;
+                                    onChange(updated);
+                                  }
+                                }}
+                                context={context}
+                                item={{} as any}
+                              />
+                            )}
 
-            {currentRuleType === 'valueMapping' && (
-              <ValueMappingRuleEditor
-                value={rule}
-                onChange={(updatedRule) => {
-                  if (updatedRule) {
-                    const updated = [...rules];
-                    updated[index] = updatedRule;
-                    onChange(updated);
-                  }
-                }}
-                context={context}
-                item={{} as any}
-              />
-            )}
+                            {currentRuleType === 'valueMapping' && (
+                              <ValueMappingRuleEditor
+                                value={rule}
+                                onChange={(updatedRule) => {
+                                  if (updatedRule) {
+                                    const updated = [...rules];
+                                    updated[index] = updatedRule;
+                                    onChange(updated);
+                                  }
+                                }}
+                                context={context}
+                                item={{} as any}
+                              />
+                            )}
 
-            {currentRuleType === 'dataRangeGradient' && (
-              <DataRangeGradientRuleEditor
-                value={rule}
-                onChange={(updatedRule) => {
-                  if (updatedRule) {
-                    const updated = [...rules];
-                    updated[index] = updatedRule;
-                    onChange(updated);
-                  }
-                }}
-                context={context}
-                item={{} as any}
-              />
-            )}
+                            {currentRuleType === 'dataRangeGradient' && (
+                              <DataRangeGradientRuleEditor
+                                value={rule}
+                                onChange={(updatedRule) => {
+                                  if (updatedRule) {
+                                    const updated = [...rules];
+                                    updated[index] = updatedRule;
+                                    onChange(updated);
+                                  }
+                                }}
+                                context={context}
+                                item={{} as any}
+                              />
+                            )}
 
-            {currentRuleType === 'sparkChart' && (
-              <SparkChartRuleEditor
-                value={rule}
-                onChange={(updatedRule) => {
-                  if (updatedRule) {
-                    const updated = [...rules];
-                    updated[index] = updatedRule;
-                    onChange(updated);
-                  }
-                }}
-                context={context}
-                item={{} as any}
-              />
-            )}
+                            {currentRuleType === 'sparkChart' && (
+                              <SparkChartRuleEditor
+                                value={rule}
+                                onChange={(updatedRule) => {
+                                  if (updatedRule) {
+                                    const updated = [...rules];
+                                    updated[index] = updatedRule;
+                                    onChange(updated);
+                                  }
+                                }}
+                                context={context}
+                                item={{} as any}
+                              />
+                            )}
 
-            {currentRuleType === 'flagsColumn' && (
-              <FlagsColumnRuleEditor
-                value={rule}
-                onChange={(updatedRule) => {
-                  if (updatedRule) {
-                    const updated = [...rules];
-                    updated[index] = updatedRule;
-                    onChange(updated);
-                  }
-                }}
-                context={context}
-                item={{} as any}
-              />
-            )}
+                            {currentRuleType === 'flagsColumn' && (
+                              <FlagsColumnRuleEditor
+                                value={rule}
+                                onChange={(updatedRule) => {
+                                  if (updatedRule) {
+                                    const updated = [...rules];
+                                    updated[index] = updatedRule;
+                                    onChange(updated);
+                                  }
+                                }}
+                                context={context}
+                                item={{} as any}
+                              />
+                            )}
                           </div>
                         )}
                       </div>

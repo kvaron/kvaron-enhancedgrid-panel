@@ -43,14 +43,14 @@ TablePanel (receives PanelProps<PanelOptions>)
 
 ### Key Files Map
 
-| File | Purpose |
-|------|---------|
-| `src/module.ts` | Plugin entry & sidebar builder |
-| `src/types/panel.ts` | Main config types |
-| `src/types/table.ts` | Cell & column enums |
-| `src/hooks/useTable.tsx` | Data + columns processing |
-| `src/utils/table.ts` | Filter, sort, accessor functions |
-| `src/utils/group.ts` | Field/frame resolution utilities |
+| File                     | Purpose                          |
+| ------------------------ | -------------------------------- |
+| `src/module.ts`          | Plugin entry & sidebar builder   |
+| `src/types/panel.ts`     | Main config types                |
+| `src/types/table.ts`     | Cell & column enums              |
+| `src/hooks/useTable.tsx` | Data + columns processing        |
+| `src/utils/table.ts`     | Filter, sort, accessor functions |
+| `src/utils/group.ts`     | Field/frame resolution utilities |
 
 ---
 
@@ -98,7 +98,7 @@ builder
         { value: 'right', label: 'Right' },
       ],
     },
-    showIf: (config) => config.tables?.length > 1,  // Conditional visibility
+    showIf: (config) => config.tables?.length > 1, // Conditional visibility
     defaultValue: 'left',
   })
 
@@ -118,13 +118,13 @@ The key pattern for complex configuration is using `addCustomEditor`:
 ```typescript
 builder
   .addCustomEditor({
-    id: 'tables',                    // Unique identifier
-    path: 'tables',                  // Path in options object
-    name: ' ',                       // Display name (space hides label)
-    editor: TablesEditor,            // Your React component
-    category: ['Layout'],            // Sidebar section
-    defaultValue: [],                // Default value
-    aliasIds: ['nestedObjects'],     // Migration aliases
+    id: 'tables', // Unique identifier
+    path: 'tables', // Path in options object
+    name: ' ', // Display name (space hides label)
+    editor: TablesEditor, // Your React component
+    category: ['Layout'], // Sidebar section
+    defaultValue: [], // Default value
+    aliasIds: ['nestedObjects'], // Migration aliases
   })
   .addCustomEditor({
     id: 'highlightData',
@@ -133,7 +133,7 @@ builder
     editor: HighlightDataEditor,
     category: ['Highlight Row'],
     defaultValue: [],
-    showIf: (config) => config.tables.length > 0,  // Conditional display
+    showIf: (config) => config.tables.length > 0, // Conditional display
   });
 ```
 
@@ -194,11 +194,11 @@ export interface PanelOptions {
 export interface TableConfig {
   name: string;
   showHeader: boolean;
-  items: ColumnConfig[];           // Column definitions
-  update: TableRequestConfig;      // Update datasource config
+  items: ColumnConfig[]; // Column definitions
+  update: TableRequestConfig; // Update datasource config
   pagination: TablePaginationConfig;
   expanded: boolean;
-  addRow: TableOperationConfig;    // Add row operation
+  addRow: TableOperationConfig; // Add row operation
   deleteRow: TableOperationConfig; // Delete row operation
   actionsColumnConfig: ActionsColumnConfig;
   rowHighlight: RowHighlightConfig;
@@ -212,20 +212,20 @@ export interface TableConfig {
 ```typescript
 export interface ColumnConfig {
   enabled: boolean;
-  field: FieldSource;              // Maps to data frame field
+  field: FieldSource; // Maps to data frame field
   columnTooltip: string;
-  label: string;                   // Display override
-  type: CellType;                  // Rendering type
-  objectId: string;                // For nested objects
-  group: boolean;                  // Grouping enabled
-  aggregation: CellAggregation;    // Aggregation function
-  filter: ColumnFilterConfig;      // Filter settings
-  sort: ColumnSortConfig;          // Sort settings
-  appearance: ColumnAppearanceConfig;  // Visual styling
-  footer: string[];                // Footer calculations
+  label: string; // Display override
+  type: CellType; // Rendering type
+  objectId: string; // For nested objects
+  group: boolean; // Grouping enabled
+  aggregation: CellAggregation; // Aggregation function
+  filter: ColumnFilterConfig; // Filter settings
+  sort: ColumnSortConfig; // Sort settings
+  appearance: ColumnAppearanceConfig; // Visual styling
+  footer: string[]; // Footer calculations
   newRowEdit: ColumnNewRowEditConfig;
-  edit: ColumnEditConfig;          // Edit permissions
-  pin: ColumnPinDirection;         // Sticky column
+  edit: ColumnEditConfig; // Edit permissions
+  pin: ColumnPinDirection; // Sticky column
   preformattedStyle: boolean;
   scale: ImageScale;
   gauge: GaugeConfig;
@@ -265,7 +265,7 @@ export interface ColumnAppearanceConfig {
   wrap: boolean;
   alignment: ColumnAlignment;
   background: {
-    applyToRow: boolean;  // Key feature: apply cell color to entire row
+    applyToRow: boolean; // Key feature: apply cell color to entire row
   };
   header: {
     fontSize: ColumnHeaderFontSize;
@@ -286,8 +286,8 @@ The key to mapping columns to data frame fields:
 ```typescript
 // src/types/frame.ts
 export interface FieldSource {
-  name: string;                    // Field name in DataFrame
-  source: string | number;         // RefId or frame index
+  name: string; // Field name in DataFrame
+  source: string | number; // RefId or frame index
 }
 ```
 
@@ -299,8 +299,7 @@ export interface FieldSource {
 /**
  * Create unique key for a field source
  */
-export const getFieldKey = (field: FieldSource): string =>
-  `${field.source}:${field.name}`;
+export const getFieldKey = (field: FieldSource): string => `${field.source}:${field.name}`;
 
 /**
  * Check if a field matches a field source
@@ -312,10 +311,7 @@ export const filterFieldBySource = (field: Field, fieldSource: FieldSource): boo
 /**
  * Get DataFrame by source (supports both refId and index)
  */
-export const getFrameBySource = (
-  series: DataFrame[],
-  fieldSource: FieldSource
-): DataFrame | undefined => {
+export const getFrameBySource = (series: DataFrame[], fieldSource: FieldSource): DataFrame | undefined => {
   if (typeof fieldSource.source === 'number') {
     return series[fieldSource.source];
   }
@@ -325,10 +321,7 @@ export const getFrameBySource = (
 /**
  * Get Field by source across all series
  */
-export const getFieldBySource = (
-  series: DataFrame[],
-  fieldSource: FieldSource
-): Field | undefined => {
+export const getFieldBySource = (series: DataFrame[], fieldSource: FieldSource): Field | undefined => {
   for (const frame of series) {
     const field = frame.fields.find((f) => filterFieldBySource(f, fieldSource));
     if (field) return field;
@@ -357,9 +350,7 @@ const columnsData = useMemo(() => {
   const items = columnsConfig
     .map((config) => ({
       config,
-      field: frame.fields.find((field) =>
-        filterFieldBySource(field, config.field)
-      ),
+      field: frame.fields.find((field) => filterFieldBySource(field, config.field)),
     }))
     .filter((item) => !!item.field);
 
@@ -400,9 +391,9 @@ import { StandardEditorProps } from '@grafana/data';
 type Props = StandardEditorProps<TableConfig[], null, PanelOptions>;
 
 export const TablesEditor: React.FC<Props> = ({
-  context: { options, data },  // Access to all panel options and data
-  onChange,                     // Callback to update options
-  value                         // Current value of this option
+  context: { options, data }, // Access to all panel options and data
+  onChange, // Callback to update options
+  value, // Current value of this option
 }) => {
   // Component implementation
 };
@@ -651,12 +642,12 @@ export const DefaultCellRenderer: React.FC<Props> = ({ field, value, config, bgC
 ```typescript
 export interface RowHighlightConfig {
   enabled: boolean;
-  columnId: string;           // Column to match against
-  variable: string;           // Dashboard variable name
-  backgroundColor?: string;   // Highlight color
-  scrollTo: ScrollToRowPosition;  // Auto-scroll behavior
-  smooth: boolean;            // Smooth scrolling
-  resetVariable: boolean;     // Reset variable after scroll
+  columnId: string; // Column to match against
+  variable: string; // Dashboard variable name
+  backgroundColor?: string; // Highlight color
+  scrollTo: ScrollToRowPosition; // Auto-scroll behavior
+  smooth: boolean; // Smooth scrolling
+  resetVariable: boolean; // Reset variable after scroll
 }
 
 export enum ScrollToRowPosition {
@@ -679,9 +670,7 @@ const tableData = useMemo(() => {
 
   if (rowHighlightConfig?.enabled) {
     // Find the column to compare
-    const item = columnsData.items.find(
-      (item) => getFieldKey(item.config.field) === rowHighlightConfig.columnId
-    );
+    const item = columnsData.items.find((item) => getFieldKey(item.config.field) === rowHighlightConfig.columnId);
 
     // Get the variable value
     const variable = getVariable(rowHighlightConfig.variable);
@@ -689,10 +678,7 @@ const tableData = useMemo(() => {
     if (item && variable && 'current' in variable) {
       // Build a map of variable values for quick lookup
       const variableValueMap = Array.isArray(variable.current.value)
-        ? variable.current.value.reduce(
-            (acc, value) => ({ ...acc, [value]: true }),
-            {} as Record<string, boolean>
-          )
+        ? variable.current.value.reduce((acc, value) => ({ ...acc, [value]: true }), {} as Record<string, boolean>)
         : { [variable.current.value as string]: true };
 
       // Mark each row's highlight state
@@ -841,14 +827,14 @@ export const RowHighlightEditor: React.FC<Props> = ({ value, onChange, columns }
 ```typescript
 export interface ColumnFilterConfig {
   enabled: boolean;
-  mode: ColumnFilterMode;      // 'client' or 'query'
-  variable: string;            // Variable name for query mode
+  mode: ColumnFilterMode; // 'client' or 'query'
+  variable: string; // Variable name for query mode
   defaultClientValue?: ColumnFilterValue;
 }
 
 export enum ColumnFilterMode {
-  CLIENT = 'client',           // Filter on loaded data
-  QUERY = 'query',             // Update variable to re-query
+  CLIENT = 'client', // Filter on loaded data
+  QUERY = 'query', // Update variable to re-query
 }
 
 export enum ColumnFilterType {
@@ -866,8 +852,7 @@ export type ColumnFilterValue =
   | { type: ColumnFilterType.FACETED; value: string[] }
   | { type: ColumnFilterType.NUMBER; value: [number, number]; operator: NumberFilterOperator }
   | { type: ColumnFilterType.SEARCH; value: string; caseSensitive: boolean }
-  | { type: ColumnFilterType.TIMESTAMP; value: TimeRange; valueToFilter?: { from: number; to: number }
- }
+  | { type: ColumnFilterType.TIMESTAMP; value: TimeRange; valueToFilter?: { from: number; to: number } }
   | { type: 'none' };
 ```
 
@@ -956,15 +941,15 @@ if (column.config.filter.mode === ColumnFilterMode.CLIENT) {
 
 ```typescript
 export enum PermissionMode {
-  ALLOWED = '',           // Always allowed
-  QUERY = 'query',        // Check a query field
+  ALLOWED = '', // Always allowed
+  QUERY = 'query', // Check a query field
   USER_ROLE = 'userRole', // Check user's org role
 }
 
 export interface PermissionConfig {
   mode: PermissionMode;
-  field?: FieldSource;    // Field to check (for query mode)
-  userRole: string[];     // Allowed roles (for userRole mode)
+  field?: FieldSource; // Field to check (for query mode)
+  userRole: string[]; // Allowed roles (for userRole mode)
 }
 ```
 
@@ -1014,9 +999,7 @@ import { ColumnDef } from '@tanstack/react-table';
 
 const columns = useMemo(() => {
   return enabledColumns.map((column) => {
-    const header = replaceVariables(column.config.label) ||
-                   column.field.config?.displayName ||
-                   column.field.name;
+    const header = replaceVariables(column.config.label) || column.field.config?.displayName || column.field.name;
 
     // Size parameters
     const sizeParams = column.config.appearance.width.auto
@@ -1030,13 +1013,9 @@ const columns = useMemo(() => {
       cell: CellRenderer,
       aggregatedCell: AggregatedCellRenderer,
       enableGrouping: column.config.group,
-      aggregationFn: column.config.aggregation === CellAggregation.NONE
-        ? () => null
-        : column.config.aggregation,
+      aggregationFn: column.config.aggregation === CellAggregation.NONE ? () => null : column.config.aggregation,
       enableColumnFilter: column.config.filter.enabled,
-      filterFn: column.config.filter.mode === ColumnFilterMode.CLIENT
-        ? columnFilter
-        : () => true,
+      filterFn: column.config.filter.mode === ColumnFilterMode.CLIENT ? columnFilter : () => true,
       enableSorting: column.config.sort.enabled,
       sortDescFirst: column.config.sort.descFirst,
       enablePinning: column.config.pin !== ColumnPinDirection.NONE,
@@ -1049,19 +1028,18 @@ const columns = useMemo(() => {
         editable: isEditAllowed,
         editor: isEditAllowed ? getEditorControlOptions(column.config.edit.editor) : undefined,
       },
-      footer: (context) => getFooterCell({ context, config: column.config, field: column.field, theme
-}),
+      footer: (context) => getFooterCell({ context, config: column.config, field: column.field, theme }),
       ...sizeParams,
     };
   });
-}, [columnsData, /* dependencies */]);
+}, [columnsData /* dependencies */]);
 ```
 
 ### Column Accessor Function
 
 ```typescript
-export const createColumnAccessorFn = (accessorKey: string) =>
-  (row: unknown) => (row as Record<string, unknown>)[accessorKey];
+export const createColumnAccessorFn = (accessorKey: string) => (row: unknown) =>
+  (row as Record<string, unknown>)[accessorKey];
 ```
 
 ### Getting Pinned Column Styles
@@ -1157,7 +1135,7 @@ export const convertTableToDataFrame = <TData>(table: TableInstance<TData>): Dat
     const field = header.column.columnDef.meta?.field || {
       name: currentName,
       type: FieldType.other,
-      config: {}
+      config: {},
     };
 
     return {
@@ -1204,18 +1182,18 @@ export const normalizeBooleanCellValue = (value: unknown): boolean => {
 ## Key Takeaways
 
 1. **Sidebar Configuration**: Use `addCustomEditor` with category grouping for complex configuration U
-Is
+   Is
 2. **Field Mapping**: The `FieldSource` pattern allows flexible column-to-field mapping across multipl
-e data frames
+   e data frames
 3. **Conditional Styling**: Use column metadata with `backgroundRowField` and `applyToRow` for cross-c
-ell styling
+   ell styling
 4. **Row Highlighting**: Store highlight state in row data using a special key, compare against Grafan
-a variables
+   a variables
 5. **Permission System**: Three-tier permission (always, query-based, role-based) provides flexible ac
-cess control
+   cess control
 6. **TanStack Integration**: Store custom config in column `meta` for access in cell renderers
 7. **Drag-and-Drop**: Use `@hello-pangea/dnd` for reorderable configuration lists
 
 ---
 
-*Document generated from Business Table panel source analysis*
+_Document generated from Business Table panel source analysis_

@@ -64,33 +64,44 @@ export const GridBody = forwardRef<GridBodyHandle, GridBodyProps>(
     const rightFrozenRef = useRef<HTMLDivElement>(null);
 
     // Callback ref for react-window 2.x listRef - captures the API and notifies when ready
-    const listRefCallback = useCallback((api: ListImperativeAPI | null) => {
-      if (api?.element) {
-        setListElement(api.element);
-        onScrollContainerReady?.();
-      } else {
-        setListElement(null);
-      }
-    }, [onScrollContainerReady]);
+    const listRefCallback = useCallback(
+      (api: ListImperativeAPI | null) => {
+        if (api?.element) {
+          setListElement(api.element);
+          onScrollContainerReady?.();
+        } else {
+          setListElement(null);
+        }
+      },
+      [onScrollContainerReady]
+    );
 
     // Expose the scroll container to parent via ref
-    useImperativeHandle(ref, () => ({
-      getScrollContainer: () => {
-        // For virtual mode, return the captured list element
-        // For non-virtual mode, return the wrapper div
-        if (options.virtualScrollEnabled) {
-          return listElement;
-        }
-        return scrollContainerRef.current;
-      },
-    }), [options.virtualScrollEnabled, listElement]);
+    useImperativeHandle(
+      ref,
+      () => ({
+        getScrollContainer: () => {
+          // For virtual mode, return the captured list element
+          // For non-virtual mode, return the wrapper div
+          if (options.virtualScrollEnabled) {
+            return listElement;
+          }
+          return scrollContainerRef.current;
+        },
+      }),
+      [options.virtualScrollEnabled, listElement]
+    );
 
     // Sync frozen columns vertical scroll with center scroll
     useEffect(() => {
-      if (!frozenColumnsEnabled) {return;}
+      if (!frozenColumnsEnabled) {
+        return;
+      }
 
       const centerContainer = options.virtualScrollEnabled ? listElement : scrollContainerRef.current;
-      if (!centerContainer) {return;}
+      if (!centerContainer) {
+        return;
+      }
 
       const handleScroll = () => {
         const scrollTop = centerContainer.scrollTop;
@@ -119,9 +130,7 @@ export const GridBody = forwardRef<GridBodyHandle, GridBodyProps>(
     // Pre-compute grid template columns string (optimization: avoid recalculating per row)
     const gridTemplateColumns = useMemo(() => {
       const rowNumCol = options.showRowNumbers ? '50px ' : '';
-      const dataCols = columns
-        .map((col) => (col.width ? `${col.width}px` : 'minmax(auto, 1fr)'))
-        .join(' ');
+      const dataCols = columns.map((col) => (col.width ? `${col.width}px` : 'minmax(auto, 1fr)')).join(' ');
       return rowNumCol + dataCols;
     }, [columns, options.showRowNumbers]);
 
@@ -131,8 +140,12 @@ export const GridBody = forwardRef<GridBodyHandle, GridBodyProps>(
         return { left: '', center: '', right: '' };
       }
       return {
-        left: buildGridTemplateColumns(columnGroups.left, options.showRowNumbers && columnGroups.left.length > 0, false),
-        center: buildGridTemplateColumns(columnGroups.center, false, true),  // Allow flexible for center scrollable region
+        left: buildGridTemplateColumns(
+          columnGroups.left,
+          options.showRowNumbers && columnGroups.left.length > 0,
+          false
+        ),
+        center: buildGridTemplateColumns(columnGroups.center, false, true), // Allow flexible for center scrollable region
         right: buildGridTemplateColumns(columnGroups.right, false, false),
       };
     }, [frozenColumnsEnabled, columnGroups, options.showRowNumbers]);

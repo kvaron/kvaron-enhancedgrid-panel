@@ -189,19 +189,19 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
       );
     };
 
-
     const gridTemplateColumns = `${showRowNumbers ? '50px ' : ''}${columns.map((col) => (col.width ? `${col.width}px` : 'minmax(auto, 1fr)')).join(' ')}`;
 
     // Build grid template for frozen sections when enabled
-    const leftGridTemplate = frozenColumnsEnabled && columnGroups
-      ? buildGridTemplateColumns(columnGroups.left, showRowNumbers && columnGroups.left.length > 0, false)
-      : '';
-    const centerGridTemplate = frozenColumnsEnabled && columnGroups
-      ? buildGridTemplateColumns(columnGroups.center, false, true)  // Allow flexible for center scrollable region
-      : '';
-    const rightGridTemplate = frozenColumnsEnabled && columnGroups
-      ? buildGridTemplateColumns(columnGroups.right, false, false)
-      : '';
+    const leftGridTemplate =
+      frozenColumnsEnabled && columnGroups
+        ? buildGridTemplateColumns(columnGroups.left, showRowNumbers && columnGroups.left.length > 0, false)
+        : '';
+    const centerGridTemplate =
+      frozenColumnsEnabled && columnGroups
+        ? buildGridTemplateColumns(columnGroups.center, false, true) // Allow flexible for center scrollable region
+        : '';
+    const rightGridTemplate =
+      frozenColumnsEnabled && columnGroups ? buildGridTemplateColumns(columnGroups.right, false, false) : '';
 
     const styles = {
       // Main wrapper - when frozen columns enabled, it's a positioning container
@@ -461,9 +461,7 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
           <span className={styles.headerText}>#</span>
         </div>
         {filterStyle === 'filterRow' && (
-          <div className={styles.filterSection}>
-            {/* Empty filter section for row number column */}
-          </div>
+          <div className={styles.filterSection}>{/* Empty filter section for row number column */}</div>
         )}
       </div>
     );

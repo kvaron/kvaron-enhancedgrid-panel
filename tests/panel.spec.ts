@@ -9,10 +9,7 @@ test('should display "No data" in case panel data is empty', async ({
   await expect(panelEditPage.panel.locator).toContainText('No data');
 });
 
-test('should load the Enhanced Grid panel without errors', async ({
-  gotoPanelEditPage,
-  readProvisionedDashboard,
-}) => {
+test('should load the Enhanced Grid panel without errors', async ({ gotoPanelEditPage, readProvisionedDashboard }) => {
   const dashboard = await readProvisionedDashboard({ fileName: 'dashboard.json' });
   const panelEditPage = await gotoPanelEditPage({ dashboard, id: '1' });
   // Panel should load successfully

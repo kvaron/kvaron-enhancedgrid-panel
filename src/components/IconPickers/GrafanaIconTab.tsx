@@ -10,11 +10,7 @@ interface GrafanaIconTabProps {
   onSelect: (icon: IconName | null) => void;
 }
 
-export const GrafanaIconTab: React.FC<GrafanaIconTabProps> = ({
-  filteredIcons,
-  selectedIcon,
-  onSelect,
-}) => {
+export const GrafanaIconTab: React.FC<GrafanaIconTabProps> = ({ filteredIcons, selectedIcon, onSelect }) => {
   const theme = useTheme2();
 
   // Sort icons alphabetically
@@ -91,9 +87,7 @@ export const GrafanaIconTab: React.FC<GrafanaIconTabProps> = ({
         ))}
 
         {/* Empty state */}
-        {sortedIcons.length === 0 && (
-          <div className={styles.emptyState}>No icons found</div>
-        )}
+        {sortedIcons.length === 0 && <div className={styles.emptyState}>No icons found</div>}
       </div>
     </div>
   );

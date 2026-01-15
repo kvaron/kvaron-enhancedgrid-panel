@@ -1,17 +1,6 @@
 import React from 'react';
-import {
-  Button,
-  Combobox,
-  ComboboxOption,
-  Input,
-  InlineField,
-  InlineFieldRow,
-  IconButton
-} from '@grafana/ui';
-import {
-  HighlightCondition,
-  ComparisonOperator
-} from '../../types';
+import { Button, Combobox, ComboboxOption, Input, InlineField, InlineFieldRow, IconButton } from '@grafana/ui';
+import { HighlightCondition, ComparisonOperator } from '../../types';
 
 interface ConditionBuilderProps {
   conditions: HighlightCondition[];
@@ -34,11 +23,7 @@ const OPERATOR_OPTIONS: Array<ComboboxOption<ComparisonOperator>> = [
   { label: 'Is Not Null', value: 'is_not_null' },
 ];
 
-export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
-  conditions,
-  onChange,
-  availableFields,
-}) => {
+export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({ conditions, onChange, availableFields }) => {
   const fieldOptions = availableFields.map((field) => ({
     label: field,
     value: field,
@@ -129,14 +114,8 @@ export const ConditionBuilder: React.FC<ConditionBuilderProps> = ({
             )}
 
             {/* Remove button */}
-            <IconButton
-              name="trash-alt"
-              tooltip="Remove condition"
-              onClick={() => removeCondition(index)}
-            />
+            <IconButton name="trash-alt" tooltip="Remove condition" onClick={() => removeCondition(index)} />
           </InlineFieldRow>
-
-
         </div>
       ))}
 

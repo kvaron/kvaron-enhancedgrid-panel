@@ -28,7 +28,7 @@ test.describe('Grid Height - Trace Changes', () => {
       const dataHeight = await gridBody.getAttribute('data-height');
 
       measurements.push({
-        time: i === 0 ? '100ms' : `${(i * 500) + 100}ms`,
+        time: i === 0 ? '100ms' : `${i * 500 + 100}ms`,
         bodyWrapperHeight: bodyWrapperBox?.height?.toFixed(2) || 0,
         gridBodyHeight: gridBodyBox?.height?.toFixed(2) || 0,
         dataHeight: dataHeight || 'none',
@@ -40,7 +40,9 @@ test.describe('Grid Height - Trace Changes', () => {
     console.log('---------|--------------|-----------|-------------|----------');
     for (const m of measurements) {
       const diff = (parseFloat(m.bodyWrapperHeight) - parseFloat(m.gridBodyHeight)).toFixed(2);
-      console.log(`${m.time.padEnd(8)} | ${String(m.bodyWrapperHeight).padEnd(12)} | ${String(m.gridBodyHeight).padEnd(9)} | ${String(m.dataHeight).padEnd(11)} | ${diff}`);
+      console.log(
+        `${m.time.padEnd(8)} | ${String(m.bodyWrapperHeight).padEnd(12)} | ${String(m.gridBodyHeight).padEnd(9)} | ${String(m.dataHeight).padEnd(11)} | ${diff}`
+      );
     }
     console.log('');
 

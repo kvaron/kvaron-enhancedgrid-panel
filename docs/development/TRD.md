@@ -16,6 +16,7 @@ Appendecies
 This document defines the technical requirements for a Grafana 12 panel plugin that provides an enhanced grid/table component with advanced cell highlighting, conditional formatting based on row-level calculations, and future support for server-side OData operations.
 
 The plugin will be developed in two phases:
+
 - **Phase 1:** Core grid functionality with advanced cell highlighting and row-based conditional logic
 - **Phase 2:** Server-side sorting and filtering via OData/REST API integration
 
@@ -24,6 +25,7 @@ The plugin will be developed in two phases:
 ## 2. Goals
 
 ### Phase 1 Goals
+
 - Provide a performant, feature-rich table/grid panel for Grafana 12
 - Enable cell highlighting based on equations and expressions
 - Support row-level data access for conditional formatting (access sibling cell values)
@@ -31,12 +33,14 @@ The plugin will be developed in two phases:
 - Maintain compatibility with all standard Grafana data sources
 
 ### Phase 2 Goals (Future)
+
 - Integrate with Grafana Infinity datasource for OData support
 - Implement server-side sorting via query parameter modification
 - Implement server-side filtering via column header inputs
 - Provide toggle option between client-side and server-side operations
 
 ### Non-Goals
+
 - Replacing Grafana's native table panel entirely
 - Supporting inline cell editing (read-only display)
 - Implementing a full spreadsheet feature set
@@ -70,21 +74,23 @@ The plugin will be developed in two phases:
 ### 3.2 Core Panel Features (Phase 1)
 
 #### 3.2.1 Grid Display
-| Requirement | Description |
-|-------------|-------------|
-| Column rendering | Display all fields from data frame as columns |
-| Column visibility | Toggle individual column visibility |
+
+| Requirement       | Description                                              |
+| ----------------- | -------------------------------------------------------- |
+| Column rendering  | Display all fields from data frame as columns            |
+| Column visibility | Toggle individual column visibility                      |
 | Column reordering | Drag-and-drop column reorder (persisted in panel config) |
-| Column width | Resizable columns with auto-fit option |
-| Row striping | Alternating row colors (configurable) |
-| Pagination | Client-side pagination with configurable page size |
-| Virtual scrolling | Optional virtual scrolling for large datasets |
+| Column width      | Resizable columns with auto-fit option                   |
+| Row striping      | Alternating row colors (configurable)                    |
+| Pagination        | Client-side pagination with configurable page size       |
+| Virtual scrolling | Optional virtual scrolling for large datasets            |
 
 #### 3.2.2 Cell Highlighting System
 
 The core differentiating feature: conditional cell styling based on expressions that can reference any field in the current row.
 
 **Expression Context Object:**
+
 ```typescript
 interface RowContext {
   // Current row's data as key-value pairs
@@ -107,6 +113,7 @@ interface RowContext {
 **Supported Expression Types:**
 
 1. **Simple Comparisons**
+
    ```
    value > 100
    row.status === 'error'
@@ -114,6 +121,7 @@ interface RowContext {
    ```
 
 2. **Cross-Field Calculations**
+
    ```
    row.actual / row.budget > 1.1
    row.responseTime > row.slaTarget
@@ -121,6 +129,7 @@ interface RowContext {
    ```
 
 3. **String Operations**
+
    ```
    value.includes('CRITICAL')
    row.status.startsWith('ERR')
@@ -162,7 +171,7 @@ interface CellStyle {
   fontStyle?: 'normal' | 'italic';
   borderColor?: string;
   borderWidth?: number;
-  icon?: string;  // Grafana icon name
+  icon?: string; // Grafana icon name
   iconPosition?: 'left' | 'right';
 }
 ```
@@ -171,14 +180,14 @@ interface CellStyle {
 
 Provide common templates users can apply and customize:
 
-| Template | Expression | Default Style |
-|----------|------------|---------------|
-| Positive/Negative | `value >= 0` | Green/Red background |
-| Threshold | `value > threshold` | Configurable |
-| Status Match | `value === 'error'` | Red background |
-| Percentage Warning | `value > 80` | Yellow background |
-| Percentage Critical | `value > 95` | Red background |
-| Null/Empty | `value === null \|\| value === ''` | Gray italic |
+| Template            | Expression                         | Default Style        |
+| ------------------- | ---------------------------------- | -------------------- |
+| Positive/Negative   | `value >= 0`                       | Green/Red background |
+| Threshold           | `value > threshold`                | Configurable         |
+| Status Match        | `value === 'error'`                | Red background       |
+| Percentage Warning  | `value > 80`                       | Yellow background    |
+| Percentage Critical | `value > 95`                       | Red background       |
+| Null/Empty          | `value === null \|\| value === ''` | Gray italic          |
 
 #### 3.2.5 Column Configuration
 
@@ -208,7 +217,7 @@ interface ValueFormatter {
     dateFormat?: string;
     prefix?: string;
     suffix?: string;
-    customFormat?: string;  // For 'custom' type
+    customFormat?: string; // For 'custom' type
   };
 }
 ```
@@ -216,12 +225,14 @@ interface ValueFormatter {
 ### 3.3 Client-Side Operations (Phase 1)
 
 #### 3.3.1 Sorting
+
 - Click column header to sort (ascending/descending/none cycle)
 - Multi-column sort with shift+click
 - Sort indicator icons in headers
 - Stable sort algorithm for consistent ordering
 
 #### 3.3.2 Filtering
+
 - Column header filter input (text match)
 - Support for filter operators: `=`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `startsWith`, `endsWith`
 - Filter syntax: `>100`, `contains:error`, `!=pending`
@@ -261,6 +272,7 @@ interface ServerSideConfig {
 When server-side mode is enabled:
 
 **Sorting:**
+
 ```
 # OData v4
 $orderby=ColumnName asc, OtherColumn desc
@@ -270,6 +282,7 @@ $orderby=ColumnName, OtherColumn desc
 ```
 
 **Filtering:**
+
 ```
 # OData v4
 $filter=Status eq 'Active' and Value gt 100
@@ -281,6 +294,7 @@ $filter=Status eq 'Active' and Value gt 100
 #### 3.4.3 Infinity Datasource Integration
 
 The plugin will need to:
+
 1. Detect if the panel's datasource is Infinity
 2. Access the current query configuration
 3. Modify the URL or query parameters
@@ -454,7 +468,7 @@ interface EnhancedGridOptions {
   virtualScroll: {
     enabled: boolean;
     rowHeight: number;
-    overscan: number;  // Extra rows to render outside viewport
+    overscan: number; // Extra rows to render outside viewport
   };
 
   // Column configurations
@@ -490,14 +504,14 @@ The panel editor will organize options into collapsible categories:
 
 ## 6. Performance Requirements
 
-| Metric | Requirement |
-|--------|-------------|
-| Initial render | < 100ms for 1000 rows |
-| Sort operation | < 50ms for 10,000 rows |
-| Filter operation | < 50ms for 10,000 rows |
+| Metric               | Requirement                |
+| -------------------- | -------------------------- |
+| Initial render       | < 100ms for 1000 rows      |
+| Sort operation       | < 50ms for 10,000 rows     |
+| Filter operation     | < 50ms for 10,000 rows     |
 | Highlight evaluation | < 1ms per cell (amortized) |
-| Memory usage | < 50MB for 100,000 cells |
-| Virtual scroll | 60fps scrolling |
+| Memory usage         | < 50MB for 100,000 cells   |
+| Virtual scroll       | 60fps scrolling            |
 
 ### 6.1 Optimization Strategies
 
@@ -525,10 +539,10 @@ The panel editor will organize options into collapsible categories:
 
 ```json
 {
-  "expr-eval": "^2.0.0",       // Safe expression parsing
-  "react-window": "^1.8.0",    // Virtual scrolling
-  "@emotion/css": "^11.0.0",   // Styling (included with Grafana)
-  "lodash": "^4.17.0"          // Utilities (partial import)
+  "expr-eval": "^2.0.0", // Safe expression parsing
+  "react-window": "^1.8.0", // Virtual scrolling
+  "@emotion/css": "^11.0.0", // Styling (included with Grafana)
+  "lodash": "^4.17.0" // Utilities (partial import)
 }
 ```
 
@@ -563,10 +577,12 @@ To enable rapid plugin development and testing, the project uses Docker to provi
 #### 8.4.1 Docker Setup
 
 **Prerequisites:**
+
 - Docker Desktop installed and running
 - Plugin built and available in `dist/` directory
 
 **Container Configuration:**
+
 ```yaml
 # docker-compose.yml
 version: '3.8'
@@ -576,7 +592,7 @@ services:
     image: grafana/grafana:12.0.0
     container_name: grafana-enhancedgrid-dev
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
@@ -609,6 +625,7 @@ provisioning/
 ```
 
 **Datasource Provisioning (provisioning/datasources/datasource-testdata.yml):**
+
 ```yaml
 apiVersion: 1
 
@@ -624,6 +641,7 @@ datasources:
 ```
 
 **Datasource Provisioning (provisioning/datasources/datasource-infinity.yml):**
+
 ```yaml
 apiVersion: 1
 
@@ -639,6 +657,7 @@ datasources:
 ```
 
 **Dashboard Provisioning (provisioning/dashboards/dashboard.yml):**
+
 ```yaml
 apiVersion: 1
 
@@ -655,6 +674,7 @@ providers:
 ```
 
 **Test Dashboard (provisioning/dashboards/test-dashboard.json):**
+
 ```json
 {
   "dashboard": {
@@ -786,6 +806,7 @@ providers:
 #### 8.4.3 Development Workflow
 
 **1. Initial Setup:**
+
 ```bash
 # Build the plugin
 npm run build
@@ -798,11 +819,13 @@ docker-compose logs -f grafana
 ```
 
 **2. Access Grafana:**
+
 - Open browser to `http://localhost:3000`
 - No login required (anonymous admin access enabled)
 - Navigate to "Testing" folder to find test dashboard
 
 **3. Development Cycle:**
+
 ```bash
 # Make code changes
 # ...
@@ -820,6 +843,7 @@ npm run dev
 ```
 
 **4. Cleanup:**
+
 ```bash
 # Stop and remove container
 docker-compose down
@@ -876,28 +900,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '20'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build plugin
         run: npm run build
-      
+
       - name: Start Grafana
         run: docker-compose up -d
-      
+
       - name: Wait for Grafana
         run: |
           timeout 60 bash -c 'until curl -s http://localhost:3000/api/health; do sleep 2; done'
-      
+
       - name: Run E2E tests
         run: npm run test:e2e
-      
+
       - name: Stop Grafana
         run: docker-compose down
 ```
@@ -905,20 +929,23 @@ jobs:
 #### 8.4.6 Troubleshooting
 
 **Plugin not appearing in panel list:**
+
 - Verify `dist/` folder contains plugin.json and module.js
 - Check Grafana logs for plugin loading errors: `docker-compose logs grafana | grep -i error`
 - Ensure plugin ID matches: `custom-enhancedgrid-panel`
 
 **Dashboard not provisioning:**
+
 - Check JSON syntax in test-dashboard.json
 - Verify provisioning path in docker-compose.yml
 - Look for provisioning errors in logs
 
 **Permission issues:**
+
 - On Linux/Mac, ensure proper ownership: `sudo chown -R 472:472 ./provisioning`
 - Or run with user override in docker-compose.yml:
   ```yaml
-  user: "${UID}:${GID}"
+  user: '${UID}:${GID}'
   ```
 
 ---
@@ -928,35 +955,41 @@ jobs:
 ### Phase 1: Core Grid with Highlighting
 
 **Milestone 1.1: Project Setup**
+
 - Scaffold plugin with `@grafana/create-plugin`
 - Configure TypeScript, testing, and build
 - Set up development environment
 
 **Milestone 1.2: Basic Grid**
+
 - Data frame to grid transformation
 - Basic table rendering
 - Column headers and rows
 - Client-side sorting (single column)
 
 **Milestone 1.3: Column Configuration**
+
 - Column visibility toggle
 - Column reordering
 - Width configuration
 - Value formatters
 
 **Milestone 1.4: Highlighting System**
+
 - Expression evaluator implementation
 - Highlight rule configuration UI
 - Rule priority and matching
 - Predefined templates
 
 **Milestone 1.5: Advanced Features**
+
 - Multi-column sorting
 - Column filtering
 - Pagination
 - Virtual scrolling option
 
 **Milestone 1.6: Polish**
+
 - Theme compatibility
 - Accessibility (keyboard navigation, ARIA)
 - Documentation
@@ -965,16 +998,19 @@ jobs:
 ### Phase 2: Server-Side Operations (Future)
 
 **Milestone 2.1: Architecture**
+
 - Query interception design
 - Infinity datasource integration research
 - OData query builder
 
 **Milestone 2.2: Implementation**
+
 - Server-side sort with query modification
 - Server-side filter with query modification
 - Mode toggle and state management
 
 **Milestone 2.3: Refinement**
+
 - Error handling and fallbacks
 - Loading states
 - Cache management
@@ -988,6 +1024,7 @@ jobs:
 **Decision:** Custom grid with react-window for virtualization (instead of using pre-built library)
 
 **Rationale:**
+
 - **Full Control:** Complete control over rendering enables perfect Grafana integration
 - **Bundle Size:** Lighter weight compared to full-featured libraries like Mantine React Table
 - **Custom Highlighting:** Easier to implement custom row-based highlighting logic without library constraints
@@ -995,6 +1032,7 @@ jobs:
 - **Performance:** Optimized specifically for our requirements without unnecessary features
 
 **Alternatives Considered:**
+
 1. **Mantine React Table** - Feature-rich but has own styling system that may conflict with Grafana
 2. **React Data Grid (Comcast)** - More lightweight but still has styling constraints
 
@@ -1006,7 +1044,7 @@ jobs:
 
 ```typescript
 // Original approach (from initial TRD)
-expression: "value > row.threshold && row.status === 'error'"
+expression: "value > row.threshold && row.status === 'error'";
 ```
 
 **Implemented Approach:** Structured condition objects configured via UI
@@ -1015,20 +1053,21 @@ expression: "value > row.threshold && row.status === 'error'"
 // New approach (implemented)
 conditions: [
   {
-    sourceField: "value",
-    operator: "greater_than",
-    compareField: "threshold",
-    logicalOperator: "AND"
+    sourceField: 'value',
+    operator: 'greater_than',
+    compareField: 'threshold',
+    logicalOperator: 'AND',
   },
   {
-    sourceField: "status",
-    operator: "equals",
-    compareValue: "error"
-  }
-]
+    sourceField: 'status',
+    operator: 'equals',
+    compareValue: 'error',
+  },
+];
 ```
 
 **Rationale for Change:**
+
 1. **Security:** No code execution risk (expr-eval has known security vulnerabilities)
 2. **User Experience:** Visual condition builder is more accessible to non-technical users
 3. **Grafana Consistency:** Matches Grafana's transformation UI patterns (familiar UX)
@@ -1037,6 +1076,7 @@ conditions: [
 6. **Debugging:** Structured data is easier to inspect and debug than text expressions
 
 **Implementation Details:**
+
 - Operators defined as TypeScript enums (`ComparisonOperator` type)
 - Safe evaluation using switch statements (no `eval()`, no `Function()`)
 - UI built with Grafana's standard components (Combobox, Input, etc.)
@@ -1046,6 +1086,7 @@ conditions: [
 ### 10.3 Supported Operators
 
 **Comparison Operators:**
+
 - `equals` - Strict equality (===)
 - `not_equals` - Strict inequality (!==)
 - `greater_than` - Numeric comparison (>)
@@ -1054,16 +1095,19 @@ conditions: [
 - `less_than_or_equal` - Numeric comparison (<=)
 
 **String Operators:**
+
 - `contains` - Case-insensitive substring match
 - `not_contains` - Case-insensitive substring non-match
 - `starts_with` - Case-insensitive prefix match
 - `ends_with` - Case-insensitive suffix match
 
 **Null Operators:**
+
 - `is_null` - Checks for null or undefined
 - `is_not_null` - Checks for non-null and non-undefined
 
 **Logical Operators:**
+
 - `AND` - All conditions must be true
 - `OR` - At least one condition must be true
 
@@ -1086,20 +1130,22 @@ All operators include type checking before evaluation to prevent runtime errors.
    - Combined with global rules during evaluation
 
 **Rule Priority:**
+
 - Rules are evaluated in priority order (lower number = higher priority)
 - First matching rule wins (no rule cascading)
 - Column-specific rules and global rules share the same priority space
 
 **Rule Structure:**
+
 ```typescript
 interface HighlightRule {
-  id: string;                          // Unique identifier
-  name: string;                        // User-friendly name
-  enabled: boolean;                    // Enable/disable without deletion
-  priority: number;                    // Evaluation order (lower = first)
-  targetFields: string[] | '*';        // Which columns to apply to
-  conditions: HighlightCondition[];    // Evaluation logic
-  style: CellStyle;                    // Styles to apply when matched
+  id: string; // Unique identifier
+  name: string; // User-friendly name
+  enabled: boolean; // Enable/disable without deletion
+  priority: number; // Evaluation order (lower = first)
+  targetFields: string[] | '*'; // Which columns to apply to
+  conditions: HighlightCondition[]; // Evaluation logic
+  style: CellStyle; // Styles to apply when matched
 }
 ```
 
@@ -1108,6 +1154,7 @@ interface HighlightRule {
 ### 10.5 Component Architecture
 
 **Directory Structure:**
+
 ```
 src/
 ├── types.ts                          # All TypeScript interfaces
@@ -1129,6 +1176,7 @@ src/
 ```
 
 **Key Design Patterns:**
+
 - **Separation of Concerns:** UI components separate from business logic
 - **React Hooks:** Use memoization for performance (useMemo, useCallback)
 - **Type Safety:** All interfaces defined in types.ts, imported throughout
@@ -1139,16 +1187,19 @@ src/
 ### 10.6 Dependencies
 
 **Production Dependencies:**
+
 - `react-window` (1.8.10) - Virtual scrolling for performance
 - Grafana packages already in project (@grafana/data, @grafana/ui, etc.)
 
 **Why react-window:**
+
 - Lightweight (smaller bundle than react-virtualized)
 - Well-maintained and widely used
 - Simple API that fits our needs
 - Used by many Grafana plugins
 
 **Rejected Dependencies:**
+
 - `expr-eval` - Security concerns (code execution)
 - `lodash` - Unnecessary, using native JS methods
 - Grid libraries - Better to build custom for our specific needs
@@ -1158,16 +1209,19 @@ src/
 ### 10.7 Performance Considerations
 
 **Virtual Scrolling:**
+
 - Renders only visible rows + overscan buffer
 - Default overscan: 5 rows
 - Handles 10,000+ rows smoothly
 
 **Memoization:**
+
 - Column transformations memoized (useMemo)
 - Highlight style computation memoized per cell
 - Sort/filter operations memoized
 
 **Evaluation Efficiency:**
+
 - Condition evaluation uses switch statements (fast)
 - No string parsing or regex compilation
 - Early exit on first matching rule
@@ -1192,6 +1246,7 @@ Users can configure columns via Grafana's field override system:
    - Column-specific highlight rules
 
 **Configuration Flow:**
+
 ```
 User edits field override
   → Saved to panel's fieldConfig
@@ -1214,6 +1269,7 @@ The architecture supports future server-side operations:
 - Toggle between client-side and server-side modes
 
 **Potential Enhancements:**
+
 - Additional operators (regex, date comparisons)
 - Rule templates/presets
 - Import/export rule configurations
@@ -1243,25 +1299,28 @@ The architecture supports future server-side operations:
 
 ```javascript
 // Highlight cell red if status is 'error'
-row.status === 'error'
+row.status === 'error';
 
 // Highlight if value exceeds threshold from another column
-value > row.threshold
-
-// Percentage-based highlighting
-(row.used / row.total) * 100 > 80
+value >
+  row.threshold(
+    // Percentage-based highlighting
+    row.used / row.total
+  ) *
+    100 >
+  80;
 
 // Complex condition
-row.priority === 'high' && row.age > 24
+row.priority === 'high' && row.age > 24;
 
 // String matching
-row.message.toLowerCase().includes('warning')
+row.message.toLowerCase().includes('warning');
 
 // Null handling
-value !== null && value !== undefined && value > 0
+value !== null && value !== undefined && value > 0;
 
 // Date comparison (assuming numeric timestamp)
-Date.now() - row.lastUpdated > 86400000  // Older than 24 hours
+Date.now() - row.lastUpdated > 86400000; // Older than 24 hours
 ```
 
 ### B. OData Query Examples (Phase 2)
@@ -1285,4 +1344,4 @@ $filter=contains(Name, 'test')
 
 ---
 
-*End of Document*
+_End of Document_

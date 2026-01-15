@@ -94,11 +94,7 @@ export async function waitForGridStable(page: Page, panelId: number, timeout = 5
 /**
  * Scroll grid to a specific position
  */
-export async function scrollGrid(
-  page: Page,
-  panelId: number,
-  options: { x?: number; y?: number }
-): Promise<void> {
+export async function scrollGrid(page: Page, panelId: number, options: { x?: number; y?: number }): Promise<void> {
   const body = await getGridBody(page, panelId);
   const scrollContainer = body.locator('.enhanced-grid-scroll-container').first();
 
@@ -169,11 +165,7 @@ export async function changePageSize(page: Page, panelId: number, pageSize: numb
  * Configure panel options via the panel edit UI
  * This opens the panel editor, updates options, and returns to view mode
  */
-export async function configurePanelOptions(
-  ctx: PluginTestCtx,
-  panelId: number,
-  options: PanelOptions
-): Promise<void> {
+export async function configurePanelOptions(ctx: PluginTestCtx, panelId: number, options: PanelOptions): Promise<void> {
   const { page } = ctx;
 
   // Navigate to panel edit page
