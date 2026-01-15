@@ -1,0 +1,279 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "autoSizeAllColumns": true,
+        "autoSizeSampleSize": 100,
+        "borderStyle": "horizontal",
+        "compactHeaders": false,
+        "compactMode": false,
+        "countVariableName": "gridCount",
+        "filterStyle": "filterRow",
+        "filterVariableName": "gridFilter",
+        "freezeLeftColumns": 2,
+        "freezeRightColumns": 0,
+        "headerHeight": 80,
+        "highlightRules": [
+          {
+            "enabled": true,
+            "id": "rule-b5d1855d-310e-4abf-bc72-d93e2d32cc4f",
+            "name": "value-map",
+            "priority": 1,
+            "ruleType": "valueMapping",
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "Status"
+            ],
+            "valueMappingField": "Status",
+            "valueMappings": [
+              {
+                "id": "06baadd1-a2c4-4c29-a5e0-22649c567e37",
+                "style": {
+                  "backgroundColor": "#00000000",
+                  "textColor": "#73BF69"
+                },
+                "value": "Active"
+              },
+              {
+                "id": "955c7416-00eb-4024-b116-b21b7f60260f",
+                "style": {
+                  "backgroundColor": "#00000000",
+                  "textColor": "#FADE2A"
+                },
+                "value": "Pending"
+              },
+              {
+                "id": "cc5b09a9-9570-4c2b-8f34-fba83a39cbcf",
+                "style": {
+                  "backgroundColor": "#00000000",
+                  "textColor": "#F2495C"
+                },
+                "value": "Inactive"
+              }
+            ]
+          },
+          {
+            "dataRangeApplyTo": "foreground",
+            "dataRangeColorScheme": "continuous-GrYlRd",
+            "dataRangeMode": "auto",
+            "dataRangeSourceField": "Score",
+            "enabled": true,
+            "id": "rule-aa50e18b-c2ad-48ba-959d-fe27dd23eed9",
+            "name": "data-range",
+            "priority": 2,
+            "ruleType": "dataRangeGradient",
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "Score"
+            ]
+          },
+          {
+            "conditionGroup": {
+              "id": "group-41588529-cdc2-45b2-a1ae-8f9f77483acd",
+              "items": [
+                {
+                  "compareType": "value",
+                  "compareValue": "0",
+                  "id": "condition-1769011241692",
+                  "operator": "less_than",
+                  "sourceField": "Amount"
+                }
+              ],
+              "logicalOperator": "AND",
+              "type": "group"
+            },
+            "enabled": true,
+            "id": "rule-17640176-f971-4e66-acf8-8f8def213150",
+            "name": "cond-logic",
+            "priority": 3,
+            "style": {
+              "backgroundColor": "#F2495C",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "Amount"
+            ]
+          },
+          {
+            "enabled": true,
+            "id": "rule-485b3bae-6380-4dbe-b2a6-5fcbfed3ffb9",
+            "name": "spark-line",
+            "priority": 4,
+            "ruleType": "sparkChart",
+            "sparkChartColorMode": "scheme",
+            "sparkChartColorScheme": "continuous-YlBl",
+            "sparkChartLineInterpolation": "linear",
+            "sparkChartMode": "line",
+            "sparkChartSourceField": "TrendLine",
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "TrendLine"
+            ]
+          },
+          {
+            "enabled": true,
+            "id": "rule-80201c31-6e68-4621-a2ef-49220285c04f",
+            "name": "spark-bar",
+            "priority": 5,
+            "ruleType": "sparkChart",
+            "sparkChartMode": "bar",
+            "sparkChartSourceField": "BarData",
+            "sparkChartStateTimeline": false,
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "BarData"
+            ]
+          },
+          {
+            "enabled": true,
+            "id": "rule-9737df86-b348-43f1-a911-9fdd72a44d67",
+            "name": "spark-stack",
+            "priority": 6,
+            "ruleType": "sparkChart",
+            "sparkChartMode": "stack",
+            "sparkChartScaleMode": "global",
+            "sparkChartSourceField": "StackData",
+            "sparkChartStackScaleMode": "global",
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "StackData"
+            ]
+          },
+          {
+            "enabled": true,
+            "id": "rule-3139eb4b-f177-4332-8e48-1781ab02220f",
+            "name": "spark-bullet",
+            "priority": 7,
+            "ruleType": "sparkChart",
+            "sparkChartBulletBgColorMode": "solid",
+            "sparkChartBulletFgColorMode": "solid",
+            "sparkChartBulletLineColorMode": "solid",
+            "sparkChartMode": "bullet",
+            "sparkChartSourceField": "BulletData",
+            "style": {
+              "backgroundColor": "#ff0000",
+              "textColor": "#ffffff"
+            },
+            "targetFields": [
+              "BulletData"
+            ]
+          }
+        ],
+        "includeCount": true,
+        "overscanRows": 5,
+        "pageSize": 50,
+        "paginationEnabled": true,
+        "queryFormat": "odata",
+        "rowHeight": 32,
+        "rowStripeEnabled": true,
+        "seriesCountSize": "sm",
+        "serverSideMode": false,
+        "serverSidePagination": false,
+        "showHeader": true,
+        "showRowNumbers": false,
+        "showSeriesCount": false,
+        "skipVariableName": "gridSkip",
+        "sortVariableName": "gridSort",
+        "text": "Default value of text input option",
+        "topVariableName": "gridTop",
+        "virtualScrollEnabled": true
+      },
+      "pluginVersion": "1.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "db84e60d-b92a-4089-82cb-34842fb1754b"
+          },
+          "rawFrameContent": "[{\"columns\":[{\"text\":\"ID\",\"type\":\"number\"},{\"text\":\"Name\",\"type\":\"string\"},{\"text\":\"Status\",\"type\":\"string\"},{\"text\":\"Created\",\"type\":\"time\"},{\"text\":\"GUID\",\"type\":\"string\"},{\"text\":\"Score\",\"type\":\"number\"},{\"text\":\"Amount\",\"type\":\"number\"},{\"text\":\"IsActive\",\"type\":\"boolean\"},{\"text\":\"TrendLine\",\"type\":\"string\"},{\"text\":\"BarData\",\"type\":\"string\"},{\"text\":\"StackData\",\"type\":\"string\"},{\"text\":\"BulletData\",\"type\":\"string\"}],\"rows\":[[1,\"Alice Johnson\",\"Active\",1704067200000,\"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",85,1234.56,true,\"10,15,12,18,22,25,30\",\"5,8,3,9,7,4,6\",\"30,20,50\",\"50,75,100,85,90\"],[2,\"Bob Smith\",\"Pending\",1704153600000,\"b2c3d4e5-f6a7-8901-bcde-f23456789012\",72,-500.00,false,\"50,48,45,42,38,35,30\",\"9,7,8,6,5,4,3\",\"40,35,25\",\"50,75,100,45,70\"],[3,\"Carol Williams\",\"Active\",1704240000000,\"c3d4e5f6-a7b8-9012-cdef-345678901234\",93,9999.99,true,\"20,25,30,35,40,45,50\",\"2,4,6,8,10,12,14\",\"25,25,50\",\"50,75,100,93,95\"],[4,\"David Brown\",\"Inactive\",1704326400000,\"d4e5f6a7-b8c9-0123-defa-456789012345\",45,0.00,false,\"30,30,30,30,30,30,30\",\"5,5,5,5,5,5,5\",\"33,33,34\",\"50,75,100,25,60\"],[5,\"Eve Davis\",\"Active\",1704412800000,\"e5f6a7b8-c9d0-1234-efab-567890123456\",100,50000.00,true,\"5,20,10,35,15,45,50\",\"10,2,15,3,12,5,8\",\"60,20,20\",\"50,75,100,100,85\"],[6,\"Frank Miller\",\"Pending\",1704499200000,\"f6a7b8c9-d0e1-2345-fabc-678901234567\",67,2500.75,true,\"40,38,42,36,44,34,46\",\"6,7,5,8,4,9,3\",\"15,35,50\",\"50,75,100,67,75\"],[7,\"Grace Wilson\",\"Active\",1704585600000,\"a7b8c9d0-e1f2-3456-abcd-789012345678\",88,175.25,true,\"10,12,14,16,18,20,22\",\"3,4,5,6,7,8,9\",\"50,30,20\",\"50,75,100,88,85\"],[8,\"Henry Taylor\",\"Inactive\",1704672000000,\"b8c9d0e1-f2a3-4567-bcde-890123456789\",31,-1250.50,false,\"80,70,60,50,40,30,20\",\"12,10,8,6,4,2,1\",\"10,10,80\",\"50,75,100,31,50\"],[9,\"Ivy Anderson\",\"Active\",1704758400000,\"c9d0e1f2-a3b4-5678-cdef-901234567890\",79,8750.00,true,\"25,30,28,35,32,40,38\",\"7,8,6,9,5,10,4\",\"45,30,25\",\"50,75,100,79,85\"],[10,\"Jack Thomas\",\"Pending\",1704844800000,\"d0e1f2a3-b4c5-6789-defa-012345678901\",56,425.00,false,\"60,55,65,50,70,45,75\",\"8,6,10,4,12,2,14\",\"20,40,40\",\"50,75,100,56,70\"]]}]",
+          "refId": "A",
+          "scenarioId": "raw_frame"
+        }
+      ],
+      "title": "Sample Panel Title",
+      "type": "ost-enhancedgrid-panel"
+    }
+  ],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Provisioned enhancedgrid dashboard",
+  "uid": "a538aeff-5a8a-42a5-901c-938d896fdd6f",
+  "version": 5
+}

@@ -1,0 +1,117 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 0,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "grafana-testdata-datasource",
+        "uid": "trlxrdZVk"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "autoSizeAllColumns": false,
+        "autoSizeSampleSize": 100,
+        "borderStyle": "horizontal",
+        "compactHeaders": false,
+        "compactMode": false,
+        "countVariableName": "gridCount",
+        "filterStyle": "filterRow",
+        "filterVariableName": "gridFilter",
+        "freezeLeftColumns": 0,
+        "freezeRightColumns": 0,
+        "headerHeight": 80,
+        "highlightRules": [],
+        "includeCount": true,
+        "overscanRows": 5,
+        "pageSize": 50,
+        "paginationEnabled": false,
+        "queryFormat": "odata",
+        "rowHeight": 32,
+        "rowStripeEnabled": true,
+        "serverSideMode": false,
+        "serverSidePagination": false,
+        "showHeader": true,
+        "showRowNumbers": false,
+        "skipVariableName": "gridSkip",
+        "sortVariableName": "gridSort",
+        "topVariableName": "gridTop",
+        "virtualScrollEnabled": true
+      },
+      "pluginVersion": "1.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-testdata-datasource",
+            "uid": "trlxrdZVk"
+          },
+          "refId": "A",
+          "scenarioId": "csv_file"
+        }
+      ],
+      "title": "New panel",
+      "type": "ost-enhancedgrid-panel"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 42,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "No Data Test",
+  "uid": "gfp9sb",
+  "version": 2
+}

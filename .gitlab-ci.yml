@@ -1,0 +1,27 @@
+stages:
+  - build
+
+build:
+  stage: build
+  image: ost/quasar-builder:latest
+  tags:
+    - k8s
+  script:
+    - npm ci
+    - npm run lint
+    - npm run typecheck
+    - npm run test:ci
+    - npm run build
+    - apt-get update && apt-get install -y zip
+    - cd dist && zip -r ../ost-enhancedgrid-panel.zip . && cd ..
+  artifacts:
+    paths:
+      - ost-enhancedgrid-panel.zip
+    expire_in: 1 week
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - node_modules/
+    policy: pull-push

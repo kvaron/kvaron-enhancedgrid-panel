@@ -1,0 +1,29 @@
+# This workflow builds and releases the plugin for internal use
+# For public marketplace publishing, uncomment the policy_token in the build-plugin step
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Run workflow on version tags, e.g. v1.0.0.
+
+permissions: read-all
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: grafana/plugin-actions/build-plugin@build-plugin/v1.0.2
+        with:
+          # Uncomment to enable plugin signing for Grafana marketplace publishing
+          # (For more info: https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin#generate-an-access-policy-token)
+          # policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
+          
+          # Create GitHub release with the built plugin
+          create_release: true
