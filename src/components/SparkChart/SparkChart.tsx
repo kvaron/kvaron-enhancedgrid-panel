@@ -1,10 +1,16 @@
 import React, { useMemo } from 'react';
+import { FieldColorModeId } from '@grafana/data';
 import { SparkChartConfig } from '../../types';
-import { getSparkChartSegmentColor, getColorFromScheme } from '../../utils/colorUtils';
 import {
-  generateLineGradientDef,
+  getSparkChartSegmentColor,
+  getClassicPaletteColor,
+  getThresholdColor,
+} from '../../utils/colorUtils';
+import {
   generateSparkLinePath,
   calculateSparkLinePoints,
+  generateYGradientDef,
+  getColorForYPosition,
 } from '../../utils/sparkChartGradient';
 
 interface SparkChartProps {
@@ -68,22 +74,20 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
       return null;
     }
 
-    const range = max - min || 1;
     const segments: Array<{ path: string; color: string; isVertical: boolean }> = [];
 
     for (let i = 1; i < points.length; i++) {
       const prevPoint = points[i - 1];
       const currPoint = points[i];
 
-      // Normalized values for color calculation
-      const prevNormalized = (config.data[i - 1] - min) / range;
-
-      // Get color for previous point
-      const prevColor = getColorFromScheme(
+      // Get color based on Y position
+      const prevColor = getColorForYPosition(
+        prevPoint.y,
+        height,
         config.colorScheme,
-        prevNormalized,
         config.theme,
-        config.reverseGradient ?? false
+        config.reverseGradient ?? false,
+        config.solidColor
       );
 
       // Horizontal segment: from prevPoint to (currPoint.x, prevPoint.y)
@@ -113,6 +117,7 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     config.colorScheme,
     config.theme,
     config.reverseGradient,
+    config.solidColor,
     min,
     max,
     width,
@@ -127,7 +132,6 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     }
 
     const points = calculateSparkLinePoints(config.data, width, height, min, max);
-    const range = max - min || 1;
     const gradients: React.ReactNode[] = [];
 
     for (let i = 1; i < points.length; i++) {
@@ -136,20 +140,22 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
 
       // Only create gradient if there's a vertical segment AND this is not the last point
       if (i < points.length - 1 && Math.abs(currPoint.y - prevPoint.y) > 0.1) {
-        const prevNormalized = (config.data[i - 1] - min) / range;
-        const currNormalized = (config.data[i] - min) / range;
-
-        const prevColor = getColorFromScheme(
+        // Get colors based on Y position
+        const prevColor = getColorForYPosition(
+          prevPoint.y,
+          height,
           config.colorScheme!,
-          prevNormalized,
           config.theme,
-          config.reverseGradient ?? false
+          config.reverseGradient ?? false,
+          config.solidColor
         );
-        const currColor = getColorFromScheme(
+        const currColor = getColorForYPosition(
+          currPoint.y,
+          height,
           config.colorScheme!,
-          currNormalized,
           config.theme,
-          config.reverseGradient ?? false
+          config.reverseGradient ?? false,
+          config.solidColor
         );
 
         gradients.push(
@@ -180,6 +186,7 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     config.colorScheme,
     config.theme,
     config.reverseGradient,
+    config.solidColor,
     min,
     max,
     width,
@@ -190,30 +197,27 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
   // Generate gradient definition for non-step modes
   const { gradientDef, gradientId } = useMemo(() => {
     if (interpolationMode === 'step' || !useGradient || !config.colorScheme) {
-      return { gradientDef: null, gradientId: null };
+      return { gradientDef: null, gradientId: '' };
     }
-    return generateLineGradientDef(
-      config.data,
-      config.colorScheme,
+    return generateYGradientDef(
       min,
       max,
-      config.theme,
-      width,
       height,
-      interpolationMode,
-      config.reverseGradient ?? false
+      config.colorScheme,
+      config.theme,
+      config.reverseGradient ?? false,
+      config.solidColor
     );
   }, [
     interpolationMode,
     useGradient,
-    config.data,
     config.colorScheme,
     config.theme,
     min,
     max,
-    width,
     height,
     config.reverseGradient,
+    config.solidColor,
   ]);
 
   // Generate path data for non-step modes
@@ -301,18 +305,35 @@ const SparkBar: React.FC<ChartComponentProps> = ({ config, width, height, yOffse
       }
       const y = stateTimeline ? 0 : height - barHeight;
 
-      // Use shared color utility
-      const color = getSparkChartSegmentColor({
-        index,
-        value,
-        normalizedValue,
-        dataLength: data.length,
-        colorMode: config.colorMode,
-        solidColor: config.solidColor,
-        colorScheme: config.colorScheme,
-        theme: config.theme,
-        reverseGradient: config.reverseGradient,
-      });
+      // Determine color based on mode
+      let color: string;
+      if (config.colorMode === 'solid' && config.solidColor) {
+        // Solid color mode: use the configured color
+        color = config.solidColor;
+      } else if (config.colorMode === 'scheme' && config.colorScheme && config.theme) {
+        // Handle special color schemes that need different inputs
+        if (config.colorScheme === FieldColorModeId.PaletteClassic) {
+          // Classic Palette: index-based sequential colors
+          color = getClassicPaletteColor(index, config.theme);
+        } else if (config.colorScheme === FieldColorModeId.Thresholds) {
+          // Thresholds: value-based colors
+          color = getThresholdColor(value, config.theme.visualization.getColorByName('blue'), config.theme);
+        } else {
+          // Standard gradient schemes AND Shades: use Y-based gradient coloring
+          // getColorForYPosition now handles Shades mode with solidColor and reverseGradient
+          color = getColorForYPosition(
+            y,
+            height,
+            config.colorScheme,
+            config.theme,
+            config.reverseGradient ?? false,
+            config.solidColor
+          );
+        }
+      } else {
+        // Fallback when config not fully initialized
+        color = '#3274D9';
+      }
 
       return { x, y, width: effectiveBarWidth, height: barHeight, color };
     });

@@ -1,6 +1,6 @@
 import React from 'react';
-import { GrafanaTheme2 } from '@grafana/data';
-import { getColorFromScheme } from './colorUtils';
+import { GrafanaTheme2, FieldColorModeId } from '@grafana/data';
+import { getColorFromScheme, generateColorShade } from './colorUtils';
 
 /**
  * Point data with screen coordinates and normalized value.
@@ -270,4 +270,136 @@ export function generateLineGradientDef(
   );
 
   return { gradientDef, gradientId };
+}
+
+/**
+ * Generate vertical gradient definition for Y-direction coloring.
+ * Color is determined by Y position only - same height always gets same color.
+ *
+ * @param min - Minimum value for normalization (from scaling mode)
+ * @param max - Maximum value for normalization (from scaling mode)
+ * @param height - Chart height in pixels
+ * @param colorScheme - Grafana color scheme ID
+ * @param theme - Grafana theme for color resolution
+ * @param reverseGradient - Flip gradient direction
+ * @param solidColor - Base color for Shades mode (optional)
+ * @returns Object with unique gradient ID and React SVG element
+ */
+export function generateYGradientDef(
+  min: number,
+  max: number,
+  height: number,
+  colorScheme: string,
+  theme: GrafanaTheme2,
+  reverseGradient = false,
+  solidColor?: string
+): { gradientDef: React.ReactNode; gradientId: string } {
+  // Generate unique ID for this gradient
+  const gradientId = `spark-y-gradient-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+
+  if (height <= 0) {
+    return { gradientDef: null, gradientId };
+  }
+
+  // Create color stops evenly distributed along Y axis
+  // Using 10 stops for smooth gradient transitions
+  const numStops = 10;
+  const stops: Array<{ y: number; color: string }> = [];
+
+  for (let i = 0; i < numStops; i++) {
+    // Y position from top (0) to bottom (height)
+    const y = (i / (numStops - 1)) * height;
+
+    // Normalized value for color calculation
+    // Top (y=0) represents max value (1.0), bottom (y=height) represents min value (0.0)
+    let normalizedValue = 1 - y / height;
+
+    // Apply reverseGradient to normalizedValue
+    if (reverseGradient) {
+      normalizedValue = 1 - normalizedValue;
+    }
+
+    // Get color based on scheme type
+    let color: string;
+    if (colorScheme === FieldColorModeId.Shades && solidColor) {
+      // Shades: generate gradient from dark to light using base color
+      color = generateColorShade(solidColor, normalizedValue);
+    } else {
+      // Standard gradient schemes: use getColorFromScheme without reverseGradient
+      // (we already applied reverseGradient to normalizedValue above)
+      color = getColorFromScheme(colorScheme, normalizedValue, theme, false);
+    }
+
+    stops.push({ y, color });
+  }
+
+  // Create SVG linearGradient element with vertical orientation
+  const gradientDef = React.createElement(
+    'linearGradient',
+    {
+      id: gradientId,
+      key: gradientId,
+      gradientUnits: 'userSpaceOnUse',
+      x1: 0,
+      y1: 0,
+      x2: 0,
+      y2: height,
+    },
+    stops.map((stop, index) =>
+      React.createElement('stop', {
+        key: `${gradientId}-stop-${index}`,
+        offset: `${(stop.y / height) * 100}%`,
+        stopColor: stop.color,
+      })
+    )
+  );
+
+  return { gradientDef, gradientId };
+}
+
+/**
+ * Get color for a specific Y position in the chart.
+ * Used for elements that need solid fill at their Y position.
+ *
+ * @param y - Y coordinate in pixels (0 = top, height = bottom)
+ * @param height - Chart height in pixels
+ * @param colorScheme - Grafana color scheme ID
+ * @param theme - Grafana theme for color resolution
+ * @param reverseGradient - Flip gradient direction
+ * @param solidColor - Base color for Shades mode (optional)
+ * @returns Color string for the given Y position
+ */
+export function getColorForYPosition(
+  y: number,
+  height: number,
+  colorScheme: string,
+  theme: GrafanaTheme2,
+  reverseGradient = false,
+  solidColor?: string
+): string {
+  if (height <= 0) {
+    return '#3274D9'; // Default blue
+  }
+
+  // Clamp y to valid range
+  const clampedY = Math.max(0, Math.min(height, y));
+
+  // Normalized value for color calculation
+  // Top (y=0) represents max value (1.0), bottom (y=height) represents min value (0.0)
+  let normalizedValue = 1 - clampedY / height;
+
+  // Apply reverseGradient to normalizedValue
+  if (reverseGradient) {
+    normalizedValue = 1 - normalizedValue;
+  }
+
+  // Get color based on scheme type
+  if (colorScheme === FieldColorModeId.Shades && solidColor) {
+    // Shades: generate gradient from dark to light using base color
+    return generateColorShade(solidColor, normalizedValue);
+  } else {
+    // Standard gradient schemes: use getColorFromScheme without reverseGradient
+    // (we already applied reverseGradient to normalizedValue above)
+    return getColorFromScheme(colorScheme, normalizedValue, theme, false);
+  }
 }

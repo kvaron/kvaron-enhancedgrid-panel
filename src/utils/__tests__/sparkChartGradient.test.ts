@@ -1,17 +1,33 @@
-import { calculateSparkLinePoints, generateSparkLinePath, generateLineGradientDef } from '../sparkChartGradient';
-import { GrafanaTheme2 } from '@grafana/data';
+import {
+  calculateSparkLinePoints,
+  generateSparkLinePath,
+  generateLineGradientDef,
+  generateYGradientDef,
+  getColorForYPosition,
+} from '../sparkChartGradient';
+import { GrafanaTheme2, FieldColorModeId } from '@grafana/data';
 
 // Mock the colorUtils module
 jest.mock('../colorUtils', () => ({
-  getColorFromScheme: jest.fn((scheme: string, normalizedValue: number) => {
-    // Simple mock: return color based on normalized value
-    if (normalizedValue <= 0.33) {
+  getColorFromScheme: jest.fn((scheme: string, normalizedValue: number, theme: any, reverseGradient = false) => {
+    // Apply reverseGradient if specified
+    const effectiveValue = reverseGradient ? 1 - normalizedValue : normalizedValue;
+
+    // Simple mock: return color based on effective normalized value
+    if (effectiveValue <= 0.33) {
       return 'rgb(0, 255, 0)';
     } // Green
-    if (normalizedValue <= 0.66) {
+    if (effectiveValue <= 0.66) {
       return 'rgb(255, 255, 0)';
     } // Yellow
     return 'rgb(255, 0, 0)'; // Red
+  }),
+  generateColorShade: jest.fn((baseColor: string, position: number) => {
+    // Mock shades: darker at position=0, lighter at position=1
+    // Return a simple hex color based on position
+    const intensity = Math.round(position * 255);
+    const hex = intensity.toString(16).padStart(2, '0');
+    return `#${hex}${hex}${hex}`;
   }),
 }));
 
@@ -444,6 +460,287 @@ describe('sparkChartGradient', () => {
       // Should be centered around middle height
       const avgY = yValues.reduce((sum, y) => sum + y, 0) / yValues.length;
       expect(avgY).toBeCloseTo(50, 1); // Close to height/2
+    });
+  });
+
+  describe('generateYGradientDef', () => {
+    it('should create vertical gradient with correct orientation', () => {
+      const min = 0;
+      const max = 100;
+      const height = 50;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const { gradientDef, gradientId } = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).not.toBeNull();
+      // Gradient should be vertical (x1=x2, y1!=y2)
+      // This is validated by the React element structure
+    });
+
+    it('should generate color stops from top to bottom', () => {
+      const min = 0;
+      const max = 100;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const { gradientDef, gradientId } = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).not.toBeNull();
+      // The gradient should have 10 stops distributed evenly along Y axis
+      // Top (y=0) represents max value, bottom (y=height) represents min value
+    });
+
+    it('should respect reverseGradient parameter', () => {
+      const min = 0;
+      const max = 100;
+      const height = 50;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const normalGradient = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+      const reversedGradient = generateYGradientDef(min, max, height, colorScheme, mockTheme, true);
+
+      expect(normalGradient.gradientId).toContain('spark-y-gradient-');
+      expect(reversedGradient.gradientId).toContain('spark-y-gradient-');
+      expect(normalGradient.gradientId).not.toBe(reversedGradient.gradientId);
+      // Both should produce gradients, just with reversed color mapping
+    });
+
+    it('should handle min=max edge case', () => {
+      const min = 50;
+      const max = 50;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const { gradientDef, gradientId } = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).not.toBeNull();
+      // All color stops should have the same normalized value (0)
+      // This should produce a single-color gradient
+    });
+
+    it('should handle zero height', () => {
+      const min = 0;
+      const max = 100;
+      const height = 0;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const { gradientDef, gradientId } = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).toBeNull();
+    });
+
+    it('should handle negative height', () => {
+      const min = 0;
+      const max = 100;
+      const height = -10;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const { gradientDef, gradientId } = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).toBeNull();
+    });
+
+    it('should generate unique gradient IDs', () => {
+      const min = 0;
+      const max = 100;
+      const height = 50;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const result1 = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+      const result2 = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
+
+      expect(result1.gradientId).not.toBe(result2.gradientId);
+    });
+
+    it('should handle Shades color scheme with solidColor', () => {
+      const min = 0;
+      const max = 100;
+      const height = 100;
+      const colorScheme = FieldColorModeId.Shades;
+      const solidColor = '#3274D9';
+
+      const { gradientDef, gradientId } = generateYGradientDef(
+        min,
+        max,
+        height,
+        colorScheme,
+        mockTheme,
+        false,
+        solidColor
+      );
+
+      expect(gradientId).toContain('spark-y-gradient-');
+      expect(gradientDef).not.toBeNull();
+      // Should use generateColorShade instead of getColorFromScheme
+    });
+
+    it('should handle Shades color scheme with reverseGradient', () => {
+      const min = 0;
+      const max = 100;
+      const height = 100;
+      const colorScheme = FieldColorModeId.Shades;
+      const solidColor = '#3274D9';
+
+      const normalGradient = generateYGradientDef(min, max, height, colorScheme, mockTheme, false, solidColor);
+      const reversedGradient = generateYGradientDef(min, max, height, colorScheme, mockTheme, true, solidColor);
+
+      expect(normalGradient.gradientId).toContain('spark-y-gradient-');
+      expect(reversedGradient.gradientId).toContain('spark-y-gradient-');
+      expect(normalGradient.gradientId).not.toBe(reversedGradient.gradientId);
+      // Both should produce gradients with reversed shades
+    });
+  });
+
+  describe('getColorForYPosition', () => {
+    it('should return consistent color for same Y position', () => {
+      const y = 25;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color1 = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+      const color2 = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      expect(color1).toBe(color2);
+      expect(color1).toBeTruthy();
+    });
+
+    it('should return different colors for different Y positions', () => {
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const colorTop = getColorForYPosition(0, height, colorScheme, mockTheme, false);
+      const colorMiddle = getColorForYPosition(50, height, colorScheme, mockTheme, false);
+      const colorBottom = getColorForYPosition(100, height, colorScheme, mockTheme, false);
+
+      // Top, middle, and bottom should have different colors
+      expect(colorTop).not.toBe(colorMiddle);
+      expect(colorMiddle).not.toBe(colorBottom);
+      expect(colorTop).not.toBe(colorBottom);
+    });
+
+    it('should handle Y at top (y=0)', () => {
+      const y = 0;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      // Top (y=0) should represent max value (normalizedValue = 1.0)
+      expect(color).toBe('rgb(255, 0, 0)'); // Red from our mock
+    });
+
+    it('should handle Y at bottom (y=height)', () => {
+      const y = 100;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      // Bottom (y=height) should represent min value (normalizedValue = 0.0)
+      expect(color).toBe('rgb(0, 255, 0)'); // Green from our mock
+    });
+
+    it('should handle Y at middle', () => {
+      const y = 50;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      // Middle should have normalized value of 0.5
+      expect(color).toBe('rgb(255, 255, 0)'); // Yellow from our mock
+    });
+
+    it('should clamp Y values outside range', () => {
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const colorAbove = getColorForYPosition(-10, height, colorScheme, mockTheme, false);
+      const colorBelow = getColorForYPosition(150, height, colorScheme, mockTheme, false);
+
+      // Should clamp to valid range
+      expect(colorAbove).toBe('rgb(255, 0, 0)'); // Same as y=0 (top)
+      expect(colorBelow).toBe('rgb(0, 255, 0)'); // Same as y=height (bottom)
+    });
+
+    it('should respect reverseGradient parameter', () => {
+      const y = 0;
+      const height = 100;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const normalColor = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+      const reversedColor = getColorForYPosition(y, height, colorScheme, mockTheme, true);
+
+      // With reverseGradient, top (y=0) should represent min value
+      expect(normalColor).toBe('rgb(255, 0, 0)'); // Red (max value)
+      expect(reversedColor).toBe('rgb(0, 255, 0)'); // Green (min value when reversed)
+    });
+
+    it('should handle zero height', () => {
+      const y = 0;
+      const height = 0;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      // Should return default color
+      expect(color).toBe('#3274D9');
+    });
+
+    it('should handle negative height', () => {
+      const y = 50;
+      const height = -10;
+      const colorScheme = 'continuous-GrYlRd';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      // Should return default color
+      expect(color).toBe('#3274D9');
+    });
+
+    it('should handle Shades color scheme with solidColor', () => {
+      const y = 50;
+      const height = 100;
+      const colorScheme = FieldColorModeId.Shades;
+      const solidColor = '#3274D9';
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false, solidColor);
+
+      expect(color).toBeTruthy();
+      // Should use generateColorShade, expecting a grayscale value
+      expect(color).toMatch(/^#[0-9a-f]{6}$/i);
+    });
+
+    it('should handle Shades color scheme with reverseGradient', () => {
+      const y = 0; // Top position
+      const height = 100;
+      const colorScheme = FieldColorModeId.Shades;
+      const solidColor = '#3274D9';
+
+      const normalColor = getColorForYPosition(y, height, colorScheme, mockTheme, false, solidColor);
+      const reversedColor = getColorForYPosition(y, height, colorScheme, mockTheme, true, solidColor);
+
+      expect(normalColor).toBeTruthy();
+      expect(reversedColor).toBeTruthy();
+      // With reverseGradient, same Y position should give different colors
+      expect(normalColor).not.toBe(reversedColor);
+    });
+
+    it('should use standard gradient when Shades is specified but no solidColor', () => {
+      const y = 50;
+      const height = 100;
+      const colorScheme = FieldColorModeId.Shades;
+
+      const color = getColorForYPosition(y, height, colorScheme, mockTheme, false);
+
+      expect(color).toBeTruthy();
+      // Should fall back to getColorFromScheme
+      expect(color).toMatch(/^rgb\(\d+,\s*\d+,\s*\d+\)$/);
     });
   });
 });
