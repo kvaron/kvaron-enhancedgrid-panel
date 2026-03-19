@@ -49,22 +49,26 @@ jobs:
           DATE=$(date +%Y-%m-%d)
           PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 
-          # Generate changelog entry from conventional commits
+          # Only include meaningful commits: feat, fix (not ci), perf, refactor, breaking changes
           if [ -n "$PREV_TAG" ]; then
-            FEATURES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^feat" || true)
-            FIXES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^fix" || true)
-            CHORES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^chore" || true)
+            RANGE="${PREV_TAG}..HEAD"
           else
-            FEATURES=$(git log --pretty=format:"- %s" --grep="^feat" || true)
-            FIXES=$(git log --pretty=format:"- %s" --grep="^fix" || true)
-            CHORES=$(git log --pretty=format:"- %s" --grep="^chore" || true)
+            RANGE=""
           fi
+
+          FEATURES=$(git log $RANGE --pretty=format:"- %s" --grep="^feat" || true)
+          FIXES=$(git log $RANGE --pretty=format:"- %s" --grep="^fix" --invert-grep --grep="^fix(ci)" --grep="^fix(deps)" || true)
+          PERF=$(git log $RANGE --pretty=format:"- %s" --grep="^perf" || true)
+          REFACTOR=$(git log $RANGE --pretty=format:"- %s" --grep="^refactor" || true)
+          BREAKING=$(git log $RANGE --pretty=format:"- %s" --grep="BREAKING CHANGE" || true)
 
           # Build new entry
           ENTRY="## ${VERSION} (${DATE})"$'\n'
+          [ -n "$BREAKING" ] && ENTRY="${ENTRY}"$'\n'"### Breaking Changes"$'\n'"${BREAKING}"$'\n'
           [ -n "$FEATURES" ] && ENTRY="${ENTRY}"$'\n'"### Features"$'\n'"${FEATURES}"$'\n'
           [ -n "$FIXES" ] && ENTRY="${ENTRY}"$'\n'"### Bug Fixes"$'\n'"${FIXES}"$'\n'
-          [ -n "$CHORES" ] && ENTRY="${ENTRY}"$'\n'"### Maintenance"$'\n'"${CHORES}"$'\n'
+          [ -n "$PERF" ] && ENTRY="${ENTRY}"$'\n'"### Performance"$'\n'"${PERF}"$'\n'
+          [ -n "$REFACTOR" ] && ENTRY="${ENTRY}"$'\n'"### Refactoring"$'\n'"${REFACTOR}"$'\n'
 
           # Prepend to CHANGELOG.md
           if [ -f CHANGELOG.md ]; then
