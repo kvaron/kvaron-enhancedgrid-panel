@@ -17,10 +17,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          persist-credentials: false
+          token: ${{ secrets.CHANGELOG_PAT }}
 
       - uses: grafana/plugin-actions/build-plugin@main
         with:
+          token: ${{ secrets.CHANGELOG_PAT }}
           # Uncomment after Grafana approves the plugin for public signing
           # policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
           attestation: true
