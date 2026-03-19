@@ -34,7 +34,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Bump version, commit, and tag
-        run: npm version ${{ inputs.bump }} -m "chore: bump version to %s"
+        run: npm version "$BUMP_TYPE" -m "chore: bump version to %s"
+        env:
+          BUMP_TYPE: ${{ inputs.bump }}
 
       - name: Push commit and tag
         run: git push origin main --follow-tags
