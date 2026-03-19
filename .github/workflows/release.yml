@@ -26,3 +26,4 @@ jobs:
           # policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
           attestation: true
           create_release: true
+          use_changelog_generator: true
