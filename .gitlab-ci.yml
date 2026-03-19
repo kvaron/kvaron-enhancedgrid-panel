@@ -3,7 +3,7 @@ stages:
 
 build:
   stage: build
-  image: ost/quasar-builder:latest
+  image: kvaron/quasar-builder:latest
   tags:
     - k8s
   script:
@@ -13,10 +13,10 @@ build:
     - npm run test:ci
     - npm run build
     - apt-get update && apt-get install -y zip
-    - cd dist && zip -r ../ost-enhancedgrid-panel.zip . && cd ..
+    - cd dist && zip -r ../kvaron-enhancedgrid-panel.zip . && cd ..
   artifacts:
     paths:
-      - ost-enhancedgrid-panel.zip
+      - kvaron-enhancedgrid-panel.zip
     expire_in: 1 week
   cache:
     key:

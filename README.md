@@ -18,7 +18,7 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
   - **SparkCharts**: Embed mini-charts within cells
 
 ![Highlight Rules](docs/screenshots/04-highlight-rules-config.png)
-![Nested Conditions](docs/screenshots/06-nested-condition-groups.png)
+![Nested Conditions](docs/screenshots/05-condition-builder.png)
 
 ### 🔍 Smart Column Filtering
 
@@ -60,7 +60,7 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
 
 ## Installation
 
-1. Download the latest release from the [releases page](https://github.com/yourorg/ost-enhancedgrid-panel/releases)
+1. Download the latest release from the [releases page](https://github.com/EEParker/kvaron-enhancedgrid-panel/releases)
 2. Extract to your Grafana plugins directory (usually `/var/lib/grafana/plugins/`)
 3. Restart Grafana
 4. The panel will appear as "Enhanced Grid" in your visualization options
@@ -109,7 +109,7 @@ See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructio
 
 ### Colored Cells with Thresholds
 
-![Colored Cells Example](docs/screenshots/13-colored-cells.png)
+![Colored Cells Example](docs/screenshots/10-data-range-gradient.png)
 
 ### SparkCharts in Cells
 
@@ -123,7 +123,7 @@ See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructio
 
 For issues, feature requests, or questions:
 
-- GitHub Issues: [Report an issue](https://github.com/yourorg/ost-enhancedgrid-panel/issues)
+- GitHub Issues: [Report an issue](https://github.com/EEParker/kvaron-enhancedgrid-panel/issues)
 - Documentation: Check the [docs](docs/) folder
 
 ## Tech Stack

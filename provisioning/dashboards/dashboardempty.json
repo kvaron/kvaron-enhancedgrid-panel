@@ -96,7 +96,7 @@
         }
       ],
       "title": "New panel",
-      "type": "ost-enhancedgrid-panel"
+      "type": "kvaron-enhancedgrid-panel"
     }
   ],
   "preload": false,

@@ -1,20 +1,29 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "panel",
-  "name": "Enhancedgrid",
-  "id": "ost-enhancedgrid-panel",
+  "name": "Enhanced Grid",
+  "id": "kvaron-enhancedgrid-panel",
   "info": {
-    "keywords": ["panel"],
-    "description": "",
+    "keywords": ["panel", "table", "grid", "highlight", "conditional formatting", "sparkchart", "pagination", "odata"],
+    "description": "Advanced grid/table panel with conditional formatting, nested highlight rules, server-side filtering, pagination, and embedded SparkCharts.",
     "author": {
-      "name": "Ost"
+      "name": "Kvaron",
+      "url": "https://github.com/EEParker"
     },
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
     },
-    "links": [],
-    "screenshots": [],
+    "links": [
+      { "name": "GitHub", "url": "https://github.com/EEParker/kvaron-enhancedgrid-panel" },
+      { "name": "License", "url": "https://github.com/EEParker/kvaron-enhancedgrid-panel/blob/main/LICENSE" }
+    ],
+    "screenshots": [
+      { "name": "Panel Overview", "path": "img/screenshots/01-panel-overview.png" },
+      { "name": "Column Filtering", "path": "img/screenshots/02-column-filter-dropdown.png" },
+      { "name": "Highlight Rules", "path": "img/screenshots/04-highlight-rules-config.png" },
+      { "name": "Server-Side Settings", "path": "img/screenshots/07-server-side-settings.png" }
+    ],
     "version": "%VERSION%",
     "updated": "%TODAY%"
   },
