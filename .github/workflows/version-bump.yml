@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           token: ${{ secrets.CHANGELOG_PAT }}
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -33,10 +34,49 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump version, commit, and tag
-        run: 'npm version "$BUMP_TYPE" -m "chore: bump version to %s"'
+      - name: Bump version (no git tag yet)
+        run: 'npm version "$BUMP_TYPE" --no-git-tag-version'
         env:
           BUMP_TYPE: ${{ inputs.bump }}
 
-      - name: Push commit and tag
-        run: git push origin main --follow-tags
+      - name: Get new version
+        id: version
+        run: echo "version=$(node -p 'require(\"./package.json\").version')" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          DATE=$(date +%Y-%m-%d)
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          # Generate changelog entry from conventional commits
+          if [ -n "$PREV_TAG" ]; then
+            FEATURES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^feat" || true)
+            FIXES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^fix" || true)
+            CHORES=$(git log ${PREV_TAG}..HEAD --pretty=format:"- %s" --grep="^chore" || true)
+          else
+            FEATURES=$(git log --pretty=format:"- %s" --grep="^feat" || true)
+            FIXES=$(git log --pretty=format:"- %s" --grep="^fix" || true)
+            CHORES=$(git log --pretty=format:"- %s" --grep="^chore" || true)
+          fi
+
+          # Build new entry
+          ENTRY="## ${VERSION} (${DATE})"$'\n'
+          [ -n "$FEATURES" ] && ENTRY="${ENTRY}"$'\n'"### Features"$'\n'"${FEATURES}"$'\n'
+          [ -n "$FIXES" ] && ENTRY="${ENTRY}"$'\n'"### Bug Fixes"$'\n'"${FIXES}"$'\n'
+          [ -n "$CHORES" ] && ENTRY="${ENTRY}"$'\n'"### Maintenance"$'\n'"${CHORES}"$'\n'
+
+          # Prepend to CHANGELOG.md
+          if [ -f CHANGELOG.md ]; then
+            echo -e "${ENTRY}\n$(cat CHANGELOG.md)" > CHANGELOG.md
+          else
+            echo "${ENTRY}" > CHANGELOG.md
+          fi
+
+      - name: Commit, tag, and push
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          git add -A
+          git commit -m "chore: release v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin main --follow-tags

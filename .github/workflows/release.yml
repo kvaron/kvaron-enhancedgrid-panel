@@ -18,6 +18,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           token: ${{ secrets.CHANGELOG_PAT }}
+          fetch-depth: 0
 
       - uses: grafana/plugin-actions/build-plugin@main
         with:
@@ -26,4 +27,3 @@ jobs:
           # policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
           attestation: true
           create_release: true
-          use_changelog_generator: true
