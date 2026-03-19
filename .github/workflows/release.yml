@@ -22,5 +22,6 @@ jobs:
       - uses: grafana/plugin-actions/build-plugin@main
         with:
           policy_token: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
+          sign_root_urls: https://kvaron.grafana.net
           attestation: true
           create_release: true
