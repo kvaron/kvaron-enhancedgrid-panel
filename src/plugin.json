@@ -16,7 +16,8 @@
     },
     "links": [
       { "name": "GitHub", "url": "https://github.com/kvaron/kvaron-enhancedgrid-panel" },
-      { "name": "License", "url": "https://github.com/kvaron/kvaron-enhancedgrid-panel/blob/main/LICENSE" }
+      { "name": "License", "url": "https://github.com/kvaron/kvaron-enhancedgrid-panel/blob/main/LICENSE" },
+      { "name": "sponsor", "url": "https://github.com/sponsors/EEParker" }
     ],
     "screenshots": [
       { "name": "Panel Overview", "path": "img/screenshots/01-panel-overview.png" },
