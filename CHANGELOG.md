@@ -1,3 +1,9 @@
+## 0.1.7 (2026-03-23)
+
+### Bug Fixes
+- Add GitHub Sponsors username to FUNDING.yml
+- chore: add sponsorship link to plugin.json per Grafana submission feedback
+
 ## 0.1.6 (2026-03-19)
 
 ### Bug Fixes
