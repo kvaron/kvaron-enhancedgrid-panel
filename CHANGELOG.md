@@ -1,3 +1,24 @@
+## 0.1.8 (2026-04-09)
+
+### Bug Fixes
+- Merge remote-tracking branch 'origin/dependabot/npm_and_yarn/glob-13.0.6'
+- Merge remote-tracking branch 'origin/dependabot/github_actions/dependabot/fetch-metadata-3'
+- Merge remote-tracking branch 'origin/dependabot/github_actions/magefile/mage-action-4.0.0'
+- Merge remote-tracking branch 'origin/dependabot/github_actions/actions/setup-node-6'
+- chore(deps-dev): bump @types/node from 25.5.0 to 25.5.2 (#26)
+- chore(deps-dev): bump sass from 1.98.0 to 1.99.0 (#25)
+- chore(deps-dev): bump glob from 11.1.0 to 13.0.6
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.4.11 to 3.4.12 (#22)
+- chore(deps-dev): bump @swc/helpers from 0.5.19 to 0.5.21 (#21)
+- chore(deps-dev): bump @playwright/test from 1.58.2 to 1.59.1 (#20)
+- chore(ci): bump dependabot/fetch-metadata from 2 to 3
+- chore(deps-dev): bump @swc/core from 1.15.17 to 1.15.21 (#18)
+- chore(deps-dev): bump webpack-cli from 7.0.0 to 7.0.2 (#17)
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.4.8 to 3.4.11 (#16)
+- chore(deps): bump the grafana group with 5 updates (#15)
+- chore(ci): bump magefile/mage-action from 3.1.0 to 4.0.0
+- chore(ci): bump actions/setup-node from 4 to 6
+
 ## 0.1.7 (2026-03-23)
 
 ### Bug Fixes
