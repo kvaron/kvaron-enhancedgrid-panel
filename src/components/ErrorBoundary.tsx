@@ -1,5 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { css } from '@emotion/css';
+import { config } from '@grafana/runtime';
+import { GrafanaTheme2 } from '@grafana/data';
 
 interface Props {
   children: ReactNode;
@@ -36,6 +38,7 @@ export class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
+      const styles = getStyles(config.theme2);
       return (
         <div className={styles.container}>
           <div className={styles.icon}>⚠️</div>
@@ -53,46 +56,48 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-const styles = {
-  container: css`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    height: 100%;
-    text-align: center;
-    color: #999;
-  `,
-  icon: css`
-    font-size: 48px;
-    margin-bottom: 16px;
-  `,
-  title: css`
-    font-size: 18px;
-    font-weight: 500;
-    margin-bottom: 8px;
-    color: #ccc;
-  `,
-  message: css`
-    font-size: 14px;
-    margin-bottom: 16px;
-  `,
-  details: css`
-    font-size: 12px;
-    cursor: pointer;
-    max-width: 100%;
-    overflow: hidden;
-  `,
-  errorText: css`
-    text-align: left;
-    padding: 8px;
-    background: rgba(255, 0, 0, 0.1);
-    border-radius: 4px;
-    margin-top: 8px;
-    overflow-x: auto;
-    max-width: 400px;
-    font-family: monospace;
-    font-size: 11px;
-  `,
-};
+function getStyles(theme: GrafanaTheme2) {
+  return {
+    container: css`
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      height: 100%;
+      text-align: center;
+      color: ${theme.colors.text.secondary};
+    `,
+    icon: css`
+      font-size: 48px;
+      margin-bottom: 16px;
+    `,
+    title: css`
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: ${theme.colors.text.primary};
+    `,
+    message: css`
+      font-size: 14px;
+      margin-bottom: 16px;
+    `,
+    details: css`
+      font-size: 12px;
+      cursor: pointer;
+      max-width: 100%;
+      overflow: hidden;
+    `,
+    errorText: css`
+      text-align: left;
+      padding: 8px;
+      background: ${theme.colors.error.transparent};
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow-x: auto;
+      max-width: 400px;
+      font-family: monospace;
+      font-size: 11px;
+    `,
+  };
+}

@@ -53,27 +53,22 @@ function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): st
     return `endswith(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
   }
 
-  // Numeric operators
-  if (operator === 'eq') {
-    return `${fieldName} eq ${value}`;
-  }
-  if (operator === 'ne') {
-    return `${fieldName} ne ${value}`;
-  }
-  if (operator === 'gt') {
-    return `${fieldName} gt ${value}`;
-  }
-  if (operator === 'lt') {
-    return `${fieldName} lt ${value}`;
-  }
-  if (operator === 'gte') {
-    return `${fieldName} ge ${value}`;
-  }
-  if (operator === 'lte') {
-    return `${fieldName} le ${value}`;
+  // Numeric operators — coerce to number to prevent injection via string values
+  if (operator === 'eq' || operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+    const safeNum = Number(value);
+    if (isNaN(safeNum)) {
+      return '';
+    }
+    const ops: Record<string, string> = { eq: 'eq', ne: 'ne', gt: 'gt', lt: 'lt', gte: 'ge', lte: 'le' };
+    return `${fieldName} ${ops[operator]} ${safeNum}`;
   }
   if (operator === 'between' && value2 != null) {
-    return `(${fieldName} ge ${value} and ${fieldName} le ${value2})`;
+    const safeNum = Number(value);
+    const safeNum2 = Number(value2);
+    if (isNaN(safeNum) || isNaN(safeNum2)) {
+      return '';
+    }
+    return `(${fieldName} ge ${safeNum} and ${fieldName} le ${safeNum2})`;
   }
 
   return '';
@@ -209,27 +204,22 @@ function buildSQLFilterExpression(fieldName: string, filter: ColumnFilter): stri
     return `${quotedField} ILIKE '%${escapedValue}'`;
   }
 
-  // Numeric operators
-  if (operator === 'eq') {
-    return `${quotedField} = ${value}`;
-  }
-  if (operator === 'ne') {
-    return `${quotedField} != ${value}`;
-  }
-  if (operator === 'gt') {
-    return `${quotedField} > ${value}`;
-  }
-  if (operator === 'lt') {
-    return `${quotedField} < ${value}`;
-  }
-  if (operator === 'gte') {
-    return `${quotedField} >= ${value}`;
-  }
-  if (operator === 'lte') {
-    return `${quotedField} <= ${value}`;
+  // Numeric operators — coerce to number to prevent SQL injection via string values
+  if (operator === 'eq' || operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+    const safeNum = Number(value);
+    if (isNaN(safeNum)) {
+      return '';
+    }
+    const ops: Record<string, string> = { eq: '=', ne: '!=', gt: '>', lt: '<', gte: '>=', lte: '<=' };
+    return `${quotedField} ${ops[operator]} ${safeNum}`;
   }
   if (operator === 'between' && value2 != null) {
-    return `${quotedField} BETWEEN ${value} AND ${value2}`;
+    const safeNum = Number(value);
+    const safeNum2 = Number(value2);
+    if (isNaN(safeNum) || isNaN(safeNum2)) {
+      return '';
+    }
+    return `${quotedField} BETWEEN ${safeNum} AND ${safeNum2}`;
   }
 
   return '';
