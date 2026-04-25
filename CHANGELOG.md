@@ -1,3 +1,10 @@
+## Unreleased
+
+### Changes
+- chore(deps): pin `@grafana/{data,ui,runtime,schema,i18n}` to `12.4.2` for deterministic builds (matches create-plugin@7.1.6+ policy)
+- chore(docker): bump default `GRAFANA_VERSION` in `.config/docker-compose-base.yaml` to `13.0.1` so local dev/tests run against Grafana 13
+- Verified compatibility with Grafana 13.0.1; `grafanaDependency` remains `>=11.6.0`
+
 ## 0.1.8 (2026-04-09)
 
 ### Bug Fixes
