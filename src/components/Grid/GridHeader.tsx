@@ -75,6 +75,13 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
         return false;
       }
 
+      if (target instanceof Element) {
+        const portalledMenuElement = target.closest('[role="option"], [role="listbox"], [role="menu"]');
+        if (portalledMenuElement) {
+          return true;
+        }
+      }
+
       return !!filterDropdownRef.current?.contains(target) || !!filterAnchorElement?.contains(target);
     }, [filterAnchorElement]);
 
