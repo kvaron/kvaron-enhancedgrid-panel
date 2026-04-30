@@ -1,3 +1,20 @@
+## 0.1.9 (2026-04-30)
+
+### Bug Fixes
+- Merge pull request #34 from kvaron/dependabot/github_actions/grafana/plugin-actions/e2e-versione2e-version/v1.2.1-2.0.0
+- Fix column filter menu interactions
+-  Fix column filter dropdown interactions
+- chore(deps-dev): bump @swc/core from 1.15.21 to 1.15.30 (#39)
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.5.1 to 3.6.1 (#37)
+- chore(deps-dev): bump terser-webpack-plugin from 5.4.0 to 5.5.0 (#35)
+- chore(ci): bump grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2 (#33)
+- chore(ci): bump grafana/plugin-actions/e2e-version@e2e-version/v1.2.1
+- chore(deps): pin @grafana/* to 12.4.2 and target Grafana 13.0.1 by default
+- chore(deps-dev): bump @types/node from 25.5.2 to 25.6.0 (#32)
+- chore(deps-dev): bump webpack from 5.105.4 to 5.106.2 (#31)
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.4.12 to 3.5.1 (#30)
+- chore(deps-dev): bump prettier from 3.8.1 to 3.8.3 (#28)
+
 ## Unreleased
 
 ### Changes

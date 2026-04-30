@@ -1,6 +1,6 @@
 {
   "name": "enhancedgrid",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
     "dev": "webpack -w -c ./webpack.config.ts --env development",
