@@ -1,3 +1,10 @@
+## 0.1.10 (2026-04-30)
+
+### Bug Fixes
+- Merge pull request #40 from kvaron/fix/react-19-jsx-runtime-compat
+- Fix React 19 jsx-runtime compat and operator menu portal handling
+- chore: update release workflow
+
 ## 0.1.9 (2026-04-30)
 
 ### Bug Fixes
