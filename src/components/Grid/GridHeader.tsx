@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { css } from '@emotion/css';
-import { useTheme2, Icon, Tooltip } from '@grafana/ui';
+import { GrafanaTheme2 } from '@grafana/data';
+import { useTheme2, Icon, Tooltip, useStyles2 } from '@grafana/ui';
 import { GridColumn } from '../../utils/dataTransformer';
 import { ColumnFilter, FilterStyle, EnhancedGridFieldConfig } from '../../types';
 import { ColumnFilterDropdown } from './ColumnFilterDropdown';
@@ -275,7 +276,8 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
       );
     };
 
-    const gridTemplateColumns = `${showRowNumbers ? '50px ' : ''}${columns.map((col) => (col.width ? `${col.width}px` : 'minmax(auto, 1fr)')).join(' ')}`;
+    const rowNumberColumnWidth = theme.spacing(6.25);
+    const gridTemplateColumns = `${showRowNumbers ? `${rowNumberColumnWidth} ` : ''}${columns.map((col) => (col.width ? `${col.width}px` : 'minmax(auto, 1fr)')).join(' ')}`;
 
     // Build grid template for frozen sections when enabled
     const leftGridTemplate =
@@ -289,245 +291,24 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
     const rightGridTemplate =
       frozenColumnsEnabled && columnGroups ? buildGridTemplateColumns(columnGroups.right, false, false) : '';
 
-    const styles = {
-      // Main wrapper - when frozen columns enabled, it's a positioning container
-      wrapper: css`
-        position: relative;
-        overflow-x: ${frozenColumnsEnabled ? 'hidden' : 'auto'};
-        overflow-y: hidden;
-        flex-shrink: 0;
-        width: 100%;
-        /* Hide scrollbar but allow programmatic scrolling */
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        &::-webkit-scrollbar {
-          display: none;
-        }
-      `,
-      headerContent: css`
-        ${totalWidth !== undefined ? `min-width: ${totalWidth}px;` : ''}
-        /* Add padding for scrollbar compensation */
-        padding-right: ${scrollbarWidth}px;
-      `,
-      header: css`
-        display: grid;
-        grid-template-columns: ${gridTemplateColumns};
-        min-height: ${minHeight}px;
-        max-height: ${maxHeight}px;
-        background: ${theme.colors.background.secondary};
-        border-bottom: 2px solid ${theme.colors.border.medium};
-      `,
-      // Frozen column container styles
-      frozenContainer: css`
-        display: flex;
-        width: 100%;
-        position: relative;
-      `,
-      frozenLeft: css`
-        position: absolute;
-        left: 0;
-        top: 0;
-        z-index: 2;
-        background: ${theme.colors.background.secondary};
-        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-      `,
-      frozenRight: css`
-        position: absolute;
-        right: ${scrollbarWidth}px;
-        top: 0;
-        z-index: 2;
-        background: ${theme.colors.background.secondary};
-        box-shadow: -2px 0 4px rgba(0, 0, 0, 0.1);
-      `,
-      frozenCenterWrapper: css`
-        margin-left: ${columnGroups?.leftWidth || 0}px;
-        margin-right: ${(columnGroups?.rightWidth || 0) + scrollbarWidth}px;
-        overflow-x: auto;
-        overflow-y: hidden;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-        &::-webkit-scrollbar {
-          display: none;
-        }
-      `,
-      frozenHeader: css`
-        display: grid;
-        min-height: ${minHeight}px;
-        max-height: ${maxHeight}px;
-        background: ${theme.colors.background.secondary};
-        border-bottom: 2px solid ${theme.colors.border.medium};
-      `,
-      frozenLeftHeader: css`
-        grid-template-columns: ${leftGridTemplate};
-      `,
-      frozenCenterHeader: css`
-        grid-template-columns: ${centerGridTemplate};
-        ${columnGroups?.centerWidth !== undefined ? `min-width: ${columnGroups.centerWidth}px;` : ''}
-      `,
-      frozenRightHeader: css`
-        grid-template-columns: ${rightGridTemplate};
-      `,
-      columnContainer: css`
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        border-right: 1px solid ${theme.colors.border.weak};
-        height: 100%;
-      `,
-      headerCell: css`
-        padding: ${compactHeaders ? '2px 4px' : '4px 8px'};
-        font-weight: bold;
-        font-size: ${compactHeaders ? '12px' : '13px'};
-        display: flex;
-        align-items: flex-start;
-        justify-content: flex-start;
-        gap: 4px;
-        cursor: pointer;
-        user-select: none;
-        ${filterStyle === 'filterRow' ? 'flex: 0 0 auto;' : 'flex: 1;'}
-        min-height: 0;
-        overflow: hidden;
-
-        &:hover {
-          background: ${theme.colors.action.hover};
-        }
-      `,
-      filterSection: css`
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2px 4px;
-        height: ${filterRowHeight}px;
-        background: ${theme.colors.background.secondary};
-      `,
-      sortIcon: css`
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        padding-top: 2px;
-      `,
-      infoIcon: css`
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        padding-top: 2px;
-        cursor: help;
-      `,
-      headerText: css`
-        overflow: hidden;
-        min-width: 0;
-        flex: 1;
-        ${compactHeaders
-          ? `
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        `
-          : `
-          text-overflow: ellipsis;
-          display: -webkit-box;
-          -webkit-box-orient: vertical;
-          -webkit-line-clamp: 3;
-          word-break: break-word;
-        `}
-      `,
-      // Filter Row styles (separate row below header)
-      filterRow: css`
-        display: grid;
-        grid-template-columns: ${gridTemplateColumns};
-        height: ${filterRowHeight}px;
-        background: ${theme.colors.background.secondary};
-        border-bottom: 2px solid ${theme.colors.border.medium};
-      `,
-      filterRowCell: css`
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2px 4px;
-        border-right: 1px solid ${theme.colors.border.weak};
-      `,
-      filterRowButton: css`
-        padding: 4px 8px;
-        border-radius: 4px;
-        border: 1px solid ${theme.colors.border.medium};
-        background: ${theme.colors.background.primary};
-        color: ${theme.colors.text.secondary};
-        cursor: pointer;
-        font-size: 11px;
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 4px;
-        width: 100%;
-        height: 100%;
-        max-height: 26px;
-        transition: all 0.15s;
-
-        &:hover {
-          background: ${theme.colors.action.hover};
-          border-color: ${theme.colors.border.strong};
-        }
-      `,
-      filterRowButtonText: css`
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        text-align: left;
-      `,
-      filterRowClearButton: css`
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2px;
-        margin-left: auto;
-        border-radius: 2px;
-        color: ${theme.colors.text.secondary};
-        transition: all 0.15s;
-
-        &:hover {
-          background: ${theme.colors.action.hover};
-          color: ${theme.colors.text.primary};
-        }
-      `,
-      // Inline filter button styles (overlays header cell)
-      filterButtonInline: css`
-        position: absolute;
-        bottom: ${compactHeaders ? '2px' : '6px'};
-        right: 2px;
-        padding: 2px;
-        border-radius: 3px;
-        border: 1px solid ${theme.colors.border.weak};
-        background: ${theme.colors.background.secondary};
-        color: ${theme.colors.text.secondary};
-        cursor: pointer;
-        font-size: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        z-index: 5;
-        opacity: 0.85;
-        transition: all 0.15s;
-
-        &:hover {
-          background: ${theme.colors.action.hover};
-          border-color: ${theme.colors.border.medium};
-          opacity: 1;
-        }
-      `,
-      filterButtonInlineActive: css`
-        background: ${theme.colors.primary.transparent};
-        border-color: ${theme.colors.primary.border};
-        color: ${theme.colors.primary.text};
-        opacity: 1;
-      `,
-      filterDropdownPortal: css`
-        position: fixed;
-        z-index: ${theme.zIndex.dropdown};
-      `,
-    };
+    const styles = useStyles2(
+      getStyles,
+      compactHeaders,
+      filterStyle,
+      filterRowHeight,
+      totalWidth,
+      scrollbarWidth,
+      gridTemplateColumns,
+      minHeight,
+      maxHeight,
+      leftGridTemplate,
+      centerGridTemplate,
+      rightGridTemplate,
+      columnGroups?.leftWidth || 0,
+      columnGroups?.rightWidth || 0,
+      columnGroups?.centerWidth,
+      frozenColumnsEnabled
+    );
 
     // Row number cell renderer (with integrated filter section if needed)
     const renderRowNumberCell = () => (
@@ -590,3 +371,254 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
 );
 
 GridHeader.displayName = 'GridHeader';
+
+const getStyles = (
+  theme: GrafanaTheme2,
+  compactHeaders: boolean,
+  filterStyle: FilterStyle,
+  filterRowHeight: number,
+  totalWidth: number | undefined,
+  scrollbarWidth: number,
+  gridTemplateColumns: string,
+  minHeight: number,
+  maxHeight: number,
+  leftGridTemplate: string,
+  centerGridTemplate: string,
+  rightGridTemplate: string,
+  leftWidth: number,
+  rightWidth: number,
+  centerWidth: number | undefined,
+  frozenColumnsEnabled: boolean
+) => ({
+  wrapper: css`
+    position: relative;
+    overflow-x: ${frozenColumnsEnabled ? 'hidden' : 'auto'};
+    overflow-y: hidden;
+    flex-shrink: 0;
+    width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  `,
+  headerContent: css`
+    ${totalWidth !== undefined ? `min-width: ${totalWidth}px;` : ''}
+    padding-right: ${scrollbarWidth}px;
+  `,
+  header: css`
+    display: grid;
+    grid-template-columns: ${gridTemplateColumns};
+    min-height: ${minHeight}px;
+    max-height: ${maxHeight}px;
+    background: ${theme.colors.background.secondary};
+    border-bottom: 2px solid ${theme.colors.border.medium};
+  `,
+  frozenContainer: css`
+    display: flex;
+    width: 100%;
+    position: relative;
+  `,
+  frozenLeft: css`
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 2;
+    background: ${theme.colors.background.secondary};
+    box-shadow: ${theme.shadows.z1};
+  `,
+  frozenRight: css`
+    position: absolute;
+    right: ${scrollbarWidth}px;
+    top: 0;
+    z-index: 2;
+    background: ${theme.colors.background.secondary};
+    box-shadow: ${theme.shadows.z1};
+  `,
+  frozenCenterWrapper: css`
+    margin-left: ${leftWidth}px;
+    margin-right: ${rightWidth + scrollbarWidth}px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  `,
+  frozenHeader: css`
+    display: grid;
+    min-height: ${minHeight}px;
+    max-height: ${maxHeight}px;
+    background: ${theme.colors.background.secondary};
+    border-bottom: 2px solid ${theme.colors.border.medium};
+  `,
+  frozenLeftHeader: css`
+    grid-template-columns: ${leftGridTemplate};
+  `,
+  frozenCenterHeader: css`
+    grid-template-columns: ${centerGridTemplate};
+    ${centerWidth !== undefined ? `min-width: ${centerWidth}px;` : ''}
+  `,
+  frozenRightHeader: css`
+    grid-template-columns: ${rightGridTemplate};
+  `,
+  columnContainer: css`
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid ${theme.colors.border.weak};
+    height: 100%;
+  `,
+  headerCell: css`
+    padding: ${compactHeaders ? theme.spacing(0.25, 0.5) : theme.spacing(0.5, 1)};
+    font-weight: ${theme.typography.fontWeightBold};
+    font-size: ${compactHeaders ? theme.typography.bodySmall.fontSize : theme.typography.body.fontSize};
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: ${theme.spacing(0.5)};
+    cursor: pointer;
+    user-select: none;
+    ${filterStyle === 'filterRow' ? 'flex: 0 0 auto;' : 'flex: 1;'}
+    min-height: 0;
+    overflow: hidden;
+
+    &:hover {
+      background: ${theme.colors.action.hover};
+    }
+  `,
+  filterSection: css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${theme.spacing(0.25, 0.5)};
+    height: ${filterRowHeight}px;
+    background: ${theme.colors.background.secondary};
+  `,
+  sortIcon: css`
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding-top: ${theme.spacing(0.25)};
+  `,
+  infoIcon: css`
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding-top: ${theme.spacing(0.25)};
+    cursor: help;
+  `,
+  headerText: css`
+    overflow: hidden;
+    min-width: 0;
+    flex: 1;
+    ${compactHeaders
+      ? `
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    `
+      : `
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      word-break: break-word;
+    `}
+  `,
+  filterRow: css`
+    display: grid;
+    grid-template-columns: ${gridTemplateColumns};
+    height: ${filterRowHeight}px;
+    background: ${theme.colors.background.secondary};
+    border-bottom: 2px solid ${theme.colors.border.medium};
+  `,
+  filterRowCell: css`
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${theme.spacing(0.25, 0.5)};
+    border-right: 1px solid ${theme.colors.border.weak};
+  `,
+  filterRowButton: css`
+    padding: ${theme.spacing(0.5, 1)};
+    border-radius: ${theme.shape.radius.default};
+    border: 1px solid ${theme.colors.border.medium};
+    background: ${theme.colors.background.primary};
+    color: ${theme.colors.text.secondary};
+    cursor: pointer;
+    font-size: ${theme.typography.bodySmall.fontSize};
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: ${theme.spacing(0.5)};
+    width: 100%;
+    height: 100%;
+    max-height: ${theme.spacing(3.25)};
+    transition: all 0.15s;
+
+    &:hover {
+      background: ${theme.colors.action.hover};
+      border-color: ${theme.colors.border.strong};
+    }
+  `,
+  filterRowButtonText: css`
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  `,
+  filterRowClearButton: css`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: ${theme.spacing(0.25)};
+    margin-left: auto;
+    border-radius: ${theme.shape.radius.default};
+    color: ${theme.colors.text.secondary};
+    transition: all 0.15s;
+
+    &:hover {
+      background: ${theme.colors.action.hover};
+      color: ${theme.colors.text.primary};
+    }
+  `,
+  filterButtonInline: css`
+    position: absolute;
+    bottom: ${compactHeaders ? theme.spacing(0.25) : theme.spacing(0.75)};
+    right: ${theme.spacing(0.25)};
+    padding: ${theme.spacing(0.25)};
+    border-radius: ${theme.shape.radius.default};
+    border: 1px solid ${theme.colors.border.weak};
+    background: ${theme.colors.background.secondary};
+    color: ${theme.colors.text.secondary};
+    cursor: pointer;
+    font-size: ${theme.typography.bodySmall.fontSize};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: ${theme.spacing(2.5)};
+    height: ${theme.spacing(2.5)};
+    z-index: 5;
+    opacity: 0.85;
+    transition: all 0.15s;
+
+    &:hover {
+      background: ${theme.colors.action.hover};
+      border-color: ${theme.colors.border.medium};
+      opacity: 1;
+    }
+  `,
+  filterButtonInlineActive: css`
+    background: ${theme.colors.primary.transparent};
+    border-color: ${theme.colors.primary.border};
+    color: ${theme.colors.primary.text};
+    opacity: 1;
+  `,
+  filterDropdownPortal: css`
+    position: fixed;
+    z-index: ${theme.zIndex.dropdown};
+  `,
+});

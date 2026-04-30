@@ -1,6 +1,7 @@
 import React from 'react';
 import { css } from '@emotion/css';
-import { useTheme2, Button, Input, Combobox, ComboboxOption } from '@grafana/ui';
+import { GrafanaTheme2 } from '@grafana/data';
+import { Button, Input, Combobox, ComboboxOption, useStyles2 } from '@grafana/ui';
 
 interface PaginationControlsProps {
   currentPage: number; // 0-based
@@ -17,7 +18,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   onPageChange,
   onPageSizeChange,
 }) => {
-  const theme = useTheme2();
+  const styles = useStyles2(getStyles);
 
   const totalPages = totalRows != null ? Math.ceil(totalRows / pageSize) : null;
   const startRow = currentPage * pageSize + 1;
@@ -27,53 +28,6 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   const canGoNext = totalPages != null ? currentPage < totalPages - 1 : true;
 
   const pageSizeOptions = [10, 20, 50, 100, 200];
-
-  const styles = {
-    container: css`
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 12px;
-      background: ${theme.colors.background.secondary};
-      border-top: 1px solid ${theme.colors.border.medium};
-      gap: 12px;
-    `,
-    leftSection: css`
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-      color: ${theme.colors.text.secondary};
-    `,
-    centerSection: css`
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    `,
-    rightSection: css`
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 13px;
-    `,
-    pageButton: css`
-      min-width: 32px;
-      height: 32px;
-      padding: 0 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    `,
-    pageInput: css`
-      width: 60px;
-      text-align: center;
-    `,
-    pageSizeSelect: css`
-      width: 80px;
-      min-height: 32px;
-      line-height: 1.5;
-    `,
-  };
 
   const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
@@ -131,8 +85,8 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           className={styles.pageButton}
         />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span style={{ fontSize: '13px' }}>Page</span>
+        <div className={styles.pageInfo}>
+          <span className={styles.pageText}>Page</span>
           <Input
             type="number"
             value={currentPage + 1}
@@ -141,7 +95,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             max={totalPages || undefined}
             className={styles.pageInput}
           />
-          {totalPages != null && <span style={{ fontSize: '13px' }}>of {totalPages}</span>}
+          {totalPages != null && <span className={styles.pageText}>of {totalPages}</span>}
         </div>
 
         <Button
@@ -175,8 +129,64 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
           options={pageSizeOptions.map((size) => ({ label: String(size), value: size }))}
           onChange={handlePageSizeChange}
           width={16}
+          data-testid="pagination-page-size"
         />
       </div>
     </div>
   );
 };
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  container: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${theme.spacing(1, 1.5)};
+    background: ${theme.colors.background.secondary};
+    border-top: 1px solid ${theme.colors.border.medium};
+    gap: ${theme.spacing(1.5)};
+  `,
+  leftSection: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(1)};
+    font-size: ${theme.typography.bodySmall.fontSize};
+    color: ${theme.colors.text.secondary};
+  `,
+  centerSection: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(1)};
+  `,
+  rightSection: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(1)};
+    font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+  pageButton: css`
+    min-width: ${theme.spacing(theme.components.height.md)};
+    height: ${theme.spacing(theme.components.height.md)};
+    padding: ${theme.spacing(0, 1)};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `,
+  pageInput: css`
+    width: ${theme.spacing(7.5)};
+    text-align: center;
+  `,
+  pageSizeSelect: css`
+    width: ${theme.spacing(10)};
+    min-height: ${theme.spacing(theme.components.height.md)};
+    line-height: ${theme.typography.body.lineHeight};
+  `,
+  pageInfo: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(0.5)};
+  `,
+  pageText: css`
+    font-size: ${theme.typography.bodySmall.fontSize};
+  `,
+});

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { css } from '@emotion/css';
-import { useTheme2, Combobox, ComboboxOption, Input } from '@grafana/ui';
+import { GrafanaTheme2 } from '@grafana/data';
+import { Combobox, ComboboxOption, Input, useStyles2 } from '@grafana/ui';
 import { FilterOperator, ColumnFilter, ColumnType } from '../../types';
 
 interface ColumnFilterDropdownProps {
@@ -46,7 +47,7 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
   currentFilter,
   onFilterChange,
 }) => {
-  const theme = useTheme2();
+  const styles = useStyles2(getStyles);
   const operatorOptions = getOperatorOptions(columnType);
 
   // Initialize state from current filter or defaults
@@ -125,63 +126,6 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
     }
   };
 
-  const styles = {
-    container: css`
-      padding: 8px;
-      min-width: 250px;
-      background: ${theme.colors.background.primary};
-      border: 1px solid ${theme.colors.border.weak};
-      border-radius: 4px;
-      box-shadow: ${theme.shadows.z3};
-    `,
-    row: css`
-      margin-bottom: 8px;
-      &:last-child {
-        margin-bottom: 0;
-      }
-    `,
-    label: css`
-      font-size: 12px;
-      font-weight: 500;
-      color: ${theme.colors.text.secondary};
-      margin-bottom: 4px;
-      display: block;
-    `,
-    buttonRow: css`
-      display: flex;
-      gap: 8px;
-      margin-top: 8px;
-    `,
-    button: css`
-      flex: 1;
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: 1px solid ${theme.colors.border.medium};
-      background: ${theme.colors.background.secondary};
-      color: ${theme.colors.text.primary};
-      cursor: pointer;
-      font-size: 12px;
-
-      &:hover {
-        background: ${theme.colors.action.hover};
-      }
-    `,
-    applyButton: css`
-      flex: 1;
-      padding: 6px 12px;
-      border-radius: 4px;
-      border: none;
-      background: ${theme.colors.primary.main};
-      color: ${theme.colors.primary.contrastText};
-      cursor: pointer;
-      font-size: 12px;
-
-      &:hover {
-        background: ${theme.colors.primary.shade};
-      }
-    `,
-  };
-
   return (
     <div
       className={styles.container}
@@ -241,3 +185,60 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
     </div>
   );
 };
+
+const getStyles = (theme: GrafanaTheme2) => ({
+  container: css`
+    padding: ${theme.spacing(1)};
+    min-width: ${theme.spacing(31.25)};
+    background: ${theme.colors.background.primary};
+    border: 1px solid ${theme.colors.border.weak};
+    border-radius: ${theme.shape.radius.default};
+    box-shadow: ${theme.shadows.z3};
+  `,
+  row: css`
+    margin-bottom: ${theme.spacing(1)};
+    &:last-child {
+      margin-bottom: 0;
+    }
+  `,
+  label: css`
+    font-size: ${theme.typography.bodySmall.fontSize};
+    font-weight: ${theme.typography.fontWeightMedium};
+    color: ${theme.colors.text.secondary};
+    margin-bottom: ${theme.spacing(0.5)};
+    display: block;
+  `,
+  buttonRow: css`
+    display: flex;
+    gap: ${theme.spacing(1)};
+    margin-top: ${theme.spacing(1)};
+  `,
+  button: css`
+    flex: 1;
+    padding: ${theme.spacing(0.75, 1.5)};
+    border-radius: ${theme.shape.radius.default};
+    border: 1px solid ${theme.colors.border.medium};
+    background: ${theme.colors.background.secondary};
+    color: ${theme.colors.text.primary};
+    cursor: pointer;
+    font-size: ${theme.typography.bodySmall.fontSize};
+
+    &:hover {
+      background: ${theme.colors.action.hover};
+    }
+  `,
+  applyButton: css`
+    flex: 1;
+    padding: ${theme.spacing(0.75, 1.5)};
+    border-radius: ${theme.shape.radius.default};
+    border: none;
+    background: ${theme.colors.primary.main};
+    color: ${theme.colors.primary.contrastText};
+    cursor: pointer;
+    font-size: ${theme.typography.bodySmall.fontSize};
+
+    &:hover {
+      background: ${theme.colors.primary.shade};
+    }
+  `,
+});

@@ -15,8 +15,8 @@ jest.mock('@grafana/runtime', () => ({
   },
 }));
 
-jest.mock('@grafana/ui', () => ({
-  useTheme2: () => ({
+jest.mock('@grafana/ui', () => {
+  const theme = {
     colors: {
       background: { primary: '#fff', secondary: '#f7f8fa' },
       border: { weak: '#ddd', medium: '#bbb', strong: '#999' },
@@ -33,7 +33,20 @@ jest.mock('@grafana/ui', () => ({
     },
     shadows: { z3: '0 2px 8px rgba(0,0,0,0.2)' },
     zIndex: { dropdown: 1030 },
-  }),
+    shape: { radius: { default: '4px' } },
+    typography: {
+      body: { fontSize: '14px', lineHeight: 1.5 },
+      bodySmall: { fontSize: '12px' },
+      fontWeightBold: 700,
+      fontWeightMedium: 500,
+    },
+    components: { height: { md: 4 } },
+    spacing: (...args: number[]) => args.map((value) => `${value * 8}px`).join(' '),
+  };
+
+  return {
+  useTheme2: () => theme,
+  useStyles2: (getStyles: any, ...args: any[]) => getStyles(theme, ...args),
   Icon: ({ name }: { name: string }) => <span data-testid={`icon-${name}`} />,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   Combobox: ({ value, options, onChange, portalContainer }: any) => {
@@ -64,7 +77,8 @@ jest.mock('@grafana/ui', () => ({
     );
   },
   Input: (props: any) => <input {...props} />,
-}));
+  };
+});
 
 jest.mock('../GridBody', () => {
   const React = require('react');
