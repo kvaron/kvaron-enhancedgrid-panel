@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { css } from '@emotion/css';
 import { useTheme2, Icon, Tooltip } from '@grafana/ui';
@@ -60,23 +60,38 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
     const theme = useTheme2();
     const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
     const [filterAnchorRect, setFilterAnchorRect] = useState<DOMRect | null>(null);
+    const [filterAnchorElement, setFilterAnchorElement] = useState<HTMLElement | null>(null);
+    const filterDropdownRef = useRef<HTMLDivElement | null>(null);
+
+    const closeFilter = useCallback(() => {
+      setOpenFilterColumn(null);
+      setFilterAnchorRect(null);
+      setFilterAnchorElement(null);
+    }, []);
+
+    const isFilterInteractionTarget = useCallback((target: EventTarget | null): boolean => {
+      if (!(target instanceof Node)) {
+        return false;
+      }
+
+      return !!filterDropdownRef.current?.contains(target) || !!filterAnchorElement?.contains(target);
+    }, [filterAnchorElement]);
 
     const handleFilterClick = (fieldName: string, e: React.MouseEvent) => {
       e.stopPropagation();
       if (openFilterColumn === fieldName) {
-        setOpenFilterColumn(null);
-        setFilterAnchorRect(null);
+        closeFilter();
         return;
       }
 
       setOpenFilterColumn(fieldName);
       setFilterAnchorRect(e.currentTarget.getBoundingClientRect());
+      setFilterAnchorElement(e.currentTarget as HTMLElement);
     };
 
     const handleFilterChange = (fieldName: string, filter: ColumnFilter | null) => {
       onFilter(fieldName, filter);
-      setOpenFilterColumn(null);
-      setFilterAnchorRect(null);
+      closeFilter();
     };
 
     useEffect(() => {
@@ -84,9 +99,22 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
         return;
       }
 
-      const closeFilter = () => {
-        setOpenFilterColumn(null);
-        setFilterAnchorRect(null);
+      const handlePointerDown = (event: PointerEvent) => {
+        if (!isFilterInteractionTarget(event.target)) {
+          closeFilter();
+        }
+      };
+
+      const handleFocusIn = (event: FocusEvent) => {
+        if (!isFilterInteractionTarget(event.target)) {
+          closeFilter();
+        }
+      };
+
+      const handleScroll = (event: Event) => {
+        if (!isFilterInteractionTarget(event.target)) {
+          closeFilter();
+        }
       };
 
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -95,16 +123,20 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
         }
       };
 
-      window.addEventListener('scroll', closeFilter, true);
+      document.addEventListener('pointerdown', handlePointerDown, true);
+      document.addEventListener('focusin', handleFocusIn, true);
+      window.addEventListener('scroll', handleScroll, true);
       window.addEventListener('resize', closeFilter);
       window.addEventListener('keydown', handleKeyDown);
 
       return () => {
-        window.removeEventListener('scroll', closeFilter, true);
+        document.removeEventListener('pointerdown', handlePointerDown, true);
+        document.removeEventListener('focusin', handleFocusIn, true);
+        window.removeEventListener('scroll', handleScroll, true);
         window.removeEventListener('resize', closeFilter);
         window.removeEventListener('keydown', handleKeyDown);
       };
-    }, [openFilterColumn]);
+    }, [closeFilter, isFilterInteractionTarget, openFilterColumn]);
 
     const getFilterLabel = (fieldName: string): string => {
       const filter = filters[fieldName];
@@ -143,7 +175,7 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
       const top = Math.min(filterAnchorRect.bottom + 2, window.innerHeight - viewportPadding);
 
       return createPortal(
-        <div className={styles.filterDropdownPortal} style={{ left, top }}>
+        <div ref={filterDropdownRef} className={styles.filterDropdownPortal} style={{ left, top }}>
           <ColumnFilterDropdown
             fieldName={column.fieldName}
             columnType={columnType}

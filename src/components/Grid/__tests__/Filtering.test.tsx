@@ -36,19 +36,33 @@ jest.mock('@grafana/ui', () => ({
   }),
   Icon: ({ name }: { name: string }) => <span data-testid={`icon-${name}`} />,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Combobox: ({ value, options, onChange }: any) => (
-    <select
-      aria-label="Operator"
-      value={value}
-      onChange={(event) => onChange(options.find((option: any) => option.value === event.currentTarget.value))}
-    >
-      {options.map((option: any) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  ),
+  Combobox: ({ value, options, onChange, portalContainer }: any) => {
+    const ReactDOM = require('react-dom');
+
+    return (
+      <>
+        <select
+          aria-label="Operator"
+          value={value}
+          onChange={(event) => onChange(options.find((option: any) => option.value === event.currentTarget.value))}
+        >
+          {options.map((option: any) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {portalContainer
+          ? ReactDOM.createPortal(
+              <button type="button" data-testid="operator-menu-option">
+                Operator menu option
+              </button>,
+              portalContainer
+            )
+          : null}
+      </>
+    );
+  },
   Input: (props: any) => <input {...props} />,
 }));
 
@@ -206,6 +220,78 @@ describe('column filtering', () => {
     fireEvent.click(within(dropdown).getByRole('button', { name: 'Apply' }));
 
     expect(onFilter).toHaveBeenCalledWith('name', { operator: 'contains', value: 'bob' });
+  });
+
+  it('closes the filter menu when clicking outside the filter controls', () => {
+    const columns: GridColumn[] = [
+      {
+        field: frame.fields[0],
+        fieldName: 'name',
+        displayName: 'Name',
+        align: 'left',
+      },
+    ];
+
+    render(
+      <>
+        <button type="button">Outside control</button>
+        <GridHeader
+          columns={columns}
+          sortField={null}
+          sortDirection="asc"
+          onSort={jest.fn()}
+          onFilter={jest.fn()}
+          filters={{}}
+          minHeight={72}
+          maxHeight={72}
+          rows={[{ index: 0, data: { name: 'Alice' } }]}
+          filterStyle="filterRow"
+        />
+      </>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Filter name/i }));
+    expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Outside control' }));
+
+    expect(screen.queryByTestId('column-filter-dropdown-name')).not.toBeInTheDocument();
+  });
+
+  it('keeps the filter menu open when interacting with filter inputs and internal operator menu portals', () => {
+    const columns: GridColumn[] = [
+      {
+        field: frame.fields[0],
+        fieldName: 'name',
+        displayName: 'Name',
+        align: 'left',
+      },
+    ];
+
+    render(
+      <GridHeader
+        columns={columns}
+        sortField={null}
+        sortDirection="asc"
+        onSort={jest.fn()}
+        onFilter={jest.fn()}
+        filters={{}}
+        minHeight={72}
+        maxHeight={72}
+        rows={[{ index: 0, data: { name: 'Alice' } }]}
+        filterStyle="filterRow"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Filter name/i }));
+
+    const valueInput = screen.getByTestId('column-filter-value-input');
+    fireEvent.pointerDown(valueInput);
+    fireEvent.focus(valueInput);
+    expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByTestId('operator-menu-option'));
+    expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
   });
 
   it('filters visible rows through user interaction', () => {
