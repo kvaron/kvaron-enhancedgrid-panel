@@ -6,6 +6,7 @@ const config = async (env: Env): Promise<Configuration> => {
   const baseConfig = await grafanaConfig(env);
 
   return merge(baseConfig, {
+    externals: ['react/jsx-runtime', 'react/jsx-dev-runtime'],
     optimization: {
       splitChunks: {
         chunks: 'async',

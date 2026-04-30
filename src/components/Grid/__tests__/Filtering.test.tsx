@@ -31,7 +31,7 @@ jest.mock('@grafana/ui', () => {
         text: '#3274d9',
       },
     },
-    shadows: { z3: '0 2px 8px rgba(0,0,0,0.2)' },
+    shadows: { z1: '0 1px 3px rgba(0,0,0,0.2)', z3: '0 2px 8px rgba(0,0,0,0.2)' },
     zIndex: { dropdown: 1030 },
     shape: { radius: { default: '4px' } },
     typography: {
@@ -67,12 +67,18 @@ jest.mock('@grafana/ui', () => {
         </select>
         {portalContainer
           ? ReactDOM.createPortal(
-              <button type="button" data-testid="operator-menu-option">
+              <button type="button" data-testid="operator-menu-option" role="option">
                 Operator menu option
               </button>,
               portalContainer
             )
           : null}
+        {ReactDOM.createPortal(
+          <button type="button" data-testid="external-operator-menu-option" role="option">
+            External operator menu option
+          </button>,
+          document.body
+        )}
       </>
     );
   },
@@ -272,7 +278,7 @@ describe('column filtering', () => {
     expect(screen.queryByTestId('column-filter-dropdown-name')).not.toBeInTheDocument();
   });
 
-  it('keeps the filter menu open when interacting with filter inputs and internal operator menu portals', () => {
+  it('keeps the filter menu open when interacting with filter inputs and operator menu portals', () => {
     const columns: GridColumn[] = [
       {
         field: frame.fields[0],
@@ -305,6 +311,9 @@ describe('column filtering', () => {
     expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
 
     fireEvent.pointerDown(screen.getByTestId('operator-menu-option'));
+    expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByTestId('external-operator-menu-option'));
     expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
   });
 
