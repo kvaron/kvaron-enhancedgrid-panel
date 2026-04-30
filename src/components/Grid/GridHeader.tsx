@@ -1,4 +1,5 @@
-import React, { useState, forwardRef } from 'react';
+import React, { useEffect, useState, forwardRef } from 'react';
+import { createPortal } from 'react-dom';
 import { css } from '@emotion/css';
 import { useTheme2, Icon, Tooltip } from '@grafana/ui';
 import { GridColumn } from '../../utils/dataTransformer';
@@ -58,16 +59,52 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
   ) => {
     const theme = useTheme2();
     const [openFilterColumn, setOpenFilterColumn] = useState<string | null>(null);
+    const [filterAnchorRect, setFilterAnchorRect] = useState<DOMRect | null>(null);
 
     const handleFilterClick = (fieldName: string, e: React.MouseEvent) => {
       e.stopPropagation();
-      setOpenFilterColumn(openFilterColumn === fieldName ? null : fieldName);
+      if (openFilterColumn === fieldName) {
+        setOpenFilterColumn(null);
+        setFilterAnchorRect(null);
+        return;
+      }
+
+      setOpenFilterColumn(fieldName);
+      setFilterAnchorRect(e.currentTarget.getBoundingClientRect());
     };
 
     const handleFilterChange = (fieldName: string, filter: ColumnFilter | null) => {
       onFilter(fieldName, filter);
       setOpenFilterColumn(null);
+      setFilterAnchorRect(null);
     };
+
+    useEffect(() => {
+      if (!openFilterColumn) {
+        return;
+      }
+
+      const closeFilter = () => {
+        setOpenFilterColumn(null);
+        setFilterAnchorRect(null);
+      };
+
+      const handleKeyDown = (event: KeyboardEvent) => {
+        if (event.key === 'Escape') {
+          closeFilter();
+        }
+      };
+
+      window.addEventListener('scroll', closeFilter, true);
+      window.addEventListener('resize', closeFilter);
+      window.addEventListener('keydown', handleKeyDown);
+
+      return () => {
+        window.removeEventListener('scroll', closeFilter, true);
+        window.removeEventListener('resize', closeFilter);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [openFilterColumn]);
 
     const getFilterLabel = (fieldName: string): string => {
       const filter = filters[fieldName];
@@ -92,12 +129,36 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
       return valueStr.length > 15 ? `${valueStr.substring(0, 15)}...` : valueStr;
     };
 
+    const renderFilterDropdown = (column: GridColumn, columnType: ReturnType<typeof detectColumnType>) => {
+      if (openFilterColumn !== column.fieldName || !filterAnchorRect || typeof document === 'undefined') {
+        return null;
+      }
+
+      const dropdownWidth = 250;
+      const viewportPadding = 8;
+      const left = Math.max(
+        viewportPadding,
+        Math.min(filterAnchorRect.left, window.innerWidth - dropdownWidth - viewportPadding)
+      );
+      const top = Math.min(filterAnchorRect.bottom + 2, window.innerHeight - viewportPadding);
+
+      return createPortal(
+        <div className={styles.filterDropdownPortal} style={{ left, top }}>
+          <ColumnFilterDropdown
+            fieldName={column.fieldName}
+            columnType={columnType}
+            currentFilter={filters[column.fieldName]}
+            onFilterChange={(filter) => handleFilterChange(column.fieldName, filter)}
+          />
+        </div>,
+        document.body
+      );
+    };
+
     // Helper to render a single header cell (with integrated filter row if needed)
     const renderHeaderCell = (column: GridColumn, index: number, totalColumnsInGroup: number, styles: any) => {
       const isSorted = sortField === column.fieldName;
       const hasFilter = !!filters[column.fieldName];
-      const isFilterOpen = openFilterColumn === column.fieldName;
-      const isNearRightEdge = index >= totalColumnsInGroup - 2;
 
       const sampleValues = rows.slice(0, 100).map((row) => row.data[column.fieldName]);
       const columnType = detectColumnType(column.field, sampleValues);
@@ -150,6 +211,7 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
               className={`${styles.filterButtonInline} ${hasFilter ? styles.filterButtonInlineActive : ''}`}
               onClick={(e) => handleFilterClick(column.fieldName, e)}
               title="Click to filter this column"
+              aria-label={`Filter ${column.displayName}`}
             >
               <Icon name="filter" size="sm" />
             </button>
@@ -162,6 +224,7 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
                 className={styles.filterRowButton}
                 onClick={(e) => handleFilterClick(column.fieldName, e)}
                 title="Click to filter this column"
+                aria-label={`Filter ${column.displayName}`}
               >
                 <Icon name="filter" size="sm" />
                 <span className={styles.filterRowButtonText}>{getFilterLabel(column.fieldName)}</span>
@@ -175,16 +238,7 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
           )}
 
           {/* Filter dropdown */}
-          {isFilterOpen && (
-            <div className={isNearRightEdge ? styles.filterDropdownRight : styles.filterDropdown}>
-              <ColumnFilterDropdown
-                fieldName={column.fieldName}
-                columnType={columnType}
-                currentFilter={filters[column.fieldName]}
-                onFilterChange={(filter) => handleFilterChange(column.fieldName, filter)}
-              />
-            </div>
-          )}
+          {renderFilterDropdown(column, columnType)}
         </div>
       );
     };
@@ -437,20 +491,9 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
         color: ${theme.colors.primary.text};
         opacity: 1;
       `,
-      filterDropdown: css`
-        position: absolute;
-        top: 100%;
-        left: 0;
-        z-index: 1000;
-        margin-top: 2px;
-      `,
-      filterDropdownRight: css`
-        position: absolute;
-        top: 100%;
-        right: 0;
-        left: auto;
-        z-index: 1000;
-        margin-top: 2px;
+      filterDropdownPortal: css`
+        position: fixed;
+        z-index: ${theme.zIndex.dropdown};
       `,
     };
 

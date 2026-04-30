@@ -182,7 +182,11 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
   };
 
   return (
-    <div className={styles.container} onClick={(e) => e.stopPropagation()}>
+    <div
+      className={styles.container}
+      onClick={(e) => e.stopPropagation()}
+      data-testid={`column-filter-dropdown-${fieldName}`}
+    >
       <div className={styles.row}>
         <label className={styles.label}>Operator</label>
         <Combobox value={operator} options={operatorOptions} onChange={handleOperatorChange} width={30} />
@@ -197,6 +201,8 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
             onChange={(e) => setValue(e.currentTarget.value)}
             onKeyDown={handleKeyPress}
             placeholder={`Enter ${columnType === 'number' ? 'number' : 'text'}...`}
+            aria-label={`${fieldName} filter value`}
+            data-testid="column-filter-value-input"
           />
         </div>
       )}
@@ -210,6 +216,8 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
             onChange={(e) => setValue2(e.currentTarget.value)}
             onKeyDown={handleKeyPress}
             placeholder="Enter number..."
+            aria-label={`${fieldName} filter value to`}
+            data-testid="column-filter-value2-input"
           />
         </div>
       )}
