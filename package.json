@@ -1,6 +1,6 @@
 {
   "name": "enhancedgrid",
-  "version": "0.1.10",
+  "version": "0.1.9",
   "scripts": {
     "build": "webpack -c ./webpack.config.ts --env production",
     "dev": "webpack -w -c ./webpack.config.ts --env development",
@@ -75,11 +75,11 @@
     "@grafana/runtime": "12.4.2",
     "@grafana/schema": "12.4.2",
     "@grafana/ui": "12.4.2",
+    "@tanstack/react-virtual": "^3.13.24",
     "emojibase": "^17.0.0",
     "emojibase-data": "^17.0.0",
     "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "react-window": "^2.2.7"
+    "react-dom": "^18.3.0"
   },
   "packageManager": "npm@11.7.0"
 }

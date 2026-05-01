@@ -312,7 +312,6 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
       centerGridTemplate,
       rightGridTemplate,
       columnGroups?.leftWidth || 0,
-      columnGroups?.rightWidth || 0,
       columnGroups?.centerWidth,
       frozenColumnsEnabled
     );
@@ -393,7 +392,6 @@ const getStyles = (
   centerGridTemplate: string,
   rightGridTemplate: string,
   leftWidth: number,
-  rightWidth: number,
   centerWidth: number | undefined,
   frozenColumnsEnabled: boolean
 ) => ({
@@ -444,7 +442,7 @@ const getStyles = (
   `,
   frozenCenterWrapper: css`
     margin-left: ${leftWidth}px;
-    margin-right: ${rightWidth + scrollbarWidth}px;
+    margin-right: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;

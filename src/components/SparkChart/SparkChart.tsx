@@ -12,6 +12,7 @@ import {
   generateYGradientDef,
   getColorForYPosition,
 } from '../../utils/sparkChartGradient';
+import { useSparkChartNamespace } from './sparkChartNamespace';
 
 interface SparkChartProps {
   config: SparkChartConfig;
@@ -54,6 +55,7 @@ interface ChartComponentProps {
 const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffset }) => {
   // Generate unique ID for this chart instance to avoid gradient ID collisions
   const chartId = React.useId();
+  const namespace = useSparkChartNamespace();
 
   // Find min/max for normalization - use config values if available (for global/column scale mode)
   const min = config.scaleMin !== undefined ? config.scaleMin : Math.min(...config.data);
@@ -206,7 +208,8 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
       config.colorScheme,
       config.theme,
       config.reverseGradient ?? false,
-      config.solidColor
+      config.solidColor,
+      namespace
     );
   }, [
     interpolationMode,
@@ -218,6 +221,7 @@ const SparkLine: React.FC<ChartComponentProps> = ({ config, width, height, yOffs
     height,
     config.reverseGradient,
     config.solidColor,
+    namespace,
   ]);
 
   // Generate path data for non-step modes

@@ -49,15 +49,6 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
 
 ![Server-Side Settings](docs/screenshots/07-server-side-settings.png)
 
-### Development Tools
-
-| Tool       | Version | Purpose                |
-| ---------- | ------- | ---------------------- |
-| TypeScript | 5.9     | Type-safe JavaScript   |
-| Webpack    | 5.x     | Module bundler         |
-| Jest       | 30.x    | Unit testing framework |
-| Playwright | 1.x     | End-to-end testing     |
-
 ## Installation
 
 1. Download the latest release from the [releases page](https://github.com/kvaron/kvaron-enhancedgrid-panel/releases)
@@ -119,6 +110,12 @@ See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructio
 
 ![Flags Column](docs/screenshots/12-flags-column.png)
 
+### Virtualized Scrolling at 20k Rows
+
+Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset.
+
+![20k Row Virtualized Scroll](docs/screenshots/20k-scroll.gif)
+
 ## Support
 
 For issues, feature requests, or questions:
@@ -130,13 +127,22 @@ For issues, feature requests, or questions:
 
 ### Runtime Dependencies
 
-| Package                                                          | Version | Purpose                                                     |
-| ---------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
-| [react-window](https://github.com/bvaughn/react-window)          | 2.x     | Virtual scrolling for efficient rendering of large datasets |
-| [@emotion/css](https://emotion.sh/)                              | 11.x    | CSS-in-JS styling                                           |
-| [@grafana/ui](https://grafana.com/developers/plugin-tools/)      | 12.x    | Grafana UI component library                                |
-| [@grafana/data](https://grafana.com/developers/plugin-tools/)    | 12.x    | Grafana data utilities and types                            |
-| [@grafana/runtime](https://grafana.com/developers/plugin-tools/) | 12.x    | Grafana runtime APIs                                        |
+| Package                                                                       | Version | Purpose                                                     |
+| ----------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
+| [@tanstack/react-virtual](https://tanstack.com/virtual/latest)                | 3.x     | Virtual scrolling for efficient rendering of large datasets |
+| [@emotion/css](https://emotion.sh/)                                           | 11.x    | CSS-in-JS styling                                           |
+| [@grafana/ui](https://grafana.com/developers/plugin-tools/)                   | 12.x    | Grafana UI component library                                |
+| [@grafana/data](https://grafana.com/developers/plugin-tools/)                 | 12.x    | Grafana data utilities and types                            |
+| [@grafana/runtime](https://grafana.com/developers/plugin-tools/)              | 12.x    | Grafana runtime APIs                                        |
+
+### Development Tools
+
+| Tool       | Version | Purpose                |
+| ---------- | ------- | ---------------------- |
+| TypeScript | 5.9     | Type-safe JavaScript   |
+| Webpack    | 5.x     | Module bundler         |
+| Jest       | 30.x    | Unit testing framework |
+| Playwright | 1.x     | End-to-end testing     |
 
 ## License
 
