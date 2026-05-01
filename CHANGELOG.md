@@ -1,3 +1,13 @@
+## 0.2.0 (2026-05-01)
+
+### Features
+- Merge pull request #41 from kvaron/fix/react-19-jsx-runtime-compat
+
+### Bug Fixes
+- Remove React jsx-runtime workaround
+- Merge pull request #41 from kvaron/fix/react-19-jsx-runtime-compat
+- migrate row virtualization to tanstack
+
 ## 0.1.9 (2026-04-30)
 
 ### Bug Fixes
