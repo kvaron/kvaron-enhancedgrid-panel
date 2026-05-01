@@ -6,6 +6,12 @@ A powerful Grafana panel plugin that provides an advanced grid/table visualizati
 
 ## Features
 
+### Virtualization and Scrolling
+
+Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset.
+
+![20k Row Virtualized Scroll](docs/screenshots/20k-scroll.gif)
+
 ### 🎨 Advanced Cell Highlighting & Formatting
 
 - **Conditional Formatting Rules**: Apply colors, backgrounds, and styles based on cell values
@@ -109,12 +115,6 @@ See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructio
 ### Flags Column
 
 ![Flags Column](docs/screenshots/12-flags-column.png)
-
-### Virtualized Scrolling at 20k Rows
-
-Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset.
-
-![20k Row Virtualized Scroll](docs/screenshots/20k-scroll.gif)
 
 ## Support
 
