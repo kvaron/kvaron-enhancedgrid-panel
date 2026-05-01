@@ -9,6 +9,7 @@ import { calculateColumnMetrics } from '../../utils/columnWidthManager';
 import { GridHeader } from './GridHeader';
 import { GridBody, GridBodyHandle } from './GridBody';
 import { PaginationControls } from './PaginationControls';
+import { SparkChartNamespaceContext } from '../SparkChart/sparkChartNamespace';
 import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState } from '../../utils/odataQueryBuilder';
 import { isBlank } from '../../utils/columnTypeDetector';
 import { getScrollbarWidth, hasVerticalScrollbar, hasHorizontalScrollbar } from '../../utils/scrollbarUtils';
@@ -34,6 +35,9 @@ interface GridProps {
 
 export const Grid: React.FC<GridProps> = ({ data, options, width, height, highlightRules }) => {
   const theme = useTheme2();
+  // Stable per-grid-instance namespace prefix for SparkChart gradient IDs.
+  // Sanitised to keep the value usable inside an HTML `id` attribute.
+  const sparkGradientNamespace = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [filters, setFilters] = useState<Record<string, ColumnFilter>>({});
@@ -761,6 +765,7 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
   );
 
   return (
+    <SparkChartNamespaceContext.Provider value={sparkGradientNamespace}>
     <div
       className={styles.container}
       data-testid="enhanced-grid-container"
@@ -809,6 +814,7 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
           columnGroups={columnGroups}
           frozenColumnsEnabled={frozenColumnsEnabled}
           horizontalScrollbarHeight={horizontalScrollbarHeight}
+          scrollbarWidth={scrollbarWidth}
         />
       </div>
       {options.paginationEnabled && (
@@ -823,5 +829,6 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
         </div>
       )}
     </div>
+    </SparkChartNamespaceContext.Provider>
   );
 };

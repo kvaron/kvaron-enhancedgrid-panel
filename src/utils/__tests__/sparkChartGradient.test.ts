@@ -378,7 +378,7 @@ describe('sparkChartGradient', () => {
       expect(gradientDef).toBeNull();
     });
 
-    it('should generate unique gradient IDs', () => {
+    it('should generate identical gradient IDs for identical inputs', () => {
       const data = [0, 5, 10];
       const colorScheme = 'continuous-GrYlRd';
       const min = 0;
@@ -389,7 +389,20 @@ describe('sparkChartGradient', () => {
       const result1 = generateLineGradientDef(data, colorScheme, min, max, mockTheme, width, height, 'linear', false);
       const result2 = generateLineGradientDef(data, colorScheme, min, max, mockTheme, width, height, 'linear', false);
 
-      expect(result1.gradientId).not.toBe(result2.gradientId);
+      expect(result1.gradientId).toBe(result2.gradientId);
+    });
+
+    it('should generate distinct gradient IDs when inputs differ', () => {
+      const colorScheme = 'continuous-GrYlRd';
+      const width = 100;
+      const height = 50;
+
+      const a = generateLineGradientDef([0, 5, 10], colorScheme, 0, 10, mockTheme, width, height, 'linear', false);
+      const b = generateLineGradientDef([0, 5, 11], colorScheme, 0, 10, mockTheme, width, height, 'linear', false);
+      const c = generateLineGradientDef([0, 5, 10], colorScheme, 0, 20, mockTheme, width, height, 'linear', false);
+
+      expect(a.gradientId).not.toBe(b.gradientId);
+      expect(a.gradientId).not.toBe(c.gradientId);
     });
   });
 
@@ -545,7 +558,7 @@ describe('sparkChartGradient', () => {
       expect(gradientDef).toBeNull();
     });
 
-    it('should generate unique gradient IDs', () => {
+    it('should generate identical gradient IDs for identical inputs', () => {
       const min = 0;
       const max = 100;
       const height = 50;
@@ -554,7 +567,20 @@ describe('sparkChartGradient', () => {
       const result1 = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
       const result2 = generateYGradientDef(min, max, height, colorScheme, mockTheme, false);
 
-      expect(result1.gradientId).not.toBe(result2.gradientId);
+      expect(result1.gradientId).toBe(result2.gradientId);
+    });
+
+    it('should generate distinct gradient IDs when inputs differ', () => {
+      const colorScheme = 'continuous-GrYlRd';
+
+      const a = generateYGradientDef(0, 100, 50, colorScheme, mockTheme, false);
+      const b = generateYGradientDef(0, 100, 50, colorScheme, mockTheme, true);
+      const c = generateYGradientDef(0, 100, 60, colorScheme, mockTheme, false);
+      const d = generateYGradientDef(0, 200, 50, colorScheme, mockTheme, false);
+
+      expect(a.gradientId).not.toBe(b.gradientId);
+      expect(a.gradientId).not.toBe(c.gradientId);
+      expect(a.gradientId).not.toBe(d.gradientId);
     });
 
     it('should handle Shades color scheme with solidColor', () => {

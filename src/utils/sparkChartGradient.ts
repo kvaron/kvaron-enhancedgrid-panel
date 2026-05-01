@@ -2,6 +2,19 @@ import React from 'react';
 import { GrafanaTheme2, FieldColorModeId } from '@grafana/data';
 import { getColorFromScheme, generateColorShade } from './colorUtils';
 
+// djb2-style hash of a string into a base-36 token, used to derive stable
+// gradient IDs from gradient configuration. Two callers with identical
+// configuration produce identical IDs, so the browser only registers each
+// distinct gradient once and `url(#id)` references resolve immediately when
+// a sparkline mounts into the viewport during virtualized scroll.
+function hashGradientKey(key: string): string {
+  let h = 5381;
+  for (let i = 0; i < key.length; i++) {
+    h = ((h << 5) + h) ^ key.charCodeAt(i);
+  }
+  return (h >>> 0).toString(36);
+}
+
 /**
  * Point data with screen coordinates and normalized value.
  */
@@ -186,10 +199,19 @@ export function generateLineGradientDef(
   width: number,
   height: number,
   interpolation: 'linear' | 'step' | 'curve' = 'linear',
-  reverseGradient = false
+  reverseGradient = false,
+  namespace = ''
 ): { gradientDef: React.ReactNode; gradientId: string } {
-  // Generate unique ID for this gradient
-  const gradientId = `spark-gradient-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  // Deterministic ID — identical inputs produce identical IDs, so two
+  // sparklines that resolve to the same gradient definition share an `<id>`
+  // in the document and the browser already knows it before the second
+  // path's `url(#id)` reference is parsed. The optional `namespace` prefix
+  // scopes the ID to a single panel instance so two panels on the same
+  // dashboard don't end up with conflicting `<linearGradient id="...">`
+  // entries when their gradient configurations happen to match.
+  const gradientKey = `line|${colorScheme}|${theme.isDark ? 'd' : 'l'}|${min}|${max}|${width}|${height}|${interpolation}|${reverseGradient ? '1' : '0'}|${data.join(',')}`;
+  const prefix = namespace ? `${namespace}-` : '';
+  const gradientId = `${prefix}spark-gradient-${hashGradientKey(gradientKey)}`;
 
   if (data.length === 0) {
     return { gradientDef: null, gradientId };
@@ -292,10 +314,18 @@ export function generateYGradientDef(
   colorScheme: string,
   theme: GrafanaTheme2,
   reverseGradient = false,
-  solidColor?: string
+  solidColor?: string,
+  namespace = ''
 ): { gradientDef: React.ReactNode; gradientId: string } {
-  // Generate unique ID for this gradient
-  const gradientId = `spark-y-gradient-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  // Deterministic ID derived from every input that shapes the gradient.
+  // Sparklines using the same color scheme, scale range and height share a
+  // single `<linearGradient>` definition, so a newly-mounted sparkline finds
+  // its gradient already registered and renders without a flicker. The
+  // optional `namespace` prefix scopes the ID per panel instance to keep
+  // identical gradients in different panels from colliding in the DOM.
+  const gradientKey = `y|${colorScheme}|${theme.isDark ? 'd' : 'l'}|${min}|${max}|${height}|${reverseGradient ? '1' : '0'}|${solidColor ?? ''}`;
+  const prefix = namespace ? `${namespace}-` : '';
+  const gradientId = `${prefix}spark-y-gradient-${hashGradientKey(gradientKey)}`;
 
   if (height <= 0) {
     return { gradientDef: null, gradientId };
