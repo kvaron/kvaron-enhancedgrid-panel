@@ -74,7 +74,7 @@
     "@grafana/i18n": "12.4.2",
     "@grafana/runtime": "12.4.2",
     "@grafana/schema": "12.4.2",
-    "@grafana/ui": "12.4.2",
+    "@grafana/ui": "13.0.1",
     "@tanstack/react-virtual": "^3.13.24",
     "emojibase": "^17.0.0",
     "emojibase-data": "^17.0.0",
