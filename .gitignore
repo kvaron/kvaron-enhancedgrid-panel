@@ -50,3 +50,10 @@ reference/.claude/
 
 /reference/
 /.serena/*
+.orchestrator/workspace/
+.orchestrator/
+.mcp.json
+.claude/task-context.md
+.claude/settings.local.json
+.claude/skills/
+.gemini/

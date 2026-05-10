@@ -298,7 +298,7 @@
         "compactMode": false,
         "countVariableName": "gridCount",
         "filterStyle": "filterRow",
-        "filterVariableName": "gridFilter",
+        "filterVariableName": "virtFilter",
         "freezeLeftColumns": 0,
         "freezeRightColumns": 0,
         "headerHeight": 80,
@@ -477,7 +477,7 @@
         "showRowNumbers": true,
         "showSeriesCount": false,
         "skipVariableName": "gridSkip",
-        "sortVariableName": "gridSort",
+        "sortVariableName": "virtSort",
         "text": "Default value of text input option",
         "topVariableName": "gridTop",
         "virtualScrollEnabled": true

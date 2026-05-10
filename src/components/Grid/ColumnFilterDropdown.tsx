@@ -155,6 +155,7 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
             placeholder={`Enter ${columnType === 'number' ? 'number' : 'text'}...`}
             aria-label={`${fieldName} filter value`}
             data-testid="column-filter-value-input"
+            maxLength={1024}
           />
         </div>
       )}
@@ -170,6 +171,7 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
             placeholder="Enter number..."
             aria-label={`${fieldName} filter value to`}
             data-testid="column-filter-value2-input"
+            maxLength={1024}
           />
         </div>
       )}

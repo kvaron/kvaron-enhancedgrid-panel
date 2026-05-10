@@ -1,0 +1,31 @@
+apiVersion: 1
+
+datasources:
+  - name: Timescale Demo
+    type: grafana-postgresql-datasource
+    uid: tsdemo
+    access: proxy
+    url: timescaledb:5432
+    user: grafana_reader
+    secureJsonData:
+      password: reader_pw
+    jsonData:
+      database: demo
+      sslmode: disable
+      timescaledb: true
+      postgresVersion: 1600
+    editable: false
+
+  - name: SQL Server Demo
+    type: mssql
+    uid: msdemo
+    access: proxy
+    url: mssql:1433
+    user: grafana_reader
+    secureJsonData:
+      password: ReaderP@ss1
+    jsonData:
+      database: demo
+      encrypt: 'false'
+      tlsSkipVerify: true
+    editable: false

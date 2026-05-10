@@ -48,7 +48,8 @@ Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset
 ### 🚀 Server-Side Operations
 
 - **OData Support**: Native integration with OData APIs via Infinity datasource
-- **SQL Support**: PostgreSQL, MySQL, and other SQL datasources
+- **SQL Support**: PostgreSQL, TimescaleDB, Microsoft SQL Server, and SQLite (plus MySQL/MariaDB/Oracle with caveats — see [SQL Dialects](docs/SERVER_SIDE_SETUP.md#sql-dialects))
+- **SQL Dialect Selector**: Choose between PostgreSQL (`ILIKE` + `"quoted"` identifiers), SQL Server (`LIKE` + `[bracketed]` identifiers), or portable ANSI SQL (`LOWER(...) LIKE LOWER(...)`) so generated `WHERE` / `ORDER BY` fragments match your database
 - **Server-Side Filtering**: Push filters to datasource queries
 - **Server-Side Sorting**: Offload sorting to the database
 - **Custom Query Formats**: Flexible query parameter customization
@@ -92,7 +93,8 @@ For large datasets, enable server-side filtering and pagination:
 2. Update your datasource query to use these variables
 3. In panel settings, enable **Server-Side Mode**
 4. Configure query format (OData, SQL, or JSON)
-5. Map variable names
+5. If using **SQL**, pick the **SQL Dialect** that matches your database (PostgreSQL/TimescaleDB, SQL Server, or ANSI SQL)
+6. Map variable names
 
 See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructions.
 

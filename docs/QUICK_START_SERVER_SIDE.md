@@ -44,7 +44,7 @@ In the Enhanced Grid panel settings:
 
 ---
 
-## Quick Setup (PostgreSQL/MySQL)
+## Quick Setup (PostgreSQL / TimescaleDB / SQL Server / ANSI SQL)
 
 ### 1. Create Dashboard Variables
 
@@ -67,7 +67,41 @@ ORDER BY ${gridSort:raw}
 3. **Filter Variable Name** → `gridFilter`
 4. **Sort Variable Name** → `gridSort`
 
-### 4. Test It!
+### 4. Pick the SQL Dialect
+
+The **SQL Dialect** dropdown appears once Query Format is set to SQL. Pick the
+one that matches your database — it controls how identifiers are quoted and
+how case-insensitive text comparisons are written:
+
+| Dialect                       | Identifier quoting | Case-insensitive `contains` example  |
+| ----------------------------- | ------------------ | ------------------------------------ |
+| **PostgreSQL / TimescaleDB**  | `"name"`           | `"name" ILIKE '%laptop%'`            |
+| **SQL Server**                | `[name]`           | `[name] LIKE '%laptop%'` *(uses default CI collation)* |
+| **ANSI SQL (portable)**       | `"name"`           | `LOWER("name") LIKE LOWER('%laptop%')` |
+
+Default is **PostgreSQL / TimescaleDB**. Pick **ANSI SQL** for SQLite,
+or for MySQL / MariaDB / Oracle subject to the caveats below.
+
+> **Caveats for `ansi` dialect:**
+> - **SQLite** — works out-of-the-box.
+> - **MySQL / MariaDB** — set both `ANSI_QUOTES` and `NO_BACKSLASH_ESCAPES`
+>   in the connection's `sql_mode`. Without `ANSI_QUOTES`, MySQL parses
+>   `"col"` as a string literal (the filter silently matches nothing);
+>   without `NO_BACKSLASH_ESCAPES`, MySQL's backslash-escape semantics
+>   defeat the panel's quote-doubling.
+> - **Oracle** — only when tables were created with quoted, case-matching
+>   DDL. Unquoted Oracle DDL folds names to UPPERCASE and the panel's
+>   quoted lookup errors with `ORA-00904`.
+
+> **Use a read-only SQL connection** scoped to the tables this
+> dashboard needs. The data-source credential is the security boundary
+> for server-side mode — see Grafana's
+> [Data source security best practices](https://grafana.com/blog/data-source-security-in-grafana-best-practices-and-what-to-avoid/)
+> for the canonical guidance and
+> [Configuring the data source connection](SERVER_SIDE_SETUP.md#configuring-the-data-source-connection)
+> for the connection settings this panel expects.
+
+### 5. Test It!
 
 Filter and sort - your database handles it all!
 
@@ -84,18 +118,24 @@ gridFilter = contains(tolower(Name), 'laptop')
 gridSort = Price desc
 ```
 
-**SQL format generates:**
+**SQL format generates** (depends on the **SQL Dialect** option):
 
 ```
-gridFilter = Name ILIKE '%laptop%'
-gridSort = Price DESC
+postgres:   gridFilter = "name" ILIKE '%laptop%'
+            gridSort   = "price" DESC
+
+sqlserver:  gridFilter = [name] LIKE '%laptop%'
+            gridSort   = [price] DESC
+
+ansi:       gridFilter = LOWER("name") LIKE LOWER('%laptop%')
+            gridSort   = "price" DESC
 ```
 
-**Your datasource receives:**
+**Your datasource receives** (PostgreSQL example):
 
 ```
 OData: ?$filter=contains(tolower(Name), 'laptop')&$orderby=Price desc
-SQL:   WHERE Name ILIKE '%laptop%' ORDER BY Price DESC
+SQL:   WHERE "name" ILIKE '%laptop%' ORDER BY "price" DESC
 ```
 
 ---
@@ -118,19 +158,57 @@ A: Just toggle "Enable Server-Side Mode" OFF - panel returns to client-side filt
 
 ## Advanced: Multiple Grids on One Dashboard
 
-Each grid can use different variables:
+> **Each grid panel on a dashboard MUST use unique values for Filter
+> Variable Name and Sort Variable Name.** Sharing names causes the panels
+> to race each other on every state change, producing inconsistent
+> results. The panel detects collisions at mount and renders a yellow
+> warning banner at the top of the panel until the names are made
+> distinct in panel options.
 
-**Grid 1:**
+Example — two grids on the same dashboard:
 
-- Filter Variable: `grid1Filter`
-- Sort Variable: `grid1Sort`
+**Grid 1 (Inventory):**
 
-**Grid 2:**
+- Filter Variable: `inventoryFilter`
+- Sort Variable: `inventorySort`
 
-- Filter Variable: `grid2Filter`
-- Sort Variable: `grid2Sort`
+**Grid 2 (Customers):**
 
-Create separate dashboard variables for each grid!
+- Filter Variable: `customerFilter`
+- Sort Variable: `customerSort`
+
+Create separate dashboard variables for each grid, and reference them in
+each grid's templated query.
+
+## Deep links — pre-filled filters via URL
+
+Send a link that lands on the dashboard with the grid already filtered:
+
+```
+https://grafana.example.com/d/<dashboard-uid>?gridFilter.status=equals:active
+                                            &gridFilter.price=between:100:500
+                                            &gridSort=price:desc
+```
+
+Syntax (where `gridFilter` and `gridSort` come from the panel's
+configured Filter / Sort Variable Names):
+
+| URL form | Operators it accepts |
+| --- | --- |
+| `?gridFilter.{field}={op}` | `blank`, `not_blank` |
+| `?gridFilter.{field}={op}:{value}` | `contains`, `equals`, `starts_with`, `ends_with`, `eq`, `ne`, `gt`, `lt`, `gte`, `lte` |
+| `?gridFilter.{field}={op}:{value}:{value2}` | `between` |
+| `?gridSort={field}:{direction}` | `asc`, `desc` |
+
+The panel validates every entry on mount: operator must be in the known
+list, field must exist in the data frame's columns. Anything that fails
+validation is dropped (logged in the browser console). Surviving entries
+flow through the same SQL escape pipeline as filters typed in the UI.
+
+> URL deep links carry **intent**, not raw SQL. A URL like
+> `?var-gridFilter=name='evil'` is silently overwritten by the panel on
+> the next state publish — use the structured `?gridFilter.{field}=...`
+> syntax above instead.
 
 ---
 

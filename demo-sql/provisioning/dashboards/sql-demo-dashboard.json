@@ -1,0 +1,133 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Enhanced Grid Panel — SQL backend demo. Two panels demonstrate server-side filtering/sorting/pagination against TimescaleDB (postgres dialect) and SQL Server 2022 (sqlserver dialect). Each panel uses its own Filter/Sort/Skip/Top dashboard variables (ts* and ms*) per the unique-name-per-panel rule. Try a deep-link URL on this dashboard, e.g.: ?tsFilter.status=equals:paid&tsFilter.amount=between:100:500&tsSort=amount:desc",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "grafana-postgresql-datasource", "uid": "tsdemo" },
+      "fieldConfig": { "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "TimescaleDB — Orders (sqlDialect: postgres)",
+      "type": "kvaron-enhancedgrid-panel",
+      "pluginVersion": "0.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-postgresql-datasource", "uid": "tsdemo" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT id, customer_name, status, amount, region, created_at, notes\nFROM orders\nWHERE ${tsFilter:raw}\nORDER BY ${tsSort:raw}\nLIMIT ${tsTop:raw} OFFSET ${tsSkip:raw}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "showRowNumbers": false,
+        "compactMode": false,
+        "compactHeaders": false,
+        "filterStyle": "filterRow",
+        "rowHeight": 32,
+        "headerHeight": 60,
+        "rowStripeEnabled": true,
+        "freezeLeftColumns": 1,
+        "freezeRightColumns": 0,
+        "borderStyle": "horizontal",
+        "pageSize": 25,
+        "autoSizeAllColumns": true,
+        "autoSizeSampleSize": 100,
+        "highlightRules": [],
+        "serverSideMode": true,
+        "serverSidePagination": true,
+        "queryFormat": "sql",
+        "sqlDialect": "postgres",
+        "filterVariableName": "tsFilter",
+        "sortVariableName": "tsSort",
+        "skipVariableName": "tsSkip",
+        "topVariableName": "tsTop",
+        "countVariableName": "tsCount"
+      }
+    },
+    {
+      "datasource": { "type": "mssql", "uid": "msdemo" },
+      "fieldConfig": { "defaults": { "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }, "overrides": [] },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 14 },
+      "id": 2,
+      "title": "SQL Server — Orders (sqlDialect: sqlserver)",
+      "type": "kvaron-enhancedgrid-panel",
+      "pluginVersion": "0.2.0",
+      "targets": [
+        {
+          "datasource": { "type": "mssql", "uid": "msdemo" },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT id, customer_name, status, amount, region, created_at, notes\nFROM dbo.orders\nWHERE ${msFilter:raw}\nORDER BY ${msSort:raw}\nOFFSET ${msSkip:raw} ROWS FETCH NEXT ${msTop:raw} ROWS ONLY",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "showRowNumbers": false,
+        "compactMode": false,
+        "compactHeaders": false,
+        "filterStyle": "filterRow",
+        "rowHeight": 32,
+        "headerHeight": 60,
+        "rowStripeEnabled": true,
+        "freezeLeftColumns": 1,
+        "freezeRightColumns": 0,
+        "borderStyle": "horizontal",
+        "pageSize": 25,
+        "autoSizeAllColumns": true,
+        "autoSizeSampleSize": 100,
+        "highlightRules": [],
+        "serverSideMode": true,
+        "serverSidePagination": true,
+        "queryFormat": "sql",
+        "sqlDialect": "sqlserver",
+        "filterVariableName": "msFilter",
+        "sortVariableName": "msSort",
+        "skipVariableName": "msSkip",
+        "topVariableName": "msTop",
+        "countVariableName": "msCount"
+      }
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 39,
+  "tags": ["enhancedgrid", "demo", "sql"],
+  "templating": {
+    "list": [
+      { "name": "tsFilter", "type": "textbox", "label": "TS Filter (panel-managed)", "current": { "value": "1=1", "text": "1=1" }, "query": "1=1", "options": [{ "value": "1=1", "text": "1=1", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "tsSort", "type": "textbox", "label": "TS Sort (panel-managed)", "current": { "value": "id ASC", "text": "id ASC" }, "query": "id ASC", "options": [{ "value": "id ASC", "text": "id ASC", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "tsSkip", "type": "textbox", "label": "TS Skip (panel-managed)", "current": { "value": "0", "text": "0" }, "query": "0", "options": [{ "value": "0", "text": "0", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "tsTop", "type": "textbox", "label": "TS Top (panel-managed)", "current": { "value": "25", "text": "25" }, "query": "25", "options": [{ "value": "25", "text": "25", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "msFilter", "type": "textbox", "label": "MS Filter (panel-managed)", "current": { "value": "1=1", "text": "1=1" }, "query": "1=1", "options": [{ "value": "1=1", "text": "1=1", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "msSort", "type": "textbox", "label": "MS Sort (panel-managed)", "current": { "value": "id ASC", "text": "id ASC" }, "query": "id ASC", "options": [{ "value": "id ASC", "text": "id ASC", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "msSkip", "type": "textbox", "label": "MS Skip (panel-managed)", "current": { "value": "0", "text": "0" }, "query": "0", "options": [{ "value": "0", "text": "0", "selected": true }], "hide": 2, "skipUrlSync": false },
+      { "name": "msTop", "type": "textbox", "label": "MS Top (panel-managed)", "current": { "value": "25", "text": "25" }, "query": "25", "options": [{ "value": "25", "text": "25", "selected": true }], "hide": 2, "skipUrlSync": false }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "title": "Enhanced Grid — SQL Backend Demo",
+  "uid": "kvaron-sql-demo",
+  "version": 1
+}

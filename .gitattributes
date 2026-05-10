@@ -1,0 +1,5 @@
+# Shell scripts must use LF line endings even on Windows checkouts.
+# SQL Server's entrypoint-init.sh runs inside a Linux container; CRLF
+# leaks from the host filesystem would break shebang parsing.
+*.sh text eol=lf
+demo-sql/init/mssql/entrypoint-init.sh text eol=lf

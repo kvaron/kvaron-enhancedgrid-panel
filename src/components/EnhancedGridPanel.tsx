@@ -20,7 +20,14 @@ export const EnhancedGridPanel: React.FC<Props> = ({ options, data, width, heigh
 
   return (
     <ErrorBoundary>
-      <Grid data={data.series[0]} options={options} width={width} height={height} highlightRules={allHighlightRules} />
+      <Grid
+        data={data.series[0]}
+        options={options}
+        width={width}
+        height={height}
+        highlightRules={allHighlightRules}
+        panelId={id}
+      />
     </ErrorBoundary>
   );
 };

@@ -51,6 +51,7 @@ describe('EnhancedGridPanel', () => {
     filterVariableName: '',
     sortVariableName: '',
     queryFormat: 'json',
+    sqlDialect: 'postgres',
     serverSidePagination: false,
     skipVariableName: '',
     topVariableName: '',

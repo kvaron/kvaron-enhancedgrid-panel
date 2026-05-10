@@ -32,6 +32,18 @@ export type ColumnType = 'text' | 'number' | 'date' | 'boolean';
 // Filter style for header display
 export type FilterStyle = 'filterRow' | 'filterButton' | 'none';
 
+// SQL dialect for server-side query generation.
+// - 'postgres': uses ILIKE and double-quoted identifiers. Covers PostgreSQL and TimescaleDB.
+// - 'sqlserver': uses LIKE and bracketed identifiers. Relies on SQL Server's default
+//   case-insensitive collation; switch to 'ansi' if your column collation is case-sensitive.
+// - 'ansi': portable LOWER(col) LIKE LOWER(...) with double-quoted identifiers. Works on
+//   SQLite out-of-the-box. MySQL/MariaDB require both ANSI_QUOTES and NO_BACKSLASH_ESCAPES
+//   sql_mode (otherwise quoted identifiers parse as string literals and backslash escapes
+//   bypass the panel's quote-doubling). Oracle requires DDL with quoted-and-case-matching
+//   identifiers; unquoted DDL folds names to UPPERCASE and the panel's quoted lookup will
+//   error with ORA-00904.
+export type SqlDialect = 'postgres' | 'sqlserver' | 'ansi';
+
 // Comparison operators (enum-based, safe)
 export type ComparisonOperator =
   | 'equals'
@@ -396,6 +408,7 @@ export interface EnhancedGridOptions {
   filterVariableName: string;
   sortVariableName: string;
   queryFormat: 'odata' | 'sql' | 'json'; // Query format: OData, SQL WHERE/ORDER BY, or JSON
+  sqlDialect: SqlDialect; // SQL dialect when queryFormat is 'sql' (default: 'postgres')
 
   // Server-side pagination
   serverSidePagination: boolean;

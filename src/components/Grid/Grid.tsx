@@ -1,6 +1,14 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+  useSyncExternalStore,
+} from 'react';
 import { DataFrame } from '@grafana/data';
-import { useTheme2 } from '@grafana/ui';
+import { Alert, useTheme2 } from '@grafana/ui';
 import { locationService } from '@grafana/runtime';
 import { css } from '@emotion/css';
 import { EnhancedGridOptions, HighlightRule, ColumnFilter, EnhancedGridFieldConfig } from '../../types';
@@ -11,6 +19,14 @@ import { GridBody, GridBodyHandle } from './GridBody';
 import { PaginationControls } from './PaginationControls';
 import { SparkChartNamespaceContext } from '../SparkChart/sparkChartNamespace';
 import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState } from '../../utils/odataQueryBuilder';
+import { capRowsForRender } from '../../utils/rowCap';
+import { parseUrlFilters } from '../../utils/urlFilterParser';
+import {
+  deregister as deregisterPanel,
+  hasCollision,
+  register as registerPanel,
+  subscribe as subscribePanelRegistry,
+} from '../../utils/panelInstanceRegistry';
 import { isBlank } from '../../utils/columnTypeDetector';
 import { getScrollbarWidth, hasVerticalScrollbar, hasHorizontalScrollbar } from '../../utils/scrollbarUtils';
 import { calculateColumnWidth, getFontOptions } from '../../utils/textMeasurement';
@@ -31,9 +47,17 @@ interface GridProps {
   width: number;
   height: number;
   highlightRules: HighlightRule[];
+  panelId: number;
 }
 
-export const Grid: React.FC<GridProps> = ({ data, options, width, height, highlightRules }) => {
+export const Grid: React.FC<GridProps> = ({
+  data,
+  options,
+  width,
+  height,
+  highlightRules,
+  panelId,
+}) => {
   const theme = useTheme2();
   // Stable per-grid-instance namespace prefix for SparkChart gradient IDs.
   // Sanitised to keep the value usable inside an HTML `id` attribute.
@@ -51,6 +75,67 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
   // Refs for scroll synchronization
   const headerScrollRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<GridBodyHandle>(null);
+
+  // Register this panel instance for cross-panel variable-name collision
+  // detection. Re-runs whenever the configured variable names change so the
+  // registry stays in sync with the current options.
+  useEffect(() => {
+    registerPanel({
+      panelId,
+      filterVariableName: options.filterVariableName,
+      sortVariableName: options.sortVariableName,
+    });
+    return () => {
+      deregisterPanel(panelId);
+    };
+  }, [panelId, options.filterVariableName, options.sortVariableName]);
+
+  // Reactive collision state — re-renders this panel when a sibling panel's
+  // registration changes. The snapshot is a stable string so React's
+  // identity check on the same value avoids spurious re-renders.
+  const collisionSnapshot = useSyncExternalStore(
+    subscribePanelRegistry,
+    useCallback(
+      () =>
+        `${hasCollision(panelId, options.filterVariableName, 'filter') ? 'F' : '.'}${
+          hasCollision(panelId, options.sortVariableName, 'sort') ? 'S' : '.'
+        }`,
+      [panelId, options.filterVariableName, options.sortVariableName]
+    ),
+    () => '..'
+  );
+  const filterCollision = collisionSnapshot[0] === 'F';
+  const sortCollision = collisionSnapshot[1] === 'S';
+
+  // Detect legacy raw-SQL URL form (?var-{filterVariableName}=...) on first
+  // mount. The structured `?{filterVariableName}.{field}=...` form is the
+  // supported channel; the legacy form is honored once by Grafana's variable
+  // substitution before the panel mounts, then the panel overwrites it on
+  // its first state-publish. Logged to console for visibility.
+  useEffect(() => {
+    if (!options.serverSideMode) {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const legacyFilter = params.get(`var-${options.filterVariableName}`);
+    const legacySort = params.get(`var-${options.sortVariableName}`);
+    if (legacyFilter || legacySort) {
+      console.warn(
+        `[EnhancedGrid] var-${options.filterVariableName} / var-${options.sortVariableName} ` +
+          `was already populated when this panel mounted. This is either (a) another grid panel ` +
+          `using the same variable name (give each panel a unique Filter/Sort Variable Name in ` +
+          `panel options), or (b) a legacy raw-SQL deep-link URL — use the new ` +
+          `?${options.filterVariableName}.{field}={op}:{value} syntax instead. ` +
+          `The panel will overwrite these values from its own state.`
+      );
+    }
+    // Mount-only diagnostic — re-running on option changes would spam.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track whether we've already seeded state from the URL once. Subsequent
+  // user UI changes own the state; we don't re-overlay URL on every render.
+  const urlSeededRef = useRef(false);
 
   // Callback when body scroll container is ready (for virtual scrolling)
   const handleScrollContainerReady = useCallback(() => {
@@ -89,7 +174,12 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
         skipQuery = skip;
         topQuery = top;
       } else if (options.queryFormat === 'sql') {
-        const { where, orderby, limit, offset } = buildSQLQuery(filters, sortState, paginationState);
+        const { where, orderby, limit, offset } = buildSQLQuery(
+          filters,
+          sortState,
+          paginationState,
+          options.sqlDialect ?? 'postgres'
+        );
         filterQuery = where;
         sortQuery = orderby;
         topQuery = limit;
@@ -143,6 +233,7 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
     options.serverSideMode,
     options.serverSidePagination,
     options.queryFormat,
+    options.sqlDialect,
     options.filterVariableName,
     options.sortVariableName,
     options.skipVariableName,
@@ -150,7 +241,57 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
   ]);
 
   // Transform data
-  const { columns, rows } = useMemo(() => transformDataFrame(data), [data]);
+  const { columns, rows: rawRows } = useMemo(() => transformDataFrame(data), [data]);
+
+  // Seed filter / sort state from the structured URL params on the first
+  // render where the data frame has columns. Field names in the URL are
+  // validated against the data frame's columns; unknown fields are dropped
+  // (logged via console). User-driven UI changes after this point own the
+  // state — we do not re-apply URL on every render.
+  useEffect(() => {
+    if (urlSeededRef.current || columns.length === 0) {
+      return;
+    }
+    urlSeededRef.current = true;
+    const validFieldNames = new Set(columns.map((c) => c.fieldName));
+    const parsed = parseUrlFilters({
+      filterVariableName: options.filterVariableName,
+      sortVariableName: options.sortVariableName,
+      searchParams: new URLSearchParams(window.location.search),
+      validFieldNames,
+    });
+    if (parsed.rejections.length > 0) {
+      console.warn(
+        `[EnhancedGrid] Dropped ${parsed.rejections.length} URL filter/sort entr${
+          parsed.rejections.length === 1 ? 'y' : 'ies'
+        }:`,
+        parsed.rejections
+      );
+    }
+    if (Object.keys(parsed.filters).length > 0) {
+      setFilters(parsed.filters);
+    }
+    if (parsed.sort) {
+      setSortField(parsed.sort.field);
+      setSortDirection(parsed.sort.direction);
+    }
+  }, [columns, options.filterVariableName, options.sortVariableName]);
+
+  // Cap the rendered row count to defend against a tampered or
+  // mis-templated server response widening the result far beyond what the
+  // dashboard intended. See src/utils/rowCap.ts for the policy.
+  const rows = useMemo(
+    () =>
+      capRowsForRender(
+        rawRows,
+        {
+          serverSideMode: options.serverSideMode,
+          serverSidePagination: options.serverSidePagination,
+        },
+        pageSize
+      ) as typeof rawRows,
+    [rawRows, options.serverSideMode, options.serverSidePagination, pageSize]
+  );
 
   // Build fieldConfig map from data fields
   const fieldConfigMap = useMemo(() => {
@@ -773,6 +914,27 @@ export const Grid: React.FC<GridProps> = ({ data, options, width, height, highli
       data-body-height-estimated={String(estimatedBodyHeight)}
       data-body-height-final={String(bodyHeight)}
     >
+      {options.serverSideMode && (filterCollision || sortCollision) && (
+        <Alert
+          severity="warning"
+          title="Variable name conflict"
+          data-testid="enhanced-grid-collision-alert"
+        >
+          {filterCollision && (
+            <div>
+              Filter Variable Name <code>{options.filterVariableName}</code> is also used by
+              another grid panel on this dashboard.
+            </div>
+          )}
+          {sortCollision && (
+            <div>
+              Sort Variable Name <code>{options.sortVariableName}</code> is also used by
+              another grid panel on this dashboard.
+            </div>
+          )}
+          <div>Each grid panel must use a unique name. Open panel options to change it.</div>
+        </Alert>
+      )}
       {options.showHeader && (
         <div className={styles.headerWrapper}>
           <GridHeader
