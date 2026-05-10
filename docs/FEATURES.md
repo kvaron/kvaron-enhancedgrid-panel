@@ -398,9 +398,18 @@ Push filtering, sorting, and pagination to your datasource for better performanc
 ### Supported Datasources
 
 - **OData APIs** (via Infinity datasource)
-- **PostgreSQL**
-- **MySQL**
-- **Microsoft SQL Server**
+- **PostgreSQL** and **TimescaleDB** — use the `postgres` SQL dialect (default)
+- **Microsoft SQL Server** — use the `sqlserver` SQL dialect
+- **SQLite** — use the `ansi` SQL dialect (works out-of-the-box)
+- **MySQL / MariaDB** — use `ansi` **only with both `ANSI_QUOTES` and
+  `NO_BACKSLASH_ESCAPES` set in `sql_mode`**. Without `ANSI_QUOTES`, MySQL
+  parses `"col"` as a string literal (the filter silently matches nothing);
+  without `NO_BACKSLASH_ESCAPES`, MySQL's backslash-escape semantics defeat
+  the panel's quote-doubling
+- **Oracle** — use `ansi` **only when tables were created with quoted,
+  case-matching DDL** (e.g. `CREATE TABLE … ("Name" VARCHAR2(...))`).
+  Unquoted Oracle DDL folds identifiers to UPPERCASE and the panel's quoted
+  lookup errors with `ORA-00904`
 - **Any REST API** (with custom query format)
 
 ### Setup Guide
@@ -446,7 +455,9 @@ Hide: Variable
    - **OData**: For OData APIs
    - **SQL**: For SQL databases
    - **JSON**: For custom APIs
-4. Set variable names to match Step 1
+4. If you picked **SQL**, also pick the **SQL Dialect** (see
+   [SQL Dialect Selector](#sql-dialect-selector))
+5. Set variable names to match Step 1
 
 #### Step 3: Update Datasource Query
 
@@ -483,17 +494,101 @@ price desc, name asc
 
 #### SQL Format
 
-**Filter Output:**
+The exact syntax depends on the chosen [SQL Dialect](#sql-dialect-selector).
+With the default `postgres` dialect:
+
+**Filter Output** (`status equals 'active'`, `price > 100`):
 
 ```
-status = 'active' AND price > 100
+LOWER("status") = LOWER('active') AND "price" > 100
 ```
+
+> The `equals` text operator emits `=` (case-insensitive) — it is **not** a
+> LIKE pattern, so user-typed `%` and `_` are matched literally. Use
+> `contains` / `starts_with` / `ends_with` for fuzzy matching.
 
 **Sort Output:**
 
 ```
-price DESC, name ASC
+"price" DESC
 ```
+
+> The panel emits a single sort key (clicking another column header
+> replaces the sort, it does not append). Combine with a fixed secondary
+> key in your query template if you need stable ordering.
+
+##### SQL Dialect Selector
+
+When **Query Format** is **SQL**, a **SQL Dialect** dropdown appears with
+three options. The dialect controls how column names are quoted and how
+case-insensitive text comparisons are written.
+
+| Dialect    | Label in editor               | Identifier quoting | `contains` shape                              | `equals` shape                                |
+| ---------- | ----------------------------- | ------------------ | --------------------------------------------- | --------------------------------------------- |
+| `postgres` | PostgreSQL / TimescaleDB      | `"name"`           | `"name" ILIKE '%val%'`                        | `LOWER("name") = LOWER('val')`                |
+| `sqlserver`| SQL Server                    | `[name]`           | `[name] LIKE '%val%'` (uses CI collation)     | `[name] = 'val'` (uses CI collation)          |
+| `ansi`     | ANSI SQL (portable)           | `"name"`           | `LOWER("name") LIKE LOWER('%val%')`           | `LOWER("name") = LOWER('val')`                |
+
+The dropdown is **only visible when Server-Side Mode is on and Query
+Format is SQL**. The default is `postgres`, so existing dashboards keep
+working without changes.
+
+**Generated SQL for the same user input** (`name contains 'laptop'`,
+`price between 100 and 500`, sort `price DESC`):
+
+```text
+postgres   →  WHERE "name" ILIKE '%laptop%' AND "price" BETWEEN 100 AND 500
+              ORDER BY "price" DESC
+
+sqlserver  →  WHERE [name] LIKE '%laptop%' AND [price] BETWEEN 100 AND 500
+              ORDER BY [price] DESC
+
+ansi       →  WHERE LOWER("name") LIKE LOWER('%laptop%')
+                AND "price" BETWEEN 100 AND 500
+              ORDER BY "price" DESC
+```
+
+**Numeric (`>`, `BETWEEN`, …), `blank`, and `not_blank` operators are
+dialect-agnostic** apart from identifier quoting. Single quotes inside
+values are doubled in every dialect (`O'Brien` → `'O''Brien'`).
+
+**Identifier escaping** also follows the dialect:
+
+- `postgres` and `ansi`: internal `"` doubled, wrapped in `"…"`
+- `sqlserver`: internal `]` doubled, wrapped in `[…]`
+  (e.g. `weird]name` → `[weird]]name]`)
+
+**Pick `ansi` when:** your database does not implement `ILIKE` (SQLite,
+MySQL, Oracle) **and** you cannot rely on a case-insensitive collation.
+ANSI SQL trades a small performance cost (functional expression on the
+column) for portable behavior — add a functional index on `LOWER(col)`
+if needed. Read the **Supported Datasources** caveats above first:
+MySQL/MariaDB need specific `sql_mode` settings (`ANSI_QUOTES` +
+`NO_BACKSLASH_ESCAPES`), and Oracle needs quoted-and-case-matching DDL,
+otherwise the generated SQL silently fails or is injection-vulnerable.
+
+##### Deep links
+
+The panel supports URL parameters that pre-fill filter and sort state
+on dashboard load:
+
+```
+?gridFilter.status=equals:active&gridFilter.price=between:100:500&gridSort=price:desc
+```
+
+Operators and field names are validated before any SQL is built; see
+[Deep links](../docs/SERVER_SIDE_SETUP.md#deep-links) for the full
+syntax and security model.
+
+##### Datasource credentials
+
+Server-side mode delegates filtering and sorting to your data source,
+so the SQL connection it uses is the security boundary. Configure a
+read-only credential scoped to the dashboard's tables — Grafana's
+[Data source security best practices](https://grafana.com/blog/data-source-security-in-grafana-best-practices-and-what-to-avoid/)
+covers the underlying model, and
+[Configuring the data source connection](SERVER_SIDE_SETUP.md#configuring-the-data-source-connection)
+in the setup guide lists the connection settings this panel expects.
 
 #### JSON Format
 

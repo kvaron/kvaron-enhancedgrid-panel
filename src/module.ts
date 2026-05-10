@@ -289,7 +289,8 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
         .addBooleanSwitch({
           path: 'serverSideMode',
           name: 'Enable Server-Side Mode',
-          description: 'Push filters and sorting to datasource via dashboard variables',
+          description:
+            'Push filters and sorting to datasource via dashboard variables. ⚠ Each grid panel on a dashboard MUST use unique Filter Variable Name and Sort Variable Name values below — sharing names races the panels against each other on every state change. Collisions render a yellow banner at the top of the panel.',
           defaultValue: false,
           category: ['Server-Side'],
         })
@@ -308,11 +309,27 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
           category: ['Server-Side'],
           showIf: (config) => config.serverSideMode,
         })
+        .addSelect({
+          path: 'sqlDialect',
+          name: 'SQL Dialect',
+          description:
+            'SQL dialect for filter and sort syntax. Postgres uses ILIKE and "quoted" identifiers (also covers TimescaleDB); SQL Server uses LIKE and [bracketed] identifiers; ANSI SQL uses LOWER(col) LIKE LOWER(...) for portable case-insensitive matching.',
+          defaultValue: 'postgres',
+          settings: {
+            options: [
+              { value: 'postgres', label: 'PostgreSQL / TimescaleDB' },
+              { value: 'sqlserver', label: 'SQL Server' },
+              { value: 'ansi', label: 'ANSI SQL (portable)' },
+            ],
+          },
+          category: ['Server-Side'],
+          showIf: (config) => config.serverSideMode && config.queryFormat === 'sql',
+        })
         .addTextInput({
           path: 'filterVariableName',
           name: 'Filter Variable Name',
           description:
-            'Dashboard variable name for filter query only (e.g., "gridFilter"). Pagination uses separate variables below.',
+            'Dashboard variable name for filter query (e.g., "gridFilter"). ⚠ MUST be unique per grid panel on this dashboard — sharing the value with another grid panel produces a yellow warning banner at the top of the panel render.',
           defaultValue: 'gridFilter',
           category: ['Server-Side'],
           showIf: (config) => config.serverSideMode,
@@ -321,7 +338,7 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
           path: 'sortVariableName',
           name: 'Sort Variable Name',
           description:
-            'Dashboard variable name for sort query only (e.g., "gridSort"). Pagination uses separate variables below.',
+            'Dashboard variable name for sort query (e.g., "gridSort"). ⚠ MUST be unique per grid panel on this dashboard — sharing the value with another grid panel produces a yellow warning banner at the top of the panel render.',
           defaultValue: 'gridSort',
           category: ['Server-Side'],
           showIf: (config) => config.serverSideMode,

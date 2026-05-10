@@ -1,0 +1,87 @@
+# Optional SQL-backed demo stack for the kvaron-enhancedgrid-panel.
+#
+# Brings up Grafana with the plugin alongside TimescaleDB and SQL Server,
+# pre-provisioned with a single demo dashboard that exercises server-side
+# filtering / sorting / pagination against both backends. The default
+# docker-compose.yaml stack remains the everyday development workflow;
+# this one is opt-in via:
+#
+#   docker compose -f docker-compose.demo-sql.yaml up -d --build
+#
+# Stop with:
+#
+#   docker compose -f docker-compose.demo-sql.yaml down -v
+
+name: kvaron-enhancedgrid-demo-sql
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: kvaron-demo-timescaledb
+    environment:
+      POSTGRES_DB: demo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      - '5432:5432/tcp'
+    volumes:
+      - ./demo-sql/init/timescaledb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d demo']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: kvaron-demo-mssql
+    environment:
+      ACCEPT_EULA: 'Y'
+      MSSQL_SA_PASSWORD: 'KvaronDemo!2026'
+      MSSQL_PID: Developer
+    ports:
+      - '1433:1433/tcp'
+    volumes:
+      - ./demo-sql/init/mssql:/init:ro
+    # SQL Server has no /docker-entrypoint-initdb.d convention; we layer a
+    # bootstrap script that starts sqlservr in the background, polls
+    # sqlcmd for readiness, runs the seed, and execs into the foreground
+    # process so the container's lifecycle is unchanged.
+    command: /bin/bash /init/entrypoint-init.sh
+    healthcheck:
+      test:
+        - 'CMD-SHELL'
+        - "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'KvaronDemo!2026' -No -Q 'SELECT 1' -t 5 || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'KvaronDemo!2026' -Q 'SELECT 1' -t 5"
+      interval: 10s
+      timeout: 10s
+      retries: 60
+      start_period: 30s
+
+  grafana:
+    user: root
+    container_name: kvaron-demo-grafana
+    build:
+      context: ./.config
+      args:
+        grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
+        grafana_version: ${GRAFANA_VERSION:-13.0.1}
+        development: ${DEVELOPMENT:-false}
+        anonymous_auth_enabled: ${ANONYMOUS_AUTH_ENABLED:-true}
+    ports:
+      - '3000:3000/tcp'
+    volumes:
+      - ./dist:/var/lib/grafana/plugins/kvaron-enhancedgrid-panel
+      - ./demo-sql/provisioning:/etc/grafana/provisioning
+    environment:
+      NODE_ENV: development
+      GF_LOG_FILTERS: plugin.kvaron-enhancedgrid-panel:debug
+      GF_LOG_LEVEL: info
+      GF_DATAPROXY_LOGGING: 0
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: kvaron-enhancedgrid-panel
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      mssql:
+        condition: service_healthy

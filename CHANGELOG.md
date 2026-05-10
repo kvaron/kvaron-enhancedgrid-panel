@@ -27,10 +27,39 @@
 
 ## Unreleased
 
+### Features
+- feat: add **SQL Dialect** selector for server-side SQL query generation. Supports `postgres` (default — `ILIKE` + `"double-quoted"` identifiers, also covers TimescaleDB), `sqlserver` (`LIKE` + `[bracketed]` identifiers, relies on case-insensitive collation), and `ansi` (portable `LOWER(col) LIKE LOWER('...')` + `"double-quoted"` identifiers). The new `sqlDialect` option appears in the panel editor when **Server-Side Mode** is on and **Query Format** is **SQL**. Existing dashboards keep PostgreSQL behavior — no migration needed.
+
+### Fixes
+- fix(sql): the `equals` text operator now emits `=` (case-insensitive: `LOWER(col) = LOWER('val')` for `postgres`/`ansi`, `[col] = 'val'` for `sqlserver`) instead of `ILIKE` / `LIKE`. Previously, user-typed `%` and `_` in an `equals` filter were interpreted as wildcards, widening the match unexpectedly. Use `contains` / `starts_with` / `ends_with` for fuzzy matching.
+- fix(sql): runtime guard on `buildSQLSort` direction — only `ASC` / `DESC` may reach the SQL string, even if a future caller threads an untrusted `SortState` in.
+- fix(sql): fuzzy text operators (`contains` / `starts_with` / `ends_with`) now escape LIKE pattern metacharacters (`%`, `_`, and `[` for SQL Server) in user values and emit an `ESCAPE '!'` clause. A user typing `50%` into a `contains` filter now matches the literal string `50%` instead of every row containing `50`.
+- fix(sql,odata): tighten numeric operator coercion — `Number.isFinite()` now rejects `Infinity` and `-Infinity` (previously only `NaN` was dropped). Non-finite numeric inputs no longer reach the database as bare `Infinity` tokens.
+- fix(sql,odata): pagination fields (`currentPage`, `pageSize`) are now coerced via `Number()` with a default-page-size fallback before reaching `LIMIT` / `OFFSET` / `$skip` / `$top`. Defends against runtime type-erasure scenarios where pagination state could carry a string from URL params or JSON deserialization.
+- fix(odata): validate field names against the OData identifier rule (`[A-Za-z_][A-Za-z0-9_]*`). Fragments with non-conforming names (whitespace, punctuation, leading digits) are dropped instead of interpolated raw. Adds the same direction-runtime-guard treatment to `buildODataSort` that `buildSQLSort` already has.
+- fix(sql,odata): cap filter values at 1024 chars and identifier names at 256 chars at the fragment-builder boundary; oversized inputs drop the filter / sort fragment instead of inflating the generated query. The filter UI applies a matching `maxLength={1024}` to the value inputs so typical users never reach the cap.
+- fix(security): cap displayed rows at the panel-render boundary. With server-side pagination enabled, the panel clips returned rows to `pageSize × 4` and logs a console warning if the data source returned more — a signal that pagination/filtering did not push down to the data source as expected. Without server-side pagination, an absolute cap of 100 000 rows protects the panel from pathological data sources. Logic extracted to `src/utils/rowCap.ts`.
+
+### Audits (no code change)
+- audit(xss): no `dangerouslySetInnerHTML`, `innerHTML`, `eval()`, or `new Function()` use anywhere in `src/`. All cell content renders as React JSX children, which auto-escape. Filter values typed by viewers cannot execute as HTML in the rendered grid, column headers, tooltips, or filter chips.
+- audit(error-leakage): the panel's `ErrorBoundary` surfaces React rendering errors only (collapsed `<details>` block), not data-source SQL errors. Data-source errors are surfaced by Grafana's panel chrome — out of scope for this panel per Grafana's documented model.
+- audit(highlight-rule-eval): the highlight-rule evaluator (`src/utils/highlightEngine.ts`, `src/utils/conditionEvaluator.ts`) uses closed-enum operator dispatch and direct value comparison only — no `eval`, no `new Function`, no dynamic regex. Rules are authored only by dashboard editors via panel options; viewer URL parameters never flow into rule construction.
+
+### Deep linking
+- feat(deep-link): structured URL syntax for pre-filled filter and sort state, replacing the previous practice of accepting raw SQL through `?var-gridFilter=...`. Examples:
+  - `?gridFilter.status=equals:active`
+  - `?gridFilter.price=between:100:500`
+  - `?gridSort=price:desc`
+  Operators are validated against the `FilterOperator` enum, field names against the live data frame's columns. Parsed values flow through the existing `buildSQLFilter` pipeline — same escape, dialect, and length-cap discipline as UI-driven filters. The legacy raw-SQL `?var-gridFilter=...` form is silently overwritten by the panel on first state-publish; a `console.warn` fires once at mount if it was present.
+- feat(grid): in-panel `Alert` banner when this panel's Filter Variable Name or Sort Variable Name collides with another grid panel on the same dashboard. Detection uses a module-scoped instance registry and re-renders reactively as sibling panels mount, unmount, or have their options changed.
+
 ### Changes
 - chore(deps): pin `@grafana/{data,ui,runtime,schema,i18n}` to `12.4.2` for deterministic builds (matches create-plugin@7.1.6+ policy)
 - chore(docker): bump default `GRAFANA_VERSION` in `.config/docker-compose-base.yaml` to `13.0.1` so local dev/tests run against Grafana 13
 - Verified compatibility with Grafana 13.0.1; `grafanaDependency` remains `>=11.6.0`
+- docs: document the SQL dialect selector across `README.md`, `docs/QUICK_START_SERVER_SIDE.md`, `docs/SERVER_SIDE_SETUP.md`, and `docs/FEATURES.md`
+- docs: qualify `ansi` dialect support — works on SQLite out-of-the-box; MySQL / MariaDB require `ANSI_QUOTES` + `NO_BACKSLASH_ESCAPES` in `sql_mode`; Oracle requires quoted-and-case-matching DDL
+- docs: add **Security model & minimum-privilege datasource credentials** section in `docs/SERVER_SIDE_SETUP.md` covering URL-supplied dashboard-variable values and the read-only-role posture they require
 
 ## 0.1.8 (2026-04-09)
 

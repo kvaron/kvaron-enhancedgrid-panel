@@ -140,6 +140,7 @@ const baseOptions: EnhancedGridOptions = {
   filterVariableName: '',
   sortVariableName: '',
   queryFormat: 'json',
+  sqlDialect: 'postgres',
   serverSidePagination: false,
   skipVariableName: '',
   topVariableName: '',
@@ -318,7 +319,7 @@ describe('column filtering', () => {
   });
 
   it('filters visible rows through user interaction', () => {
-    render(<Grid data={frame} options={baseOptions} width={800} height={400} highlightRules={[]} />);
+    render(<Grid data={frame} options={baseOptions} width={800} height={400} highlightRules={[]} panelId={1} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Filter name/i }));
     fireEvent.change(screen.getByTestId('column-filter-value-input'), { target: { value: 'bob' } });
@@ -339,7 +340,7 @@ describe('column filtering', () => {
       sortVariableName: 'gridSort',
     };
 
-    render(<Grid data={frame} options={options} width={800} height={400} highlightRules={[]} />);
+    render(<Grid data={frame} options={options} width={800} height={400} highlightRules={[]} panelId={2} />);
 
     fireEvent.click(screen.getByRole('button', { name: /Filter name/i }));
     fireEvent.change(screen.getByTestId('column-filter-value-input'), { target: { value: "O'Brien" } });
@@ -351,8 +352,8 @@ describe('column filtering', () => {
 
     expect(locationService.partial).toHaveBeenLastCalledWith(
       {
-        'var-gridFilter': `"name" ILIKE '%O''Brien%'`,
-        'var-gridSort': '',
+        'var-gridFilter': `"name" ILIKE '%O''Brien%' ESCAPE '!'`,
+        'var-gridSort': '1',
       },
       true
     );
