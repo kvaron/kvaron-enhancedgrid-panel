@@ -1,3 +1,14 @@
+## 0.2.1 (2026-05-12)
+
+### Features
+- Merge pull request #43 from kvaron/feat/sql-dialect-and-hardening
+- feat: SQL dialect selector + server-side filtering hardening + optional SQL demo stack
+
+### Bug Fixes
+- Merge pull request #43 from kvaron/feat/sql-dialect-and-hardening
+- feat: SQL dialect selector + server-side filtering hardening + optional SQL demo stack
+- update readme
+
 ## 0.2.0 (2026-05-01)
 
 ### Features
