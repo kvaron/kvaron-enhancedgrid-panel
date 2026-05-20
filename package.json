@@ -20,7 +20,7 @@
   "devDependencies": {
     "@grafana/eslint-config": "^9.0.0",
     "@grafana/plugin-e2e": "^3.6.1",
-    "@grafana/tsconfig": "^2.0.1",
+    "@grafana/tsconfig": "2.0.1",
     "@playwright/test": "^1.59.1",
     "@stylistic/eslint-plugin-ts": "^4.4.0",
     "@swc/core": "^1.15.33",
@@ -68,13 +68,16 @@
   "engines": {
     "node": ">=22"
   },
+  "overrides": {
+    "fast-uri": "3.1.2"
+  },
   "dependencies": {
     "@emotion/css": "11.13.5",
-    "@grafana/data": "12.4.2",
-    "@grafana/i18n": "12.4.2",
-    "@grafana/runtime": "12.4.2",
-    "@grafana/schema": "12.4.2",
-    "@grafana/ui": "12.4.2",
+    "@grafana/data": "13.0.1",
+    "@grafana/i18n": "13.0.1",
+    "@grafana/runtime": "13.0.1",
+    "@grafana/schema": "13.0.1",
+    "@grafana/ui": "13.0.1",
     "@tanstack/react-virtual": "^3.13.24",
     "emojibase": "^17.0.0",
     "emojibase-data": "^17.0.0",
