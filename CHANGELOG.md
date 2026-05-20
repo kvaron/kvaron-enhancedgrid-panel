@@ -1,3 +1,11 @@
+## 0.2.2 (2026-05-20)
+
+### Bug Fixes
+- Merge pull request #47 from kvaron/chore/grafana-13-fast-uri-security
+- chore(deps): bump @grafana/* to 13.0.1, pin fast-uri 3.1.2
+- chore(deps-dev): bump @swc/core from 1.15.30 to 1.15.33 (#45)
+- chore(deps-dev): bump the unit-test group with 2 updates (#44)
+
 ## 0.2.1 (2026-05-12)
 
 ### Features
