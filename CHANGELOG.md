@@ -1,3 +1,14 @@
+## 0.2.4 (2026-05-21)
+
+### Bug Fixes
+- chore(deps-dev): bump terser-webpack-plugin from 5.5.0 to 5.6.0 (#51)
+- Merge pull request #55 from kvaron/dependabot/npm_and_yarn/semver-7.8.0
+- chore(deps-dev): bump @grafana/tsconfig from 2.0.1 to 2.1.0 (#54)
+- chore(deps-dev): bump semver from 7.7.4 to 7.8.0
+- chore(deps-dev): bump sass-loader from 16.0.7 to 16.0.8 (#53)
+- chore(deps-dev): bump @types/node from 25.6.0 to 25.8.0 (#52)
+- chore(deps-dev): bump @playwright/test from 1.59.1 to 1.60.0 (#50)
+
 ## 0.2.3 (2026-05-21)
 
 ## 0.2.2 (2026-05-20)
