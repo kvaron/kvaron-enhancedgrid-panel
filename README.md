@@ -133,15 +133,15 @@ For issues, feature requests, or questions:
 | ----------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
 | [@tanstack/react-virtual](https://tanstack.com/virtual/latest)                | 3.x     | Virtual scrolling for efficient rendering of large datasets |
 | [@emotion/css](https://emotion.sh/)                                           | 11.x    | CSS-in-JS styling                                           |
-| [@grafana/ui](https://grafana.com/developers/plugin-tools/)                   | 12.x    | Grafana UI component library                                |
-| [@grafana/data](https://grafana.com/developers/plugin-tools/)                 | 12.x    | Grafana data utilities and types                            |
-| [@grafana/runtime](https://grafana.com/developers/plugin-tools/)              | 12.x    | Grafana runtime APIs                                        |
+| [@grafana/ui](https://grafana.com/developers/plugin-tools/)                   | 13.x    | Grafana UI component library                                |
+| [@grafana/data](https://grafana.com/developers/plugin-tools/)                 | 13.x    | Grafana data utilities and types                            |
+| [@grafana/runtime](https://grafana.com/developers/plugin-tools/)              | 13.x    | Grafana runtime APIs                                        |
 
 ### Development Tools
 
 | Tool       | Version | Purpose                |
 | ---------- | ------- | ---------------------- |
-| TypeScript | 5.9     | Type-safe JavaScript   |
+| TypeScript | 6.x     | Type-safe JavaScript   |
 | Webpack    | 5.x     | Module bundler         |
 | Jest       | 30.x    | Unit testing framework |
 | Playwright | 1.x     | End-to-end testing     |

@@ -100,6 +100,8 @@ export const EmojiTab: React.FC<EmojiTabProps> = ({ onSelect }) => {
       // Show all emojis when no search
       const allEmojis: CompactEmoji[] = [];
       emojisByCategory.forEach((emojis) => allEmojis.push(...emojis));
+      // Search-driven derivation from upstream emoji data; intentional sync.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFilteredEmojis(allEmojis);
       return;
     }

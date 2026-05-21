@@ -269,6 +269,9 @@ export const Grid: React.FC<GridProps> = ({
       );
     }
     if (Object.keys(parsed.filters).length > 0) {
+      // Seeding panel state from external URL params is exactly the
+      // "synchronize external system → React" pattern useEffect exists for.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFilters(parsed.filters);
     }
     if (parsed.sort) {

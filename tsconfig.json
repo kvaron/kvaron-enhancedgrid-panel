@@ -1,3 +1,17 @@
 {
-  "extends": "./.config/tsconfig.json"
+  "extends": "./.config/tsconfig.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "types": ["node", "jest"]
+  },
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs",
+      "moduleResolution": "node10",
+      "target": "es5",
+      "esModuleInterop": true,
+      "ignoreDeprecations": "6.0"
+    },
+    "transpileOnly": true
+  }
 }
