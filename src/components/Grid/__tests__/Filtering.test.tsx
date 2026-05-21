@@ -10,6 +10,7 @@ import { locationService } from '@grafana/runtime';
 
 jest.mock('@grafana/runtime', () => ({
   locationService: {
+    getSearch: jest.fn(() => new URLSearchParams()),
     getSearchObject: jest.fn(() => ({})),
     partial: jest.fn(),
   },

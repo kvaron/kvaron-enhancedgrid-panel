@@ -116,7 +116,7 @@ export const Grid: React.FC<GridProps> = ({
     if (!options.serverSideMode) {
       return;
     }
-    const params = new URLSearchParams(window.location.search);
+    const params = locationService.getSearch();
     const legacyFilter = params.get(`var-${options.filterVariableName}`);
     const legacySort = params.get(`var-${options.sortVariableName}`);
     if (legacyFilter || legacySort) {
@@ -257,7 +257,7 @@ export const Grid: React.FC<GridProps> = ({
     const parsed = parseUrlFilters({
       filterVariableName: options.filterVariableName,
       sortVariableName: options.sortVariableName,
-      searchParams: new URLSearchParams(window.location.search),
+      searchParams: locationService.getSearch(),
       validFieldNames,
     });
     if (parsed.rejections.length > 0) {
