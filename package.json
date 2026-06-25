@@ -78,7 +78,7 @@
     "@grafana/runtime": "13.0.2",
     "@grafana/schema": "13.0.2",
     "@grafana/ui": "13.0.2",
-    "@tanstack/react-virtual": "^3.14.2",
+    "@tanstack/react-virtual": "^3.14.3",
     "emojibase": "^17.0.0",
     "emojibase-data": "^17.0.0",
     "react": "^18.3.0",
