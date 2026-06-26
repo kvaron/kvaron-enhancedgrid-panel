@@ -1,4 +1,5 @@
 import {
+  buildGenericQuery,
   buildODataFilter,
   buildODataPagination,
   buildODataQuery,
@@ -38,7 +39,7 @@ describe('SQL query builder filtering', () => {
         {
           status: { operator: 'equals', value: 'active' },
         },
-        { field: 'created at', direction: 'desc' },
+        [{ field: 'created at', direction: 'desc' }],
         { currentPage: 2, pageSize: 25 }
       )
     ).toEqual({
@@ -89,7 +90,7 @@ describe('SQL dialect: postgres', () => {
   });
 
   it('quotes sort identifier with double quotes', () => {
-    expect(buildSQLSort({ field: 'created at', direction: 'asc' }, 'postgres')).toBe(`"created at" ASC`);
+    expect(buildSQLSort([{ field: 'created at', direction: 'asc' }], 'postgres')).toBe(`"created at" ASC`);
   });
 });
 
@@ -143,14 +144,14 @@ describe('SQL dialect: sqlserver', () => {
   });
 
   it('quotes sort identifier with brackets', () => {
-    expect(buildSQLSort({ field: 'created at', direction: 'desc' }, 'sqlserver')).toBe(`[created at] DESC`);
+    expect(buildSQLSort([{ field: 'created at', direction: 'desc' }], 'sqlserver')).toBe(`[created at] DESC`);
   });
 
   it('threads dialect through buildSQLQuery', () => {
     expect(
       buildSQLQuery(
         { status: { operator: 'equals', value: 'active' } },
-        { field: 'name', direction: 'asc' },
+        [{ field: 'name', direction: 'asc' }],
         { currentPage: 0, pageSize: 10 },
         'sqlserver'
       )
@@ -192,14 +193,14 @@ describe('SQL dialect: ansi', () => {
   });
 
   it('quotes sort identifier with double quotes', () => {
-    expect(buildSQLSort({ field: 'name', direction: 'asc' }, 'ansi')).toBe(`"name" ASC`);
+    expect(buildSQLSort([{ field: 'name', direction: 'asc' }], 'ansi')).toBe(`"name" ASC`);
   });
 
   it('threads dialect through buildSQLQuery', () => {
     expect(
       buildSQLQuery(
         { status: { operator: 'equals', value: 'active' } },
-        { field: 'name', direction: 'desc' },
+        [{ field: 'name', direction: 'desc' }],
         null,
         'ansi'
       )
@@ -221,7 +222,7 @@ describe('SQL dialect: ansi', () => {
     // Type-system-bypass scenario: TS says 'asc' | 'desc', but a future caller
     // could thread an untrusted string in — must not reach the SQL string.
     expect(
-      buildSQLSort({ field: 'name', direction: 'asc; DROP TABLE x; --' as 'asc' }, 'ansi')
+      buildSQLSort([{ field: 'name', direction: 'asc; DROP TABLE x; --' as 'asc' }], 'ansi')
     ).toBe(`"name" ASC`);
   });
 });
@@ -299,7 +300,7 @@ describe('OData identifier validation', () => {
     expect(
       buildODataFilter({ Created_At: { operator: 'gt', value: 100 } })
     ).toBe(`Created_At gt 100`);
-    expect(buildODataSort({ field: 'Name', direction: 'desc' })).toBe(`Name desc`);
+    expect(buildODataSort([{ field: 'Name', direction: 'desc' }])).toBe(`Name desc`);
   });
 
   it('drops field names with whitespace, punctuation, or operators (returns true no-op)', () => {
@@ -309,7 +310,7 @@ describe('OData identifier validation', () => {
     expect(
       buildODataFilter({ "evil') OR ('1": { operator: 'contains', value: 'x' } })
     ).toBe('true');
-    expect(buildODataSort({ field: "x; DROP TABLE y", direction: 'asc' })).toBe('');
+    expect(buildODataSort([{ field: "x; DROP TABLE y", direction: 'asc' }])).toBe('');
   });
 
   it('drops field names that start with a digit (returns true no-op)', () => {
@@ -332,7 +333,7 @@ describe('OData identifier validation', () => {
 
   it('rejects untrusted sort direction strings at runtime, defaulting to asc', () => {
     expect(
-      buildODataSort({ field: 'Name', direction: 'asc; DROP TABLE x; --' as 'asc' })
+      buildODataSort([{ field: 'Name', direction: 'asc; DROP TABLE x; --' as 'asc' }])
     ).toBe(`Name asc`);
   });
 });
@@ -346,13 +347,121 @@ describe('OData empty-state no-op', () => {
 
   it('returns `true` for the filter and empty for orderby in buildODataQuery', () => {
     expect(
-      buildODataQuery({}, { field: null, direction: 'asc' }, null)
+      buildODataQuery({}, [], null)
     ).toEqual({
       filter: 'true',
       orderby: '',
       skip: '0',
       top: '50',
     });
+  });
+});
+
+describe('multi-key (sequential) sort', () => {
+  it('buildSQLSort postgres: two keys -> "a" ASC, "b" DESC', () => {
+    expect(
+      buildSQLSort(
+        [
+          { field: 'a', direction: 'asc' },
+          { field: 'b', direction: 'desc' },
+        ],
+        'postgres'
+      )
+    ).toBe(`"a" ASC, "b" DESC`);
+  });
+
+  it('buildSQLSort sqlserver: two keys -> [a] ASC, [b] DESC', () => {
+    expect(
+      buildSQLSort(
+        [
+          { field: 'a', direction: 'asc' },
+          { field: 'b', direction: 'desc' },
+        ],
+        'sqlserver'
+      )
+    ).toBe(`[a] ASC, [b] DESC`);
+  });
+
+  it('buildSQLSort ansi: two keys -> "a" ASC, "b" DESC', () => {
+    expect(
+      buildSQLSort(
+        [
+          { field: 'a', direction: 'asc' },
+          { field: 'b', direction: 'desc' },
+        ],
+        'ansi'
+      )
+    ).toBe(`"a" ASC, "b" DESC`);
+  });
+
+  it('buildODataSort: two keys -> a asc, b desc', () => {
+    expect(
+      buildODataSort([
+        { field: 'a', direction: 'asc' },
+        { field: 'b', direction: 'desc' },
+      ])
+    ).toBe(`a asc, b desc`);
+  });
+
+  it('buildGenericQuery (json): emits a multi-key comma-separated sort form', () => {
+    expect(
+      buildGenericQuery({}, [
+        { field: 'a', direction: 'asc' },
+        { field: 'b', direction: 'desc' },
+      ]).sort
+    ).toBe('a,-b');
+  });
+
+  it('single-key buildSQLSort is byte-identical to the legacy single-key form (per dialect)', () => {
+    expect(buildSQLSort([{ field: 'name', direction: 'desc' }], 'postgres')).toBe(`"name" DESC`);
+    expect(buildSQLSort([{ field: 'name', direction: 'desc' }], 'sqlserver')).toBe(`[name] DESC`);
+    expect(buildSQLSort([{ field: 'name', direction: 'desc' }], 'ansi')).toBe(`"name" DESC`);
+  });
+
+  it('single-key buildODataSort is byte-identical to the legacy single-key form', () => {
+    expect(buildODataSort([{ field: 'name', direction: 'desc' }])).toBe(`name desc`);
+  });
+
+  it('empty sort -> buildSQLSort yields 1 (per dialect)', () => {
+    expect(buildSQLSort([], 'postgres')).toBe('1');
+    expect(buildSQLSort([], 'sqlserver')).toBe('1');
+    expect(buildSQLSort([], 'ansi')).toBe('1');
+  });
+
+  it('empty sort -> buildODataSort yields empty string', () => {
+    expect(buildODataSort([])).toBe('');
+  });
+
+  it('drops invalid keys individually while remaining keys still emit (SQL)', () => {
+    const longField = 'f'.repeat(257);
+    expect(
+      buildSQLSort(
+        [
+          { field: 'a', direction: 'asc' },
+          { field: longField, direction: 'desc' }, // oversized -> dropped
+          { field: 'b', direction: 'desc' },
+        ],
+        'postgres'
+      )
+    ).toBe(`"a" ASC, "b" DESC`);
+  });
+
+  it('drops unknown-identifier/oversized keys individually while remaining keys still emit (OData)', () => {
+    const longField = 'f'.repeat(257);
+    expect(
+      buildODataSort([
+        { field: 'a', direction: 'asc' },
+        { field: 'bad name', direction: 'asc' }, // invalid OData identifier -> dropped
+        { field: longField, direction: 'desc' }, // oversized -> dropped
+        { field: 'b', direction: 'desc' },
+      ])
+    ).toBe(`a asc, b desc`);
+  });
+
+  it('all-invalid keys collapse to the empty no-op (SQL 1 / OData empty)', () => {
+    const longField = 'f'.repeat(257);
+    expect(buildSQLSort([{ field: longField, direction: 'asc' }], 'postgres')).toBe('1');
+    expect(buildODataSort([{ field: 'bad name', direction: 'asc' }])).toBe('');
   });
 });
 
@@ -391,11 +500,11 @@ describe('length caps', () => {
     });
 
     it('drops sort when field name exceeds 256 chars (returns ORDER BY 1 no-op)', () => {
-      expect(buildSQLSort({ field: longField, direction: 'asc' }, 'postgres')).toBe('1');
+      expect(buildSQLSort([{ field: longField, direction: 'asc' }], 'postgres')).toBe('1');
     });
 
     it('still sorts on field at the 256-char boundary', () => {
-      expect(buildSQLSort({ field: okField, direction: 'asc' }, 'postgres')).toBe(
+      expect(buildSQLSort([{ field: okField, direction: 'asc' }], 'postgres')).toBe(
         `"${okField}" ASC`
       );
     });
@@ -409,7 +518,7 @@ describe('length caps', () => {
     });
 
     it('drops sort when field name exceeds 256 chars', () => {
-      expect(buildODataSort({ field: longField, direction: 'asc' })).toBe('');
+      expect(buildODataSort([{ field: longField, direction: 'asc' }])).toBe('');
     });
   });
 });
@@ -586,7 +695,7 @@ describe('pagination zero and magnitude clamping', () => {
     );
     const q = buildSQLQuery(
       {},
-      { field: null, direction: 'asc' },
+      [],
       { currentPage: huge, pageSize: 50 }
     );
     expect(q.offset).toBe('9007199254740991');
@@ -597,7 +706,7 @@ describe('pagination zero and magnitude clamping', () => {
     const huge = 1e21;
     const od = buildODataQuery(
       {},
-      { field: null, direction: 'asc' },
+      [],
       { currentPage: huge, pageSize: 50 }
     );
     expect(od.skip).toBe('9007199254740991');

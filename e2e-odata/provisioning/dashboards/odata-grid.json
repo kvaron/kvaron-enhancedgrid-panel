@@ -12,8 +12,8 @@
     "list": [
       {
         "type": "textbox",
-        "name": "gridFilter",
-        "label": "gridFilter",
+        "name": "grid_filter",
+        "label": "grid_filter",
         "query": "true",
         "current": { "text": "true", "value": "true" },
         "options": [{ "text": "true", "value": "true", "selected": true }],
@@ -21,8 +21,8 @@
       },
       {
         "type": "textbox",
-        "name": "gridSort",
-        "label": "gridSort",
+        "name": "grid_sort",
+        "label": "grid_sort",
         "query": "",
         "current": { "text": "", "value": "" },
         "options": [{ "text": "", "value": "", "selected": true }],
@@ -30,8 +30,8 @@
       },
       {
         "type": "textbox",
-        "name": "gridSkip",
-        "label": "gridSkip",
+        "name": "grid_skip",
+        "label": "grid_skip",
         "query": "0",
         "current": { "text": "0", "value": "0" },
         "options": [{ "text": "0", "value": "0", "selected": true }],
@@ -39,8 +39,8 @@
       },
       {
         "type": "textbox",
-        "name": "gridTop",
-        "label": "gridTop",
+        "name": "grid_top",
+        "label": "grid_top",
         "query": "5",
         "current": { "text": "5", "value": "5" },
         "options": [{ "text": "5", "value": "5", "selected": true }],
@@ -48,8 +48,8 @@
       },
       {
         "type": "textbox",
-        "name": "gridCount",
-        "label": "gridCount",
+        "name": "grid_count",
+        "label": "grid_count",
         "query": "",
         "current": { "text": "", "value": "" },
         "options": [{ "text": "", "value": "", "selected": true }],
@@ -79,7 +79,7 @@
           "parser": "backend",
           "source": "url",
           "format": "table",
-          "url": "http://odata:8080/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true",
+          "url": "http://odata:8080/odata/Products?$filter=${grid_filter}&$orderby=${grid_sort}&$skip=${grid_skip}&$top=${grid_top}&$count=true",
           "url_options": { "method": "GET", "data": "" },
           "root_selector": "value",
           "columns": [],
@@ -92,13 +92,9 @@
         "pageSize": 5,
         "serverSideMode": true,
         "queryFormat": "odata",
-        "filterVariableName": "gridFilter",
-        "sortVariableName": "gridSort",
+        "gridId": "grid",
         "serverSidePagination": true,
-        "skipVariableName": "gridSkip",
-        "topVariableName": "gridTop",
-        "includeCount": true,
-        "countVariableName": "gridCount"
+        "includeCount": true
       }
     }
   ]

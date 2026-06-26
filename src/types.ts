@@ -1,4 +1,5 @@
 import { IconName } from '@grafana/data';
+import type { SortKey } from './utils/odataQueryBuilder';
 
 // Filter operators for column filtering
 export type FilterOperator =
@@ -355,6 +356,23 @@ export interface HighlightRule {
   flagDefinitions?: FlagDefinition[];
 }
 
+/**
+ * A saved "view" of the grid: a named bundle of visible columns, an optional
+ * nested filter, and a sequential (multi-key) sort. Surfaced as a tab the user
+ * can click to apply all three in one go. Stored in panel options and treated
+ * as read-only at runtime.
+ */
+export interface ViewPreset {
+  id: string;
+  name: string;
+  /** Field names to show. Empty/undefined = show all columns. */
+  visibleColumns: string[];
+  /** Optional nested filter, ANDed with any active per-column filters. */
+  filter?: ConditionGroup;
+  /** Ordered sort keys applied when the preset is activated. */
+  sort: SortKey[];
+}
+
 // Column configuration (stored in panel options)
 export interface ColumnConfig {
   field: string;
@@ -391,6 +409,11 @@ export interface EnhancedGridOptions {
   // Global highlight rules
   highlightRules: HighlightRule[];
 
+  // View presets (tab bar of saved column/filter/sort views)
+  enableViewPresets: boolean;
+  viewPresets: ViewPreset[];
+  defaultPresetId?: string;
+
   // Pagination
   paginationEnabled: boolean;
   pageSize: number;
@@ -405,16 +428,15 @@ export interface EnhancedGridOptions {
 
   // Server-side filtering and sorting
   serverSideMode: boolean;
-  filterVariableName: string;
-  sortVariableName: string;
+  // Single Grid ID that deterministically derives all server-side variable
+  // names (filter/sort/skip/top/count/mode) as `${gridId}_${concern}`.
+  // Defaults to `grid{panelId}` when blank.
+  gridId: string;
   queryFormat: 'odata' | 'sql' | 'json'; // Query format: OData, SQL WHERE/ORDER BY, or JSON
   sqlDialect: SqlDialect; // SQL dialect when queryFormat is 'sql' (default: 'postgres')
 
   // Server-side pagination
   serverSidePagination: boolean;
-  skipVariableName: string; // For OData $skip / SQL OFFSET
-  topVariableName: string; // For OData $top / SQL LIMIT
-  countVariableName: string; // For total count (optional for SQL)
   includeCount: boolean; // Whether to include $count=true for OData
 }
 

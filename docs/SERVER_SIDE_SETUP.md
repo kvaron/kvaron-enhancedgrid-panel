@@ -6,6 +6,10 @@ This guide explains how to configure server-side filtering and sorting with your
 
 When **Server-Side Mode** is enabled, the panel pushes filter and sort state to dashboard variables instead of filtering/sorting data locally. Your datasource queries can then use these variables to apply filters and sorting at the data source level.
 
+The panel names those variables for you. You set a single **Grid ID**, and the panel derives all five variable names from it: `{gridId}_filter`, `{gridId}_sort`, `{gridId}_skip`, `{gridId}_top`, and `{gridId}_count`. Leave Grid ID blank and it defaults to `grid<panelId>` (for example `grid7`), which is already unique per panel. The **Resolved variables** list in the panel options shows the exact names — with copy buttons — so you can paste them into your dashboard variables and query.
+
+> **Naming rule.** Grafana variable names allow only letters, digits, and underscores, and can't start with a digit. The `grid` prefix keeps every derived name letter-leading. A Grid ID like `my-grid` is invalid; use `my_grid`.
+
 ## Benefits
 
 - **Performance**: Handle large datasets by filtering at the source
@@ -14,39 +18,60 @@ When **Server-Side Mode** is enabled, the panel pushes filter and sort state to 
 
 ## Setup Instructions
 
-### Step 1: Create Dashboard Variables
+> This guide's worked examples use the explicit Grid ID **`grid1`**, so the
+> variable names are `grid1_filter`, `grid1_sort`, `grid1_skip`, `grid1_top`,
+> and `grid1_count`. If you accept the default or set a different Grid ID,
+> substitute its prefix throughout.
 
-1. Go to your Grafana dashboard settings (gear icon)
-2. Navigate to **Variables**
-3. Create two new variables:
-
-   **Filter Variable:**
-   - **Name**: `gridFilter` (or your custom name)
-   - **Type**: Text box
-   - **Hide**: Variable (optional - hides from dashboard UI)
-
-   **Sort Variable:**
-   - **Name**: `gridSort` (or your custom name)
-   - **Type**: Text box
-   - **Hide**: Variable (optional)
-
-### Step 2: Configure Panel Settings
+### Step 1: Set the Grid ID and read the resolved names
 
 1. Edit your Enhanced Grid panel
 2. Go to the **Server-Side** section in panel options
 3. Enable **Server-Side Mode**
-4. Select your **Query Format**:
+4. Set **Grid ID** to `grid1` (or leave it blank to use the `grid<panelId>`
+   default, which is unique per panel)
+5. Read the **Resolved variables** list directly below — it shows the exact
+   names the panel reads and writes, each with a copy button. For `grid1`
+   they are `grid1_filter`, `grid1_sort`, `grid1_skip`, `grid1_top`, and
+   `grid1_count`.
+
+### Step 2: Create the dashboard variables
+
+1. Go to your Grafana dashboard settings (gear icon)
+2. Navigate to **Variables**
+3. Create one variable per resolved name you'll reference. For filtering and
+   sorting you need at least:
+
+   **Filter Variable:**
+   - **Name**: `grid1_filter` (must match the resolved name exactly)
+   - **Type**: Text box
+   - **Hide**: Variable (optional - hides from dashboard UI)
+
+   **Sort Variable:**
+   - **Name**: `grid1_sort`
+   - **Type**: Text box
+   - **Hide**: Variable (optional)
+
+   Add `grid1_skip`, `grid1_top`, and `grid1_count` the same way if you use
+   server-side pagination and the footer total.
+
+### Step 3: Configure the rest of the panel settings
+
+1. Back in the panel's **Server-Side** section, select your **Query Format**:
    - **OData**: For OData APIs (produces `$filter` and `$orderby`)
    - **SQL**: For PostgreSQL, TimescaleDB, SQL Server, and other ANSI SQL
      databases (produces `WHERE` and `ORDER BY` clauses)
    - **JSON**: Generic format for custom APIs
-5. If you picked **SQL**, pick the **SQL Dialect** that matches your
+2. If you picked **SQL**, pick the **SQL Dialect** that matches your
    database. See [SQL Dialects](#sql-dialects) below for the exact syntax
    each dialect produces. Default is `postgres`.
-6. Set **Filter Variable Name**: `gridFilter` (must match your dashboard variable)
-7. Set **Sort Variable Name**: `gridSort` (must match your dashboard variable)
 
-### Step 3: Configure Your Datasource Query
+> **Note.** Every variable name is derived from the Grid ID — name your
+> dashboard variables to match the **Resolved variables** list (for example,
+> a `SELECT COUNT(*)` variable for the footer total must be named
+> `{gridId}_count`).
+
+### Step 4: Configure Your Datasource Query
 
 #### For Infinity Datasource (OData API)
 
@@ -67,7 +92,7 @@ Configure the Infinity query like this:
 | **URL** | (full filter + sort + paging template below) |
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
+https://api.example.com/odata/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}&$skip=${grid1_skip}&$top=${grid1_top}&$count=true
 ```
 
 This full template is the recommended default — it wires up filtering,
@@ -94,8 +119,8 @@ Use variables in your SQL query:
 
 ```sql
 SELECT * FROM products
-WHERE ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
+WHERE ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
 ```
 
 **Important**: Use the `:raw` format specifier to prevent escaping.
@@ -116,12 +141,12 @@ ORDER BY ${gridSort:raw}
 If your API uses custom query parameters:
 
 ```
-https://api.example.com/products?filter=${gridFilter}&sort=${gridSort}
+https://api.example.com/products?filter=${grid1_filter}&sort=${grid1_sort}
 ```
 
 With JSON format selected, the variables will contain JSON-encoded values.
 
-### Step 4: Handle Empty Variables
+### Step 5: Handle Empty Variables
 
 Add default handling for when no filters/sorts are applied:
 
@@ -129,8 +154,8 @@ Add default handling for when no filters/sorts are applied:
 
 ```sql
 SELECT * FROM products
-WHERE 1=1 ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
+WHERE 1=1 ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
 ```
 
 This ensures the query is valid even when variables are empty.
@@ -141,17 +166,41 @@ No special handling is needed. When no filter is active the panel writes the
 OData boolean literal `true` into the filter variable, so the template
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
+https://api.example.com/odata/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}
 ```
 
 interpolates to `...?$filter=true&$orderby=` — a valid OData request that
 returns all rows in no particular order. (`$filter=true` matches everything;
 an empty `$orderby=` is valid OData meaning "no ordering".)
 
-> Do **not** use the `:queryparam` format specifier here. `${gridFilter:queryparam}`
-> expands to `var-gridFilter=<value>`, which is a Grafana dashboard-variable
+> Do **not** use the `:queryparam` format specifier here. `${grid1_filter:queryparam}`
+> expands to `var-grid1_filter=<value>`, which is a Grafana dashboard-variable
 > parameter, **not** the OData `$filter=` your service expects. Reference the
-> variable directly as `$filter=${gridFilter}`.
+> variable directly as `$filter=${grid1_filter}`.
+
+## View presets and server-side filtering
+
+When **view presets** are enabled, an active preset's columns and sort apply as
+usual, and — in server-side mode — its **filter is pushed down to the data
+source**, ANDed with any interactive per-column filters and published through
+the same filter variable. No extra setup is needed beyond Steps 1–4.
+
+A few things to know:
+
+- **OData and SQL only.** Preset-filter pushdown is translated for the OData and
+  SQL query formats. In the generic **JSON** format the panel shows a notice that
+  the preset filter can't be pushed down (its columns and sort still apply).
+- **Data-source semantics.** The translated preset filter uses the same
+  semantics as the interactive filters it's combined with — case-**insensitive**
+  text matching, and null handling per the data source. These can differ from
+  the panel's *client-side* preset evaluation (which is case-sensitive for
+  `equals` and treats `not equals` as null-inclusive). Server-side filtering
+  always follows the data source.
+- **Fail-safe.** If part of a preset filter can't be translated (for example a
+  condition referencing a column that isn't in the result set, or a
+  "contains"-style match against another column), the panel does **not** push a
+  partial filter — it keeps the interactive filter and shows a notice naming the
+  problem, so results are never silently mis-filtered.
 
 ## Query Format Examples
 
@@ -225,7 +274,7 @@ covers the underlying model.
 A few connection settings this panel expects:
 
 - **SQL template** — use `:raw` interpolation, e.g.
-  `WHERE ${gridFilter:raw}`. The panel handles value escaping itself,
+  `WHERE ${grid1_filter:raw}`. The panel handles value escaping itself,
   so `:raw` keeps the prepared fragment intact. **Only the panel
   writes this variable** — see [Deep links](#deep-links) below for the
   supported way to pre-fill filters from a URL.
@@ -237,14 +286,20 @@ A few connection settings this panel expects:
 - **Multi-statement** — disable it where the Grafana driver allows
   (e.g. `multipleStatements: false` for the MySQL driver).
 
-### Filter / Sort Variable Names must be unique per panel
+### Each grid needs a unique Grid ID
 
-If you have multiple grid panels on a dashboard, **each panel must use
-unique values for Filter Variable Name and Sort Variable Name.**
-Sharing names causes the panels to race each other on every state
-change and produces inconsistent results. The panel detects collisions
-at mount and renders a yellow warning banner at the top of the panel
-body until the names are made distinct in panel options.
+If you have multiple grid panels on a dashboard, **each panel must use a
+distinct Grid ID** so its derived variable names don't collide with another
+grid's. This is the headline benefit of the Grid ID model: give each grid a
+unique ID (for example `inventory` and `customers`) and all five variable
+names for each grid are unique automatically — no more managing five separate
+names per grid. If you leave Grid ID blank, the `grid<panelId>` default is
+already unique per panel.
+
+Sharing variable names causes the panels to race each other on every state
+change and produces inconsistent results. The panel detects collisions at
+mount and renders a yellow warning banner at the top of the panel body until
+the IDs (or any overrides) are made distinct in panel options.
 
 ## Deep links
 
@@ -253,13 +308,14 @@ The panel exposes a structured syntax that mirrors the UI's filter and
 sort options:
 
 ```
-https://grafana.example.com/d/<uid>?gridFilter.status=equals:active
-                                  &gridFilter.price=between:100:500
-                                  &gridSort=price:desc
+https://grafana.example.com/d/<uid>?grid1_filter.status=equals:active
+                                  &grid1_filter.price=between:100:500
+                                  &grid1_sort=price:desc
 ```
 
-`gridFilter` and `gridSort` here are the panel's configured Filter /
-Sort Variable Names; substitute your own values if you customized them.
+`grid1_filter` and `grid1_sort` here are the panel's resolved filter and sort
+variable names (derived from the Grid ID `grid1`); substitute your own grid's
+names if you use a different Grid ID.
 
 | URL form | Operators it accepts |
 | --- | --- |
@@ -280,13 +336,13 @@ the UI — no input ever reaches the data source unescaped.
 > mount, a single `console.warn` describes the situation. Use the
 > structured `?{filterVar}.{field}=...` syntax instead.
 
-For multi-panel dashboards, each panel's URL parameters use that
-panel's own Filter / Sort Variable Names — no collision possible
-provided the names are unique:
+For multi-panel dashboards, each panel's URL parameters use that panel's own
+resolved variable names — no collision possible provided each grid has a
+distinct Grid ID. With Grid IDs `inventory` and `customers`:
 
 ```
-?inventoryFilter.status=equals:active   ← grid 1 reads this
-&customerFilter.region=equals:west      ← grid 2 reads this
+?inventory_filter.status=equals:active   ← grid 1 reads this
+&customers_filter.region=equals:west     ← grid 2 reads this
 ```
 
 ## SQL Dialects
@@ -390,9 +446,9 @@ When server-side mode is enabled, the panel:
 2. Builds a string fragment per concern (filter, sort, skip, top) using the
    selected **Query Format**.
 3. Writes those fragments to dashboard variables via the URL
-   (e.g. `?var-gridFilter=...&var-gridSort=...`).
+   (e.g. `?var-grid1_filter=...&var-grid1_sort=...`).
 4. Grafana re-runs any panel query that references the variables, with the
-   fragments interpolated where you used `${gridFilter}`, `${gridSort}`, etc.
+   fragments interpolated where you used `${grid1_filter}`, `${grid1_sort}`, etc.
 
 The panel writes the variables only when a value applies:
 
@@ -499,14 +555,14 @@ Query as authored in the Grafana data source editor:
 ```sql
 SELECT id, name, price
 FROM products
-WHERE ${gridFilter:raw}
+WHERE ${grid1_filter:raw}
 ORDER BY id
 ```
 
 User action: type `laptop` into the **Name** column filter (operator
 `contains`).
 
-`gridFilter` becomes:
+`grid1_filter` becomes:
 
 ```
 "name" ILIKE '%laptop%'
@@ -526,7 +582,7 @@ ORDER BY id
 Same query template. User filters **Name contains `laptop`** and **Price >
 500** simultaneously.
 
-`gridFilter` becomes (fragments joined with ` AND `):
+`grid1_filter` becomes (fragments joined with ` AND `):
 
 ```
 "name" ILIKE '%laptop%' AND "price" > 500
@@ -546,7 +602,7 @@ ORDER BY id
 Same query template. User filters `price` with operator **between**, lower
 bound `100`, upper bound `500`.
 
-`gridFilter`:
+`grid1_filter`:
 
 ```
 "price" BETWEEN 100 AND 500
@@ -574,7 +630,7 @@ date form and are dropped.
 
 User action: filter `created_at` with **Equals** value `2026-03-01`.
 
-`gridFilter` (SQL):
+`grid1_filter` (SQL):
 
 ```
 "created_at" = '2026-03-01'
@@ -610,11 +666,11 @@ panel filter with a Grafana **Custom multi-value variable** in your query:
 ```sql
 SELECT *
 FROM products
-WHERE ${gridFilter:raw}
+WHERE ${grid1_filter:raw}
   AND category IN (${categories:csv})
 ```
 
-Here `gridFilter` carries the panel's per-column filters and `categories` is
+Here `grid1_filter` carries the panel's per-column filters and `categories` is
 a separate dashboard variable Grafana interpolates as a CSV list.
 
 #### Example 6 — OData (Infinity datasource)
@@ -622,12 +678,12 @@ a separate dashboard variable Grafana interpolates as a CSV list.
 URL template:
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
+https://api.example.com/odata/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}
 ```
 
 User action: filter **Name contains `laptop`** and **Price >= 500**.
 
-`gridFilter`:
+`grid1_filter`:
 
 ```
 contains(tolower(Name), 'laptop') and Price ge 500
@@ -654,12 +710,12 @@ keep the request valid. (`$orderby=` empty is valid OData — "no ordering".)
 #### Empty-state handling for SQL filters
 
 When no filter is active, the panel writes the SQL-valid no-op `1=1` into
-the filter variable. Templates that use `WHERE ${gridFilter:raw}` therefore
+the filter variable. Templates that use `WHERE ${grid1_filter:raw}` therefore
 work in every state without needing a dashboard-variable default:
 
 ```sql
 SELECT * FROM products
-WHERE ${gridFilter:raw}
+WHERE ${grid1_filter:raw}
 ```
 
 - No filters active → `WHERE 1=1` (returns everything, paginated).
@@ -701,7 +757,7 @@ identifier quoting changes).
 
 The panel currently supports **single-column sort**. Clicking another column
 header replaces the sort, it does not append a secondary key. The
-`gridSort` variable is therefore always either empty or `"<field>" ASC|DESC`
+`grid1_sort` variable is therefore always either empty or `"<field>" ASC|DESC`
 (SQL) / `<Field> asc|desc` (OData).
 
 #### Example 1 — single-column SQL sort
@@ -711,13 +767,13 @@ Query template:
 ```sql
 SELECT id, name, price
 FROM products
-WHERE ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
+WHERE ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
 ```
 
 User action: click the **Price** header twice to sort descending.
 
-`gridSort`:
+`grid1_sort`:
 
 ```
 "price" DESC
@@ -737,18 +793,18 @@ ORDER BY "price" DESC
 URL template:
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
+https://api.example.com/odata/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}
 ```
 
 User action: click **Name** to sort ascending (no column filters active).
 
-`gridSort`:
+`grid1_sort`:
 
 ```
 Name asc
 ```
 
-`gridFilter` (no filters active) is the no-op `true`, so the final URL is:
+`grid1_filter` (no filters active) is the no-op `true`, so the final URL is:
 
 ```
 https://api.example.com/odata/Products?$filter=true&$orderby=Name asc
@@ -761,19 +817,19 @@ secondary key should append it in the query template:
 
 ```sql
 SELECT * FROM products
-WHERE ${gridFilter:raw}
+WHERE ${grid1_filter:raw}
 ORDER BY
-  ${gridSort:raw},
+  ${grid1_sort:raw},
   id ASC
 ```
 
-When the user has not selected a sort, `gridSort` is empty and the trailing
+When the user has not selected a sort, `grid1_sort` is empty and the trailing
 comma becomes a syntax error. Wrap the dynamic part with the same default
 trick used for filters (set the variable's **Default value** to `id ASC` or
 similar valid expression):
 
 ```sql
-ORDER BY ${gridSort:raw}, id ASC
+ORDER BY ${grid1_sort:raw}, id ASC
 ```
 
 #### Empty-state handling for sort
@@ -781,13 +837,13 @@ ORDER BY ${gridSort:raw}, id ASC
 When no sort is active, the panel writes `1` into the sort variable —
 SQL-standard `ORDER BY 1` sorts by the first selected column position,
 which is a syntactically valid no-op fallback in every dialect this panel
-targets. Templates that use `ORDER BY ${gridSort:raw}` therefore work in
+targets. Templates that use `ORDER BY ${grid1_sort:raw}` therefore work in
 every state:
 
 ```sql
 SELECT * FROM products
-WHERE ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
+WHERE ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
 ```
 
 - No sort → `ORDER BY 1` (sort by first column).
@@ -809,8 +865,9 @@ skip = currentPage * pageSize   // 0-based page number
 top  = pageSize
 ```
 
-and writes them to the variables named in **Skip/Offset Variable Name** (default
-`gridSkip`) and **Top/Limit Variable Name** (default `gridTop`).
+and writes them to the resolved skip and top variables — `grid1_skip` and
+`grid1_top` for Grid ID `grid1` (or whatever the **Skip/Offset Variable Name**
+and **Top/Limit Variable Name** overrides point at, when set).
 
 #### Example 1 — SQL `LIMIT` / `OFFSET` (PostgreSQL or MySQL)
 
@@ -819,9 +876,9 @@ Query template:
 ```sql
 SELECT id, name, price
 FROM products
-WHERE ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
-LIMIT ${gridTop:raw} OFFSET ${gridSkip:raw}
+WHERE ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
+LIMIT ${grid1_top:raw} OFFSET ${grid1_skip:raw}
 ```
 
 User state: page size 25, on page index 3 (the fourth page in the UI),
@@ -830,10 +887,10 @@ filtering on `name contains 'laptop'`, sorting `price` descending.
 Variable values written by the panel:
 
 ```
-gridFilter = "name" ILIKE '%laptop%'
-gridSort   = "price" DESC
-gridSkip   = 75      (3 * 25)
-gridTop    = 25
+grid1_filter = "name" ILIKE '%laptop%'
+grid1_sort   = "price" DESC
+grid1_skip   = 75      (3 * 25)
+grid1_top    = 25
 ```
 
 Final query:
@@ -851,7 +908,7 @@ LIMIT 25 OFFSET 75
 URL template (Infinity datasource):
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
+https://api.example.com/odata/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}&$skip=${grid1_skip}&$top=${grid1_top}&$count=true
 ```
 
 User state: page size 50, on page index 0 (first page), no filters, no sort.
@@ -859,10 +916,10 @@ User state: page size 50, on page index 0 (first page), no filters, no sort.
 Variables written:
 
 ```
-gridFilter = true     (no-op: matches all rows)
-gridSort   = (empty)
-gridSkip   = 0
-gridTop    = 50
+grid1_filter = true     (no-op: matches all rows)
+grid1_sort   = (empty)
+grid1_skip   = 0
+grid1_top    = 50
 ```
 
 Final URL:
@@ -877,9 +934,9 @@ https://api.example.com/odata/Products?$filter=true&$orderby=&$skip=0&$top=50&$c
 > - **The data frame** — a `count`, `total`, `totalCount`, or
 >   `@odata.count` field in the response metadata. The panel picks it up
 >   automatically.
-> - **The Count Variable** — set **Count Variable Name** to a dashboard
->   variable that holds the total. SQL users fill it from a `SELECT
->   COUNT(*)` query; OData users can map `@odata.count` into it.
+> - **The count variable** — the resolved `grid1_count` variable, which holds
+>   the total. SQL users fill it from a `SELECT COUNT(*)` query; OData users
+>   can map `@odata.count` into it.
 >
 > When a total is available, the footer shows it plus `Page N of M`. When
 > it isn't, the footer shows `Showing X to Y` and `Page N`, and **Next**
@@ -902,7 +959,7 @@ Skip and top variables are always written as numeric strings (e.g. `"0"`,
 `"50"`) when server-side pagination is on, so they never need empty-state
 defaults. If you toggle server-side pagination **off** at runtime the
 variables retain their last value — set sensible **Default values** on the
-dashboard variables (e.g. `gridSkip=0`, `gridTop=100`) so any panels still
+dashboard variables (e.g. `grid1_skip=0`, `grid1_top=100`) so any panels still
 referencing them do not break.
 
 ---
@@ -911,9 +968,9 @@ referencing them do not break.
 
 1. **Enable server-side mode** in panel settings
 2. **Type in a column filter** (e.g., filter the "Name" column)
-3. **Check the dashboard URL** - you should see `var-gridFilter=...` in the URL
+3. **Check the dashboard URL** - you should see `var-grid1_filter=...` in the URL
 4. **Click a column header** to sort
-5. **Check the dashboard URL** - you should see `var-gridSort=...` in the URL
+5. **Check the dashboard URL** - you should see `var-grid1_sort=...` in the URL
 6. **Verify the datasource query** is receiving the correct parameters
 
 ## Troubleshooting
@@ -955,7 +1012,7 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 - Format: OData
 - Infinity query: Type `URL`, Parser `Backend`, Format `Table`, Method `GET`
 - **Rows / Root selector: `value`** (OData nests rows in a `value` array — required)
-- URL: `https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${gridFilter}&$orderby=${gridSort}`
+- URL: `https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}`
 - See the [step-by-step walkthrough](../README.md#setting-up-odata-filters-with-the-infinity-datasource) for the full setup and troubleshooting.
 
 ### PostgreSQL / TimescaleDB
@@ -965,8 +1022,8 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 - Query:
   ```sql
   SELECT * FROM products
-  WHERE 1=1 $__rawSql(${gridFilter:raw})
-  ORDER BY $__rawSql(${gridSort:raw})
+  WHERE 1=1 $__rawSql(${grid1_filter:raw})
+  ORDER BY $__rawSql(${grid1_sort:raw})
   ```
 
 ### Microsoft SQL Server
@@ -976,9 +1033,9 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 - Query (relies on default case-insensitive collation):
   ```sql
   SELECT * FROM products
-  WHERE 1=1 AND ${gridFilter:raw}
-  ORDER BY ${gridSort:raw}
-  OFFSET ${gridSkip:raw} ROWS FETCH NEXT ${gridTop:raw} ROWS ONLY
+  WHERE 1=1 AND ${grid1_filter:raw}
+  ORDER BY ${grid1_sort:raw}
+  OFFSET ${grid1_skip:raw} ROWS FETCH NEXT ${grid1_top:raw} ROWS ONLY
   ```
 
 ### SQLite (portable)
@@ -1009,4 +1066,4 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 ### Infinity Datasource (Custom API)
 
 - Format: JSON
-- URL: `https://api.example.com/data?filters=${gridFilter}&sort=${gridSort}`
+- URL: `https://api.example.com/data?filters=${grid1_filter}&sort=${grid1_sort}`

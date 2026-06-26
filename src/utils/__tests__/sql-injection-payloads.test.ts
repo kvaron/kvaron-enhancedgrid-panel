@@ -182,13 +182,13 @@ describe('identifier escaping — SQL fragment generator', () => {
 
   it('postgres sort: column name with quote is safely doubled', () => {
     expect(
-      buildSQLSort({ field: 'weird"name', direction: 'asc' }, 'postgres')
+      buildSQLSort([{ field: 'weird"name', direction: 'asc' }], 'postgres')
     ).toBe(`"weird""name" ASC`);
   });
 
   it('sqlserver sort: column name with bracket is safely doubled', () => {
     expect(
-      buildSQLSort({ field: 'weird]name', direction: 'desc' }, 'sqlserver')
+      buildSQLSort([{ field: 'weird]name', direction: 'desc' }], 'sqlserver')
     ).toBe(`[weird]]name] DESC`);
   });
 });
@@ -197,7 +197,7 @@ describe('sort direction injection', () => {
   it('rejects untrusted direction strings, defaults to ASC (postgres)', () => {
     expect(
       buildSQLSort(
-        { field: 'name', direction: 'asc; DROP TABLE x; --' as 'asc' },
+        [{ field: 'name', direction: 'asc; DROP TABLE x; --' as 'asc' }],
         'postgres'
       )
     ).toBe(`"name" ASC`);
@@ -206,7 +206,7 @@ describe('sort direction injection', () => {
   it('rejects untrusted direction strings, defaults to ASC (sqlserver)', () => {
     expect(
       buildSQLSort(
-        { field: 'name', direction: 'desc OR 1=1' as 'desc' },
+        [{ field: 'name', direction: 'desc OR 1=1' as 'desc' }],
         'sqlserver'
       )
     ).toBe(`[name] ASC`);
@@ -243,15 +243,17 @@ describe('OData fragment generator', () => {
     });
 
     it('drops sort with invalid field names', () => {
-      expect(buildODataSort({ field: 'x; DROP TABLE y', direction: 'asc' })).toBe('');
+      expect(buildODataSort([{ field: 'x; DROP TABLE y', direction: 'asc' }])).toBe('');
     });
 
     it('rejects untrusted sort direction at runtime', () => {
       expect(
-        buildODataSort({
-          field: 'Name',
-          direction: 'asc; DROP TABLE x' as 'asc',
-        })
+        buildODataSort([
+          {
+            field: 'Name',
+            direction: 'asc; DROP TABLE x' as 'asc',
+          },
+        ])
       ).toBe(`Name asc`);
     });
   });

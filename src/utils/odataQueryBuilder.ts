@@ -12,7 +12,7 @@ import { ColumnFilter, ColumnType, SqlDialect } from '../types';
 const MAX_FILTER_VALUE_LENGTH = 1024;
 const MAX_IDENTIFIER_LENGTH = 256;
 
-function isOversizedValue(v: unknown): boolean {
+export function isOversizedValue(v: unknown): boolean {
   return typeof v === 'string' && v.length > MAX_FILTER_VALUE_LENGTH;
 }
 
@@ -25,7 +25,7 @@ function isBlankNumericValue(v: unknown): boolean {
   return typeof v === 'string' && v.trim() === '';
 }
 
-function isOversizedIdentifier(name: string): boolean {
+export function isOversizedIdentifier(name: string): boolean {
   return name.length > MAX_IDENTIFIER_LENGTH;
 }
 
@@ -38,10 +38,22 @@ export interface ColumnTypeMap {
   [fieldName: string]: ColumnType;
 }
 
-export interface SortState {
-  field: string | null;
+/**
+ * A single sort key: a field name and its direction. The grid's sort is an
+ * ordered list of these (`SortState`). A single-key sort is a length-1 list;
+ * an empty sort is `[]`.
+ */
+export interface SortKey {
+  field: string;
   direction: 'asc' | 'desc';
 }
+
+/**
+ * Ordered, sequential (multi-key) sort state. Keys are applied in order: the
+ * first key is primary, ties broken by the second, then the third, etc. An
+ * empty array means "no sort" and hits each builder's no-op guard.
+ */
+export type SortState = SortKey[];
 
 export interface PaginationState {
   currentPage: number; // 0-based page number
@@ -56,7 +68,7 @@ export interface PaginationState {
  */
 const ODATA_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
-function isValidODataIdentifier(name: string): boolean {
+export function isValidODataIdentifier(name: string): boolean {
   return ODATA_IDENTIFIER_RE.test(name);
 }
 
@@ -71,7 +83,7 @@ const ODATA_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ODATA_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
 /** Returns a validated temporal literal (date or datetimeoffset), or null. */
-function formatTemporalLiteral(value: string | number): string | null {
+export function formatTemporalLiteral(value: string | number): string | null {
   const s = String(value).trim();
   return ODATA_DATE_RE.test(s) || ODATA_DATETIME_RE.test(s) ? s : null;
 }
@@ -80,7 +92,7 @@ const TRUE_TOKENS = new Set(['true', '1', 'yes', 'y']);
 const FALSE_TOKENS = new Set(['false', '0', 'no', 'n']);
 
 /** Coerce a user value to a canonical boolean token, or null if not boolean-like. */
-function coerceBooleanToken(value: string | number): 'true' | 'false' | null {
+export function coerceBooleanToken(value: string | number): 'true' | 'false' | null {
   const s = String(value).trim().toLowerCase();
   if (TRUE_TOKENS.has(s)) {
     return 'true';
@@ -263,22 +275,24 @@ export function buildODataFilter(filters: FilterState, types: ColumnTypeMap = {}
 }
 
 /**
- * Builds an OData $orderby query string from sort state
- * @param sortState - Current sort field and direction
- * @returns OData $orderby query string (e.g., "Name desc" or "Price asc")
+ * Builds an OData $orderby query string from an ordered sort state.
+ * @param sortState - Ordered list of sort keys
+ * @returns OData $orderby string (e.g., "Name desc" or "a asc, b desc"); empty
+ *   when no valid key remains. Invalid / unknown-identifier / oversized keys are
+ *   dropped individually so the remaining keys still emit.
  */
 export function buildODataSort(sortState: SortState): string {
-  if (
-    !sortState.field ||
-    !isValidODataIdentifier(sortState.field) ||
-    isOversizedIdentifier(sortState.field)
-  ) {
-    return '';
+  const fragments: string[] = [];
+  for (const key of sortState) {
+    if (!key || !key.field || !isValidODataIdentifier(key.field) || isOversizedIdentifier(key.field)) {
+      continue;
+    }
+    // Runtime guard: only asc/desc may reach the OData fragment, even if a
+    // future caller threads an untrusted SortState in.
+    const direction = key.direction === 'desc' ? 'desc' : 'asc';
+    fragments.push(`${key.field} ${direction}`);
   }
-  // Runtime guard: only asc/desc may reach the OData fragment, even if a
-  // future caller threads an untrusted SortState in.
-  const direction = sortState.direction === 'desc' ? 'desc' : 'asc';
-  return `${sortState.field} ${direction}`;
+  return fragments.join(', ');
 }
 
 // Default page size used whenever an absent or invalid value is supplied.
@@ -373,7 +387,7 @@ export function buildODataQuery(
  * - postgres / ansi: double quotes, internal `"` doubled (SQL standard)
  * - sqlserver: square brackets, internal `]` doubled
  */
-function escapeSQLIdentifier(identifier: string, dialect: SqlDialect = 'postgres'): string {
+export function escapeSQLIdentifier(identifier: string, dialect: SqlDialect = 'postgres'): string {
   if (dialect === 'sqlserver') {
     return `[${identifier.replace(/]/g, ']]')}]`;
   }
@@ -419,7 +433,7 @@ function buildLikePattern(value: string, shape: LikeShape): string {
  * for LIKE metacharacters (`%`, `_`, `[`) so a user typing `%admin%` does not
  * widen the match.
  */
-function buildSQLTextMatch(
+export function buildSQLTextMatch(
   quotedField: string,
   userValue: string,
   shape: LikeShape,
@@ -441,7 +455,7 @@ function buildSQLTextMatch(
  * Builds a SQL exact-equality expression. Distinct from buildSQLTextMatch so the
  * `equals` operator never interprets user-typed `%` / `_` / `[` as wildcards.
  */
-function buildSQLTextEquals(quotedField: string, value: string, dialect: SqlDialect): string {
+export function buildSQLTextEquals(quotedField: string, value: string, dialect: SqlDialect): string {
   if (dialect === 'sqlserver') {
     // SQL Server `=` is case-insensitive under the default collation, matching the LIKE story.
     return `${quotedField} = '${value}'`;
@@ -451,7 +465,7 @@ function buildSQLTextEquals(quotedField: string, value: string, dialect: SqlDial
 }
 
 /** Render a coerced boolean token as a dialect-appropriate SQL literal. */
-function sqlBooleanLiteral(value: string | number, dialect: SqlDialect): string | null {
+export function sqlBooleanLiteral(value: string | number, dialect: SqlDialect): string | null {
   const token = coerceBooleanToken(value);
   if (token === null) {
     return null;
@@ -641,26 +655,33 @@ export function buildSQLFilter(
 }
 
 /**
- * Builds SQL ORDER BY clause from sort state
- * @param sortState - Current sort field and direction
+ * Builds a SQL ORDER BY clause from an ordered sort state.
+ * @param sortState - Ordered list of sort keys
  * @param dialect - SQL dialect for identifier quoting (default: 'postgres')
- * @returns SQL ORDER BY clause (e.g., "Name" DESC or [Price] ASC)
+ * @returns SQL ORDER BY clause (e.g., `"Name" DESC` or `"a" ASC, "b" DESC`).
+ *   Invalid / oversized keys are dropped individually; when no valid key
+ *   remains, returns `1` — a SQL-standard no-op-shaped fallback that keeps
+ *   dashboard templates like `ORDER BY ${gridSort:raw}` syntactically valid.
  */
 export function buildSQLSort(sortState: SortState, dialect: SqlDialect = 'postgres'): string {
-  // When no sort is active (or the field name is oversized and rejected),
-  // return ORDER BY 1 — sort by the first selected column position. This
-  // is a SQL-standard no-op-shaped fallback that keeps dashboard templates
-  // like `ORDER BY ${gridSort:raw}` syntactically valid in every state.
-  if (!sortState.field || isOversizedIdentifier(sortState.field)) {
+  const fragments: string[] = [];
+  for (const key of sortState) {
+    if (!key || !key.field || isOversizedIdentifier(key.field)) {
+      continue;
+    }
+    // Quote field name for safety
+    const quotedField = escapeSQLIdentifier(key.field, dialect);
+    // Runtime guard: only ASC/DESC may reach the SQL string, even if a future
+    // caller threads an untrusted SortState in (URL params, JSON, postMessage).
+    const direction = key.direction === 'desc' ? 'DESC' : 'ASC';
+    fragments.push(`${quotedField} ${direction}`);
+  }
+
+  if (fragments.length === 0) {
     return '1';
   }
 
-  // Quote field name for safety
-  const quotedField = escapeSQLIdentifier(sortState.field, dialect);
-  // Runtime guard: only ASC/DESC may reach the SQL string, even if a future caller
-  // threads an untrusted SortState in (URL params, JSON, postMessage, etc.).
-  const direction = sortState.direction === 'desc' ? 'DESC' : 'ASC';
-  return `${quotedField} ${direction}`;
+  return fragments.join(', ');
 }
 
 /**
@@ -740,11 +761,13 @@ export function buildGenericQuery(
     };
   }
 
-  // Build sort string
-  let sortString = '';
-  if (sortState.field) {
-    sortString = sortState.direction === 'desc' ? `-${sortState.field}` : sortState.field;
-  }
+  // Build sort string: an ordered, comma-separated list where a descending key
+  // is prefixed with `-` (e.g. `name,-price`). A single key reproduces the
+  // previous single-key form exactly. Empty/field-less keys are dropped.
+  const sortString = sortState
+    .filter((key) => key && key.field)
+    .map((key) => (key.direction === 'desc' ? `-${key.field}` : key.field))
+    .join(',');
 
   return {
     filter: Object.keys(activeFilters).length > 0 ? JSON.stringify(activeFilters) : '',

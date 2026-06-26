@@ -55,7 +55,7 @@ describe('parseUrlFilters — happy path', () => {
   it('parses sort spec', () => {
     expect(parse('?gridSort=price:desc')).toEqual({
       filters: {},
-      sort: { field: 'price', direction: 'desc' },
+      sort: [{ field: 'price', direction: 'desc' }],
       rejections: [],
     });
   });
@@ -70,7 +70,7 @@ describe('parseUrlFilters — happy path', () => {
         name: { operator: 'contains', value: 'laptop' },
         price: { operator: 'between', value: '100', value2: '500' },
       },
-      sort: { field: 'name', direction: 'asc' },
+      sort: [{ field: 'name', direction: 'asc' }],
       rejections: [],
     });
   });
@@ -162,7 +162,7 @@ describe('parseUrlFilters — rejections', () => {
     expect(result.filters).toEqual({
       name: { operator: 'contains', value: 'laptop' },
     });
-    expect(result.sort).toEqual({ field: 'name', direction: 'asc' });
+    expect(result.sort).toEqual([{ field: 'name', direction: 'asc' }]);
     expect(result.rejections).toHaveLength(1);
   });
 });

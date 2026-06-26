@@ -8,19 +8,23 @@ import React, {
   useSyncExternalStore,
 } from 'react';
 import { DataFrame } from '@grafana/data';
-import { Alert, useTheme2 } from '@grafana/ui';
+import { Alert, Tab, TabsBar, useTheme2 } from '@grafana/ui';
 import { locationService } from '@grafana/runtime';
 import { css } from '@emotion/css';
 import { EnhancedGridOptions, HighlightRule, ColumnFilter, EnhancedGridFieldConfig } from '../../types';
+import { evaluateConditionGroup } from '../../utils/conditionEvaluator';
 import { transformDataFrame, GridColumn } from '../../utils/dataTransformer';
 import { calculateColumnMetrics } from '../../utils/columnWidthManager';
 import { GridHeader } from './GridHeader';
 import { GridBody, GridBodyHandle } from './GridBody';
 import { PaginationControls } from './PaginationControls';
 import { SparkChartNamespaceContext } from '../SparkChart/sparkChartNamespace';
-import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState, ColumnTypeMap } from '../../utils/odataQueryBuilder';
+import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState, ColumnTypeMap, SortKey } from '../../utils/odataQueryBuilder';
+import { buildPresetODataFilter, buildPresetSQLFilter, combineFilters } from '../../utils/presetFilterQuery';
+import { sortRowsBySortKeys } from '../../utils/sortRows';
 import { capRowsForRender, computeRowCap } from '../../utils/rowCap';
 import { resolveServerSideCount } from '../../utils/countSource';
+import { resolveServerSideVarNames } from '../../utils/serverSideVars';
 import { parseUrlFilters } from '../../utils/urlFilterParser';
 import {
   deregister as deregisterPanel,
@@ -35,6 +39,9 @@ import { classifyColumns, hasFrozenColumns, ColumnGroups } from '../../utils/fro
 
 // Debounce delay for URL updates (ms) - prevents excessive API calls during rapid changes
 const URL_UPDATE_DEBOUNCE_MS = 300;
+
+// Height (px) reserved for the view-presets tab bar when it is rendered.
+const TAB_BAR_HEIGHT = 36;
 
 // Constants for auto-sizing
 const DEFAULT_AUTO_SIZE_PADDING = 16;
@@ -63,9 +70,34 @@ export const Grid: React.FC<GridProps> = ({
   // Stable per-grid-instance namespace prefix for SparkChart gradient IDs.
   // Sanitised to keep the value usable inside an HTML `id` attribute.
   const sparkGradientNamespace = React.useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const [sortField, setSortField] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Resolve the five server-side dashboard variable names from the single
+  // Grid ID (or the panel id when blank), honoring any per-variable overrides.
+  // This is the single source of truth for variable names throughout the grid.
+  const serverSideVars = useMemo(() => resolveServerSideVarNames(options, panelId), [options, panelId]);
+
+  // Ordered, sequential (multi-key) sort state. Empty = no sort, length-1 =
+  // single-key sort. This is the single source of truth read by both the
+  // client comparator and the server-side publish effect.
+  const [sortKeys, setSortKeys] = useState<SortKey[]>([]);
   const [filters, setFilters] = useState<Record<string, ColumnFilter>>({});
+
+  // View presets. The active preset is held in React state and set by an
+  // in-panel tab click (Phase 2). `null` = the "All" tab (no preset applied).
+  const viewPresets = useMemo(() => options.viewPresets || [], [options.viewPresets]);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
+  const activePreset = useMemo(
+    () => (activePresetId ? viewPresets.find((p) => p.id === activePresetId) ?? null : null),
+    [activePresetId, viewPresets]
+  );
+  const showTabBar = options.enableViewPresets && viewPresets.length > 0;
+  // A preset filter is "active" only when it exists and has at least one item.
+  // An empty group must never reach the evaluator (it returns false for empties).
+  const presetFilterActive = !!(activePreset?.filter && activePreset.filter.items.length > 0);
+  // Reasons the active preset filter could not be translated to a server-side
+  // query (set by the publish effect). Drives a fail-safe warning so the filter
+  // is never silently dropped.
+  const [presetFilterUnsupported, setPresetFilterUnsupported] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [pageSize, setPageSize] = useState<number>(options.pageSize || 50);
   const [scrollbarWidth, setScrollbarWidth] = useState<number>(0);
@@ -83,13 +115,13 @@ export const Grid: React.FC<GridProps> = ({
   useEffect(() => {
     registerPanel({
       panelId,
-      filterVariableName: options.filterVariableName,
-      sortVariableName: options.sortVariableName,
+      filterVariableName: serverSideVars.filter,
+      sortVariableName: serverSideVars.sort,
     });
     return () => {
       deregisterPanel(panelId);
     };
-  }, [panelId, options.filterVariableName, options.sortVariableName]);
+  }, [panelId, serverSideVars.filter, serverSideVars.sort]);
 
   // Reactive collision state — re-renders this panel when a sibling panel's
   // registration changes. The snapshot is a stable string so React's
@@ -98,10 +130,10 @@ export const Grid: React.FC<GridProps> = ({
     subscribePanelRegistry,
     useCallback(
       () =>
-        `${hasCollision(panelId, options.filterVariableName, 'filter') ? 'F' : '.'}${
-          hasCollision(panelId, options.sortVariableName, 'sort') ? 'S' : '.'
+        `${hasCollision(panelId, serverSideVars.filter, 'filter') ? 'F' : '.'}${
+          hasCollision(panelId, serverSideVars.sort, 'sort') ? 'S' : '.'
         }`,
-      [panelId, options.filterVariableName, options.sortVariableName]
+      [panelId, serverSideVars.filter, serverSideVars.sort]
     ),
     () => '..'
   );
@@ -118,8 +150,8 @@ export const Grid: React.FC<GridProps> = ({
       return;
     }
     const params = locationService.getSearch();
-    const legacyFilter = params.get(`var-${options.filterVariableName}`);
-    const legacySort = params.get(`var-${options.sortVariableName}`);
+    const legacyFilter = params.get(`var-${serverSideVars.filter}`);
+    const legacySort = params.get(`var-${serverSideVars.sort}`);
     // The panel publishes its own state into these same `var-*` keys with
     // replace=true, so on reload they are populated with the panel's own
     // no-op sentinels (`1=1`/`true` for the filter, `1` for SQL sort). Those
@@ -130,11 +162,11 @@ export const Grid: React.FC<GridProps> = ({
     const sortIsLegacy = legacySort != null && !PANEL_NOOP_SENTINELS.has(legacySort);
     if (filterIsLegacy || sortIsLegacy) {
       console.warn(
-        `[EnhancedGrid] var-${options.filterVariableName} / var-${options.sortVariableName} ` +
+        `[EnhancedGrid] var-${serverSideVars.filter} / var-${serverSideVars.sort} ` +
           `was already populated when this panel mounted. This is either (a) another grid panel ` +
-          `using the same variable name (give each panel a unique Filter/Sort Variable Name in ` +
+          `using the same variable name (give each panel a unique Grid ID in ` +
           `panel options), or (b) a legacy raw-SQL deep-link URL — use the new ` +
-          `?${options.filterVariableName}.{field}={op}:{value} syntax instead. ` +
+          `?${serverSideVars.filter}.{field}={op}:{value} syntax instead. ` +
           `The panel will overwrite these values from its own state.`
       );
     }
@@ -184,7 +216,7 @@ export const Grid: React.FC<GridProps> = ({
 
     // Debounce URL updates to prevent excessive API calls during rapid changes
     urlUpdateTimeoutRef.current = setTimeout(() => {
-      const sortState = { field: sortField, direction: sortDirection };
+      const sortState = sortKeys;
       const paginationState: PaginationState | null = options.serverSidePagination ? { currentPage, pageSize } : null;
 
       let filterQuery = '';
@@ -222,37 +254,44 @@ export const Grid: React.FC<GridProps> = ({
         sortQuery = sort;
       }
 
+      // Push the active preset's filter down to the data source, ANDed with the
+      // interactive per-column filter. Only OData/SQL can express it; an
+      // untranslatable preset filter is dropped (not partially applied) and
+      // surfaced via `presetFilterUnsupported`.
+      let presetReasons: string[] = [];
+      if (presetFilterActive && activePreset?.filter && options.queryFormat !== 'json') {
+        const format = options.queryFormat === 'odata' ? 'odata' : 'sql';
+        const result =
+          format === 'odata'
+            ? buildPresetODataFilter(activePreset.filter, columnTypeMap)
+            : buildPresetSQLFilter(activePreset.filter, options.sqlDialect ?? 'postgres', columnTypeMap);
+        if (result.ok) {
+          filterQuery = combineFilters(format, filterQuery, result.filter);
+        } else {
+          presetReasons = result.reasons;
+        }
+      }
+      setPresetFilterUnsupported(presetReasons);
+
       // Update dashboard variables
       const searchParams = locationService.getSearchObject();
       const newParams = { ...searchParams };
 
       // Set filter variable
-      if (options.filterVariableName) {
-        newParams[`var-${options.filterVariableName}`] = filterQuery || '';
-      }
+      newParams[`var-${serverSideVars.filter}`] = filterQuery || '';
 
       // Set sort variable
-      if (options.sortVariableName) {
-        newParams[`var-${options.sortVariableName}`] = sortQuery || '';
-      }
+      newParams[`var-${serverSideVars.sort}`] = sortQuery || '';
 
       // Set pagination variables if enabled; otherwise clear any stale values
       // left in the URL from a previous server-side-pagination session.
       // Assigning `undefined` makes locationService.partial drop the key.
       if (options.serverSidePagination) {
-        if (options.skipVariableName) {
-          newParams[`var-${options.skipVariableName}`] = skipQuery;
-        }
-        if (options.topVariableName) {
-          newParams[`var-${options.topVariableName}`] = topQuery;
-        }
+        newParams[`var-${serverSideVars.skip}`] = skipQuery;
+        newParams[`var-${serverSideVars.top}`] = topQuery;
       } else {
-        if (options.skipVariableName) {
-          newParams[`var-${options.skipVariableName}`] = undefined;
-        }
-        if (options.topVariableName) {
-          newParams[`var-${options.topVariableName}`] = undefined;
-        }
+        newParams[`var-${serverSideVars.skip}`] = undefined;
+        newParams[`var-${serverSideVars.top}`] = undefined;
       }
 
       // Update URL with new variable values (this triggers query refresh)
@@ -267,19 +306,20 @@ export const Grid: React.FC<GridProps> = ({
     };
   }, [
     filters,
-    sortField,
-    sortDirection,
+    sortKeys,
     currentPage,
     pageSize,
     options.serverSideMode,
     options.serverSidePagination,
     options.queryFormat,
     options.sqlDialect,
-    options.filterVariableName,
-    options.sortVariableName,
-    options.skipVariableName,
-    options.topVariableName,
+    serverSideVars.filter,
+    serverSideVars.sort,
+    serverSideVars.skip,
+    serverSideVars.top,
     columnTypeMap,
+    activePreset,
+    presetFilterActive,
   ]);
 
   // Transform data
@@ -295,11 +335,12 @@ export const Grid: React.FC<GridProps> = ({
       return;
     }
     urlSeededRef.current = true;
+    const search = locationService.getSearch();
     const validFieldNames = new Set(columns.map((c) => c.fieldName));
     const parsed = parseUrlFilters({
-      filterVariableName: options.filterVariableName,
-      sortVariableName: options.sortVariableName,
-      searchParams: locationService.getSearch(),
+      filterVariableName: serverSideVars.filter,
+      sortVariableName: serverSideVars.sort,
+      searchParams: search,
       validFieldNames,
     });
     if (parsed.rejections.length > 0) {
@@ -313,11 +354,35 @@ export const Grid: React.FC<GridProps> = ({
     if (Object.keys(parsed.filters).length > 0) {
       setFilters(parsed.filters);
     }
-    if (parsed.sort) {
-      setSortField(parsed.sort.field);
-      setSortDirection(parsed.sort.direction);
+
+    // Resolve the initial active preset (Phase 3). Precedence: a valid mode id
+    // from the URL beats a valid `defaultPresetId`, which beats none ("All").
+    // "Valid" = the id exists in the configured presets; an unknown/deleted id
+    // at any level falls through to the next, never throwing.
+    const presetExists = (id: string | null | undefined): id is string =>
+      !!id && viewPresets.some((p) => p.id === id);
+    const urlModeId = search.get(`var-${serverSideVars.mode}`);
+    const initialPresetId = presetExists(urlModeId)
+      ? urlModeId
+      : presetExists(options.defaultPresetId)
+        ? options.defaultPresetId
+        : null;
+
+    if (initialPresetId) {
+      setActivePresetId(initialPresetId);
     }
-  }, [columns, options.filterVariableName, options.sortVariableName]);
+
+    // Sort precedence: an explicit URL sort (e.g. the panel's own published
+    // server-side state) wins; otherwise the seeded preset contributes its sort.
+    if (parsed.sort) {
+      setSortKeys(parsed.sort);
+    } else if (initialPresetId) {
+      const preset = viewPresets.find((p) => p.id === initialPresetId);
+      if (preset) {
+        setSortKeys(preset.sort.map((k) => ({ ...k })));
+      }
+    }
+  }, [columns, serverSideVars.filter, serverSideVars.sort, serverSideVars.mode, viewPresets, options.defaultPresetId]);
 
   // Cap the rendered row count to defend against a tampered or
   // mis-templated server response widening the result far beyond what the
@@ -366,15 +431,28 @@ export const Grid: React.FC<GridProps> = ({
     return configMap;
   }, [data]);
 
+  // Apply the active preset's column visibility to the base data columns,
+  // BEFORE flags injection so synthetic flags (and the separate row-number
+  // column) are never hidden. Empty/undefined visibleColumns shows all;
+  // unknown names are ignored (intersection); frame order is preserved.
+  const presetVisibleColumns = useMemo(() => {
+    const visible = activePreset?.visibleColumns;
+    if (!visible || visible.length === 0) {
+      return columns;
+    }
+    const allowed = new Set(visible);
+    return columns.filter((c) => allowed.has(c.fieldName));
+  }, [columns, activePreset]);
+
   // Inject synthetic flags columns
   const columnsWithFlags = useMemo(() => {
     const flagsRules = highlightRules.filter((r) => r.enabled && r.ruleType === 'flagsColumn');
 
     if (flagsRules.length === 0) {
-      return columns;
+      return presetVisibleColumns;
     }
 
-    let modifiedColumns = [...columns];
+    let modifiedColumns = [...presetVisibleColumns];
     const firstColumns: any[] = [];
     const lastColumns: any[] = [];
 
@@ -405,7 +483,7 @@ export const Grid: React.FC<GridProps> = ({
     });
 
     return [...firstColumns, ...modifiedColumns, ...lastColumns];
-  }, [columns, highlightRules]);
+  }, [presetVisibleColumns, highlightRules]);
 
   // Calculate auto-sized column widths
   const autoSizedColumns = useMemo(() => {
@@ -601,24 +679,15 @@ export const Grid: React.FC<GridProps> = ({
     return ranges;
   }, [highlightRules, rows]);
 
-  // Apply sorting (only in client-side mode)
+  // Apply sorting (only in client-side mode). Keys are applied in order: a tie
+  // on the first key is broken by the second, then the third, and so on.
   const sortedRows = useMemo(() => {
-    if (options.serverSideMode || !sortField) {
+    if (options.serverSideMode || sortKeys.length === 0) {
       return rows;
     }
 
-    return [...rows].sort((a, b) => {
-      const aVal = a.data[sortField];
-      const bVal = b.data[sortField];
-
-      if (aVal === bVal) {
-        return 0;
-      }
-
-      const comparison = aVal > bVal ? 1 : -1;
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [rows, sortField, sortDirection, options.serverSideMode]);
+    return sortRowsBySortKeys(rows, sortKeys);
+  }, [rows, sortKeys, options.serverSideMode]);
 
   // Apply filtering (only in client-side mode)
   const filteredRows = useMemo(() => {
@@ -702,24 +771,41 @@ export const Grid: React.FC<GridProps> = ({
           }
         }
       }
+
+      // Second pass: the active preset's nested filter, ANDed with the
+      // per-column filters above. Guarded so an undefined/empty group never
+      // reaches the evaluator (it returns false for empty groups).
+      if (presetFilterActive) {
+        if (
+          !evaluateConditionGroup(activePreset!.filter!, {
+            currentField: '',
+            row: row.data,
+            rowIndex: row.index,
+          })
+        ) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [sortedRows, filters, options.serverSideMode]);
+  }, [sortedRows, filters, options.serverSideMode, presetFilterActive, activePreset]);
 
   const handleSort = (fieldName: string) => {
-    if (sortField === fieldName) {
-      // Cycle through: asc -> desc -> clear
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else {
+    // An ad-hoc header click collapses to a single-key sort, replacing any
+    // active multi-key sort. The primary (first) key drives the asc -> desc ->
+    // clear cycle so repeated clicks on the same column behave as before.
+    setSortKeys((prev) => {
+      const primary = prev[0];
+      if (primary && primary.field === fieldName) {
+        if (primary.direction === 'asc') {
+          return [{ field: fieldName, direction: 'desc' }];
+        }
         // Clear sort on third click
-        setSortField(null);
-        setSortDirection('asc');
+        return [];
       }
-    } else {
-      setSortField(fieldName);
-      setSortDirection('asc');
-    }
+      return [{ field: fieldName, direction: 'asc' }];
+    });
     // Reset to first page when the sort changes (mirrors handleFilter) so
     // server-side paging does not leave the user on a now-stale page.
     setCurrentPage(0);
@@ -739,6 +825,35 @@ export const Grid: React.FC<GridProps> = ({
     setCurrentPage(0);
   };
 
+  // Apply a view preset (or the "All" tab when presetId is null). Applying a
+  // preset sets the ordered sort state to its sort (flowing through the single
+  // existing sort path); the active preset id drives column visibility and the
+  // preset filter. "All" clears columns, filter, and sort. Never mutates
+  // options.viewPresets — sort keys are copied before being stored.
+  const handleSelectPreset = useCallback(
+    (presetId: string | null) => {
+      if (presetId === null) {
+        setActivePresetId(null);
+        setSortKeys([]);
+      } else {
+        const preset = viewPresets.find((p) => p.id === presetId);
+        setActivePresetId(presetId);
+        setSortKeys(preset ? preset.sort.map((k) => ({ ...k })) : []);
+      }
+      setCurrentPage(0);
+
+      // The active view is a URL side-channel (`var-{gridId}_mode`), written
+      // directly here REGARDLESS of `serverSideMode` so a dashboard link or
+      // native control reflects the current view. The server-side publish
+      // effect early-returns when server-side is off, so the mode write must
+      // not live there. Selecting "All"/reset (presetId === null) removes the
+      // key (assigning `undefined`) so a stale deep link does not re-activate
+      // on reload.
+      locationService.partial({ [`var-${serverSideVars.mode}`]: presetId ?? undefined }, true);
+    },
+    [viewPresets, serverSideVars.mode]
+  );
+
   // Apply client-side pagination (only if enabled and not server-side)
   const paginatedRows = useMemo(() => {
     if (!options.paginationEnabled || options.serverSidePagination) {
@@ -755,9 +870,9 @@ export const Grid: React.FC<GridProps> = ({
   const displayTotalCount = useMemo(
     () =>
       options.serverSidePagination
-        ? resolveServerSideCount(data, options.countVariableName)
+        ? resolveServerSideCount(data, serverSideVars.count)
         : filteredRows.length,
-    [options.serverSidePagination, options.countVariableName, data, filteredRows.length]
+    [options.serverSidePagination, serverSideVars.count, data, filteredRows.length]
   );
 
   // Determine which rows to display
@@ -771,7 +886,8 @@ export const Grid: React.FC<GridProps> = ({
     const headerSize = options.showHeader ? (options.compactHeaders ? 24 : options.headerHeight || 60) : 0;
     const filterSize = options.showHeader && options.filterStyle === 'filterRow' ? 32 : 0;
     const paginationSize = options.paginationEnabled ? 58 : 0; // Updated to 58 based on actual measurement
-    return Math.max(0, height - headerSize - filterSize - paginationSize);
+    const tabBarSize = showTabBar ? TAB_BAR_HEIGHT : 0;
+    return Math.max(0, height - headerSize - filterSize - paginationSize - tabBarSize);
   }, [
     height,
     options.showHeader,
@@ -779,6 +895,7 @@ export const Grid: React.FC<GridProps> = ({
     options.headerHeight,
     options.filterStyle,
     options.paginationEnabled,
+    showTabBar,
   ]);
 
   const [bodyWrapperHeight, setBodyWrapperHeight] = useState(estimatedBodyHeight);
@@ -841,6 +958,7 @@ export const Grid: React.FC<GridProps> = ({
     options.headerHeight,
     options.filterStyle,
     options.paginationEnabled,
+    showTabBar,
   ]);
 
   // Scroll synchronization effect - bidirectional sync following react-base-table pattern
@@ -961,6 +1079,9 @@ export const Grid: React.FC<GridProps> = ({
       headerWrapper: css`
         flex: 0 0 auto;
       `,
+      tabBarWrapper: css`
+        flex: 0 0 auto;
+      `,
       bodyWrapper: css`
         flex: 1 1 auto;
         min-height: 0;
@@ -991,17 +1112,17 @@ export const Grid: React.FC<GridProps> = ({
         >
           {filterCollision && (
             <div>
-              Filter Variable Name <code>{options.filterVariableName}</code> is also used by
+              Filter variable <code>{serverSideVars.filter}</code> is also used by
               another grid panel on this dashboard.
             </div>
           )}
           {sortCollision && (
             <div>
-              Sort Variable Name <code>{options.sortVariableName}</code> is also used by
+              Sort variable <code>{serverSideVars.sort}</code> is also used by
               another grid panel on this dashboard.
             </div>
           )}
-          <div>Each grid panel must use a unique name. Open panel options to change it.</div>
+          <div>Each grid panel must use a unique Grid ID. Open panel options to change it.</div>
         </Alert>
       )}
       {rowsTruncated && (
@@ -1021,13 +1142,57 @@ export const Grid: React.FC<GridProps> = ({
           </div>
         </Alert>
       )}
+      {options.serverSideMode && options.queryFormat !== 'json' && presetFilterUnsupported.length > 0 && (
+        <Alert
+          severity="warning"
+          title="Preset filter not pushed down"
+          data-testid="enhanced-grid-preset-unsupported-alert"
+        >
+          <div>
+            Part of the active preset&apos;s filter could not be translated to a server-side query, so the
+            filter was not applied: {presetFilterUnsupported.join('; ')}. The preset&apos;s columns and sort
+            still apply.
+          </div>
+        </Alert>
+      )}
+      {options.serverSideMode && options.queryFormat === 'json' && presetFilterActive && (
+        <Alert
+          severity="warning"
+          title="Preset filter not pushed down"
+          data-testid="enhanced-grid-preset-json-alert"
+        >
+          <div>
+            The active preset&apos;s filter cannot be pushed to the data source in the generic (JSON) query
+            format. The preset&apos;s columns and sort still apply.
+          </div>
+        </Alert>
+      )}
+      {showTabBar && (
+        <div className={styles.tabBarWrapper}>
+          <TabsBar>
+            <Tab
+              label="All"
+              active={activePresetId === null}
+              onChangeTab={() => handleSelectPreset(null)}
+            />
+            {viewPresets.map((preset) => (
+              <Tab
+                key={preset.id}
+                label={preset.name}
+                active={activePresetId === preset.id}
+                onChangeTab={() => handleSelectPreset(preset.id)}
+              />
+            ))}
+          </TabsBar>
+        </div>
+      )}
       {options.showHeader && (
         <div className={styles.headerWrapper}>
           <GridHeader
             ref={headerScrollRef}
             columns={autoSizedColumns}
-            sortField={sortField}
-            sortDirection={sortDirection}
+            sortField={sortKeys[0]?.field ?? null}
+            sortDirection={sortKeys[0]?.direction ?? 'asc'}
             onSort={handleSort}
             onFilter={handleFilter}
             filters={filters}

@@ -89,12 +89,14 @@ Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset
 
 For large datasets, enable server-side filtering and pagination:
 
-1. Create dashboard variables: `gridFilter` and `gridSort` (Text box type, hidden)
-2. Update your datasource query to use these variables
-3. In panel settings, enable **Server-Side Mode**
-4. Configure query format (OData, SQL, or JSON)
-5. If using **SQL**, pick the **SQL Dialect** that matches your database (PostgreSQL/TimescaleDB, SQL Server, or ANSI SQL)
-6. Map variable names
+1. In panel settings, enable **Server-Side Mode**
+2. Set a **Grid ID** (or accept the default `grid<panelId>`, e.g. `grid7`). The panel derives all five variable names from it: `{gridId}_filter`, `{gridId}_sort`, `{gridId}_skip`, `{gridId}_top`, `{gridId}_count`.
+3. Copy the exact names from the **Resolved variables** list and create matching dashboard variables (Text box type, hidden)
+4. Update your datasource query to reference those variables
+5. Configure query format (OData, SQL, or JSON)
+6. If using **SQL**, pick the **SQL Dialect** that matches your database (PostgreSQL/TimescaleDB, SQL Server, or ANSI SQL)
+
+All variable names derive from the Grid ID, so the only thing to set is the Grid ID itself.
 
 See [Server-Side Setup Guide](docs/SERVER_SIDE_SETUP.md) for detailed instructions.
 
@@ -162,20 +164,35 @@ Run the query. You should see a table of products. **Do not continue until
 this works** — everything below just adds filtering on top of a working
 query.
 
-#### Step 3 — Create the dashboard variables
+#### Step 3 — Pick a Grid ID and create the dashboard variables
 
 This walkthrough sets up the **complete** server-side configuration —
 filtering, sorting, **and** paging — which is the recommended default.
+
+First, decide the **Grid ID**. The panel derives every variable name from
+it, so you never type five names by hand. This walkthrough uses the explicit
+Grid ID **`grid1`**, which yields `grid1_filter`, `grid1_sort`, `grid1_skip`,
+`grid1_top`, and `grid1_count`. (If you leave Grid ID blank, the panel
+defaults to `grid<panelId>` — e.g. `grid7` — which is already unique per
+panel; the panel's **Resolved variables** list, set up in Step 5, shows the
+exact names to copy.)
+
+> **Naming rule.** Grafana allows only letters, digits, and underscores in
+> variable names, and the name can't start with a digit. The `grid` prefix
+> keeps every derived name letter-leading. A Grid ID like `my-grid` is
+> invalid (use `my_grid`).
+
 Dashboard → **Settings** → **Variables** → **New variable**, four times:
 
 | Name | Type | Hide | Drives |
 | --- | --- | --- | --- |
-| `gridFilter` | Text box | Variable | `$filter` |
-| `gridSort` | Text box | Variable | `$orderby` |
-| `gridSkip` | Text box | Variable | `$skip` (page offset) |
-| `gridTop` | Text box | Variable | `$top` (page size) |
+| `grid1_filter` | Text box | Variable | `$filter` |
+| `grid1_sort` | Text box | Variable | `$orderby` |
+| `grid1_skip` | Text box | Variable | `$skip` (page offset) |
+| `grid1_top` | Text box | Variable | `$top` (page size) |
 
-(You can rename these; just keep them consistent with Step 5.)
+(These names must match the panel's resolved names exactly. If you set a
+different Grid ID, substitute its prefix throughout.)
 
 #### Step 4 — Add the variables to the query URL
 
@@ -183,30 +200,30 @@ Edit the Infinity query URL to the **full filter + sort + paging** template.
 This is the default, copy-paste starting point:
 
 ```
-https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
+https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${grid1_filter}&$orderby=${grid1_sort}&$skip=${grid1_skip}&$top=${grid1_top}&$count=true
 ```
 
 Each option maps to one panel concern:
 
 | Option | Variable | Purpose |
 | --- | --- | --- |
-| `$filter` | `${gridFilter}` | Column filters → OData filter expression |
-| `$orderby` | `${gridSort}` | Column sort → OData ordering |
-| `$skip` | `${gridSkip}` | Page offset (`currentPage * pageSize`) |
-| `$top` | `${gridTop}` | Page size |
+| `$filter` | `${grid1_filter}` | Column filters → OData filter expression |
+| `$orderby` | `${grid1_sort}` | Column sort → OData ordering |
+| `$skip` | `${grid1_skip}` | Page offset (`currentPage * pageSize`) |
+| `$top` | `${grid1_top}` | Page size |
 | `$count=true` | — | Optional. Asks OData to include `@odata.count`; harmless if your service ignores it (see the note on the footer total in Step 5) |
 
 > **What each variable actually contains** — this is the single most
 > common point of confusion. The panel writes **only the value**, never the
 > `$filter=` / `$orderby=` key. With a "ProductName contains chai" filter,
-> `gridFilter` holds:
+> `grid1_filter` holds:
 >
 > ```
 > contains(tolower(ProductName), 'chai')
 > ```
 >
 > **not** `$filter=contains(...)`. That's why you write the key yourself in
-> the URL as `$filter=${gridFilter}`. If you *also* put the key inside the
+> the URL as `$filter=${grid1_filter}`. If you *also* put the key inside the
 > variable (or its default value), you get a broken doubled
 > `$filter=$filter=...` — so leave the variables empty and let the panel
 > populate them.
@@ -224,18 +241,18 @@ or a 400 for `%24filter`, it isn't decoding the query per RFC 3986 — see
 
 > **Empty state.** Once the panel has published its state, it writes the
 > OData boolean literal `true` (not an empty string) when no filter is
-> active, so `$filter=${gridFilter}` becomes `$filter=true` — a valid
+> active, so `$filter=${grid1_filter}` becomes `$filter=true` — a valid
 > expression that returns all rows. `$orderby=` is left empty when no sort
 > is active (valid OData: "no ordering"). `$skip` / `$top` are written as
 > numbers once server-side pagination is on.
 >
 > The panel only publishes ~300 ms **after** it mounts, so the *very first*
 > query on dashboard load uses each variable's **saved default**. To keep
-> that first request valid, set the `gridFilter` variable's **default/current
-> value to `true`** (and `gridSkip` → `0`, `gridTop` → your page size).
-> Leave `gridSort` empty. If your OData service also rejects an empty
-> `$orderby=`, drop `&$orderby=${gridSort}` from the URL until a sort is
-> applied, or give `gridSort` a default like a key column name.
+> that first request valid, set the `grid1_filter` variable's **default/current
+> value to `true`** (and `grid1_skip` → `0`, `grid1_top` → your page size).
+> Leave `grid1_sort` empty. If your OData service also rejects an empty
+> `$orderby=`, drop `&$orderby=${grid1_sort}` from the URL until a sort is
+> applied, or give `grid1_sort` a default like a key column name.
 
 #### Step 5 — Turn on Server-Side Mode in the panel
 
@@ -244,14 +261,18 @@ Edit the Enhanced Grid panel → **Server-Side** section:
 | Option | Value |
 | --- | --- |
 | **Enable Server-Side Mode** | On |
+| **Grid ID** | `grid1` *(or leave blank to use `grid<panelId>`)* |
 | **Query Format** | `OData ($filter, $orderby)` |
-| **Filter Variable Name** | `gridFilter` |
-| **Sort Variable Name** | `gridSort` |
 | **Enable Server-Side Pagination** | On *(turn on **Pagination** first)* |
-| **Skip/Offset Variable Name** | `gridSkip` |
-| **Top/Limit Variable Name** | `gridTop` |
 | **Include Count in OData Query** | On *(keeps `$count=true` in the URL)* |
-| **Count Variable Name** | `gridCount` *(optional — drives the total in the footer)* |
+
+The **Resolved variables** list right below Grid ID shows the exact names the
+panel reads and writes — for `grid1` that's `grid1_filter`, `grid1_sort`,
+`grid1_skip`, `grid1_top`, and `grid1_count`, each with a copy button. Those
+are the names your dashboard variables (Step 3) and query (Step 4) must use.
+
+All variable names are derived from the Grid ID — name your dashboard
+variables to match the **Resolved variables** list and you're done.
 
 > **Show the total row count in the footer.** With server-side pagination
 > on, the panel can't count rows it never received, so it reads the total
@@ -260,10 +281,10 @@ Edit the Enhanced Grid panel → **Server-Side** section:
 > - **The data frame.** If your data source returns the total in frame
 >   metadata under `count`, `total`, `totalCount`, or `@odata.count`, the
 >   panel uses it automatically — no extra config.
-> - **The Count Variable.** Otherwise, set **Count Variable Name** (for
->   example `gridCount`) to a dashboard variable that holds the total. SQL
->   users fill it from a `SELECT COUNT(*)` query; OData users can map the
->   response's `@odata.count` into it.
+> - **The count variable.** Otherwise, create the resolved count variable
+>   (`grid1_count`) to hold the total. SQL users fill it from a
+>   `SELECT COUNT(*)` query; OData users can map the response's
+>   `@odata.count` into it.
 >
 > When a count is available, the footer shows the grand total and `Page N
 > of M`. When it isn't, the footer shows `Showing 1 to 50` and `Page 1`,

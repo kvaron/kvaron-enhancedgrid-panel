@@ -2,6 +2,8 @@ import { PanelPlugin, FieldConfigProperty } from '@grafana/data';
 import { EnhancedGridOptions, EnhancedGridFieldConfig } from './types';
 import { EnhancedGridPanel } from './components/EnhancedGridPanel';
 import { HighlightRuleEditor } from './components/ConfigEditor/HighlightRuleEditor';
+import { ResolvedVariablesEditor } from './components/ConfigEditor/ResolvedVariablesEditor';
+import { ViewPresetsEditor, DefaultPresetSelect } from './components/ConfigEditor/ViewPresetsEditor';
 
 export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConfig>(EnhancedGridPanel)
   // Configure field-level options (per-column overrides)
@@ -285,12 +287,40 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
           defaultValue: [],
         })
 
+        // View Presets section (custom editor)
+        .addBooleanSwitch({
+          path: 'enableViewPresets',
+          name: 'Enable View Presets',
+          description: 'Show a tab bar of saved column/filter/sort views above the grid',
+          defaultValue: false,
+          category: ['View Presets'],
+        })
+        .addCustomEditor({
+          id: 'viewPresets',
+          path: 'viewPresets',
+          name: 'View Presets',
+          description: 'Each preset bundles visible columns, an optional nested filter, and a multi-key sort',
+          category: ['View Presets'],
+          editor: ViewPresetsEditor,
+          defaultValue: [],
+          showIf: (config) => config.enableViewPresets,
+        })
+        .addCustomEditor({
+          id: 'defaultPresetId',
+          path: 'defaultPresetId',
+          name: 'Default Preset',
+          description: 'Preset to activate when the panel first loads (overridden by a deep link)',
+          category: ['View Presets'],
+          editor: DefaultPresetSelect,
+          showIf: (config) => config.enableViewPresets,
+        })
+
         // Server-side filtering and sorting
         .addBooleanSwitch({
           path: 'serverSideMode',
           name: 'Enable Server-Side Mode',
           description:
-            'Push filters and sorting to datasource via dashboard variables. ⚠ Each grid panel on a dashboard MUST use unique Filter Variable Name and Sort Variable Name values below — sharing names races the panels against each other on every state change. Collisions render a yellow banner at the top of the panel.',
+            'Push filters and sorting to datasource via dashboard variables. Variable names are derived automatically from the Grid ID below (unique per panel by default), so most dashboards need no manual naming. Name collisions still render a yellow banner at the top of the panel.',
           defaultValue: false,
           category: ['Server-Side'],
         })
@@ -326,21 +356,24 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
           showIf: (config) => config.serverSideMode && config.queryFormat === 'sql',
         })
         .addTextInput({
-          path: 'filterVariableName',
-          name: 'Filter Variable Name',
+          path: 'gridId',
+          name: 'Grid ID',
           description:
-            'Dashboard variable name for filter query (e.g., "gridFilter"). ⚠ MUST be unique per grid panel on this dashboard — sharing the value with another grid panel produces a yellow warning banner at the top of the panel render.',
-          defaultValue: 'gridFilter',
+            'Single identifier that derives all server-side variable names as {gridId}_filter, _sort, _skip, _top, _count, _mode. Leave blank to auto-derive from the panel id (grid{panel id}), which is unique per panel.',
+          defaultValue: '',
+          settings: {
+            placeholder: 'grid<panel id>',
+          },
           category: ['Server-Side'],
           showIf: (config) => config.serverSideMode,
         })
-        .addTextInput({
-          path: 'sortVariableName',
-          name: 'Sort Variable Name',
-          description:
-            'Dashboard variable name for sort query (e.g., "gridSort"). ⚠ MUST be unique per grid panel on this dashboard — sharing the value with another grid panel produces a yellow warning banner at the top of the panel render.',
-          defaultValue: 'gridSort',
+        .addCustomEditor({
+          id: 'resolvedServerSideVars',
+          path: 'gridId',
+          name: 'Resolved variables',
+          description: 'The dashboard variable names this panel reads and writes.',
           category: ['Server-Side'],
+          editor: ResolvedVariablesEditor,
           showIf: (config) => config.serverSideMode,
         })
 
@@ -350,30 +383,6 @@ export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConf
           name: 'Enable Server-Side Pagination',
           description: 'Push pagination parameters to datasource via dashboard variables',
           defaultValue: false,
-          category: ['Server-Side'],
-          showIf: (config) => config.serverSideMode && config.paginationEnabled,
-        })
-        .addTextInput({
-          path: 'skipVariableName',
-          name: 'Skip/Offset Variable Name',
-          description: 'Variable for OData $skip or SQL OFFSET (e.g., "gridSkip")',
-          defaultValue: 'gridSkip',
-          category: ['Server-Side'],
-          showIf: (config) => config.serverSideMode && config.paginationEnabled,
-        })
-        .addTextInput({
-          path: 'topVariableName',
-          name: 'Top/Limit Variable Name',
-          description: 'Variable for OData $top or SQL LIMIT (e.g., "gridTop")',
-          defaultValue: 'gridTop',
-          category: ['Server-Side'],
-          showIf: (config) => config.serverSideMode && config.paginationEnabled,
-        })
-        .addTextInput({
-          path: 'countVariableName',
-          name: 'Count Variable Name (Optional)',
-          description: 'Variable for total count - set manually for SQL datasources',
-          defaultValue: 'gridCount',
           category: ['Server-Side'],
           showIf: (config) => config.serverSideMode && config.paginationEnabled,
         })

@@ -170,9 +170,10 @@ function parseSortSpec(
   if (!VALID_DIRECTIONS.has(direction)) {
     return { kind: 'err', reason: `direction "${direction}" must be asc or desc` };
   }
+  // A single `field:direction` deep link parses to a length-1 ordered sort.
   return {
     kind: 'ok',
-    value: { field, direction: direction as 'asc' | 'desc' },
+    value: [{ field, direction: direction as 'asc' | 'desc' }],
   };
 }
 

@@ -51,7 +51,7 @@ async function names(page) {
     await page.screenshot({ path: `${SHOT}/odata-1-initial.png` });
 
     // 2. Filter via deep link: ProductName contains "ch" -> 3 rows, Tofu gone.
-    await page.goto(`${BASE}${DASH}?orgId=1&gridFilter.ProductName=contains:ch`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${DASH}?orgId=1&grid_filter.ProductName=contains:ch`, { waitUntil: 'networkidle' });
     await page.locator('[data-testid="enhanced-grid-container"]').first().waitFor({ timeout: 30000 });
     const okFilter = await waitForRows(page, 3);
     check('filter contains "ch" -> 3 rows', okFilter);
@@ -73,7 +73,7 @@ async function names(page) {
     await page.screenshot({ path: `${SHOT}/odata-3-page2.png` });
 
     // 4. Count variable -> footer shows the grand total.
-    await page.goto(`${BASE}${DASH}?orgId=1&var-gridCount=12`, { waitUntil: 'networkidle' });
+    await page.goto(`${BASE}${DASH}?orgId=1&var-grid_count=12`, { waitUntil: 'networkidle' });
     await page.locator('[data-testid="enhanced-grid-container"]').first().waitFor({ timeout: 30000 });
     await waitForRows(page, 5);
     await page.waitForTimeout(800);

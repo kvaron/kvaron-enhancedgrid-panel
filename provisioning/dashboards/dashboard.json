@@ -58,10 +58,9 @@
         "borderStyle": "horizontal",
         "compactHeaders": false,
         "compactMode": false,
-        "countVariableName": "gridCount",
         "filterStyle": "filterRow",
-        "filterVariableName": "gridFilter",
         "freezeLeftColumns": 2,
+        "gridId": "grid",
         "freezeRightColumns": 0,
         "headerHeight": 80,
         "highlightRules": [
@@ -238,10 +237,7 @@
         "showHeader": true,
         "showRowNumbers": false,
         "showSeriesCount": false,
-        "skipVariableName": "gridSkip",
-        "sortVariableName": "gridSort",
         "text": "Default value of text input option",
-        "topVariableName": "gridTop",
         "virtualScrollEnabled": true
       },
       "pluginVersion": "1.0.0",
@@ -296,11 +292,10 @@
         "borderStyle": "horizontal",
         "compactHeaders": false,
         "compactMode": false,
-        "countVariableName": "gridCount",
         "filterStyle": "filterRow",
-        "filterVariableName": "virtFilter",
         "freezeLeftColumns": 0,
         "freezeRightColumns": 0,
+        "gridId": "virt",
         "headerHeight": 80,
         "highlightRules": [
           {
@@ -476,10 +471,7 @@
         "showHeader": true,
         "showRowNumbers": true,
         "showSeriesCount": false,
-        "skipVariableName": "gridSkip",
-        "sortVariableName": "virtSort",
         "text": "Default value of text input option",
-        "topVariableName": "gridTop",
         "virtualScrollEnabled": true
       },
       "pluginVersion": "1.0.0",

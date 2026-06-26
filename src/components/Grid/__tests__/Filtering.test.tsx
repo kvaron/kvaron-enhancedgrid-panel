@@ -133,19 +133,17 @@ const baseOptions: EnhancedGridOptions = {
   rowStripeEnabled: false,
   borderStyle: 'none',
   columns: [],
+  enableViewPresets: false,
+  viewPresets: [],
   virtualScrollEnabled: false,
   overscanRows: 5,
   autoSizeAllColumns: false,
   autoSizeSampleSize: 100,
   serverSideMode: false,
-  filterVariableName: '',
-  sortVariableName: '',
+  gridId: '',
   queryFormat: 'json',
   sqlDialect: 'postgres',
   serverSidePagination: false,
-  skipVariableName: '',
-  topVariableName: '',
-  countVariableName: '',
   includeCount: false,
 };
 
@@ -337,8 +335,6 @@ describe('column filtering', () => {
       ...baseOptions,
       serverSideMode: true,
       queryFormat: 'sql',
-      filterVariableName: 'gridFilter',
-      sortVariableName: 'gridSort',
     };
 
     render(<Grid data={frame} options={options} width={800} height={400} highlightRules={[]} panelId={2} />);
@@ -353,10 +349,47 @@ describe('column filtering', () => {
 
     expect(locationService.partial).toHaveBeenLastCalledWith(
       {
-        'var-gridFilter': `"name" ILIKE '%O''Brien%' ESCAPE '!'`,
-        'var-gridSort': '1',
+        'var-grid2_filter': `"name" ILIKE '%O''Brien%' ESCAPE '!'`,
+        'var-grid2_sort': '1',
       },
       true
     );
+  });
+
+  it('publishes a single-key ORDER BY when a column header is clicked (server-side SQL)', () => {
+    jest.useFakeTimers();
+    const options: EnhancedGridOptions = {
+      ...baseOptions,
+      serverSideMode: true,
+      queryFormat: 'sql',
+    };
+
+    render(<Grid data={frame} options={options} width={800} height={400} highlightRules={[]} panelId={3} />);
+
+    fireEvent.click(screen.getAllByTitle(/Click to sort by/i)[0]);
+
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(locationService.partial).toHaveBeenLastCalledWith(
+      {
+        'var-grid3_filter': '1=1',
+        'var-grid3_sort': `"name" ASC`,
+      },
+      true
+    );
+  });
+
+  it('sorts visible rows by a single key when a header is clicked (client-side)', () => {
+    render(<Grid data={frame} options={baseOptions} width={800} height={400} highlightRules={[]} panelId={4} />);
+
+    // Sort ascending by name on first click.
+    fireEvent.click(screen.getAllByTitle(/Click to sort by/i)[0]);
+
+    const order = screen.getAllByTestId('grid-row').map((r) => r.textContent);
+    expect(order[0]).toContain('Alice');
+    expect(order[1]).toContain('Bob');
+    expect(order[2]).toContain('Bobby');
   });
 });

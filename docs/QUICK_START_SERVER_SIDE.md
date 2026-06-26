@@ -9,15 +9,25 @@ default.
 
 ### 1. Create Dashboard Variables
 
+The panel names its variables from a single **Grid ID**. This quick start
+uses the Grid ID **`grid1`**, so the names are `grid1_filter`, `grid1_sort`,
+`grid1_skip`, `grid1_top`. (Leave Grid ID blank in the panel and it defaults
+to `grid<panelId>` — e.g. `grid7` — which is unique per panel; the panel's
+**Resolved variables** list shows the exact names to copy.)
+
 In your Grafana dashboard settings → Variables, create four **Text box**
 variables (set Hide: **Variable** on each):
 
 | Name | Drives |
 | --- | --- |
-| `gridFilter` | `$filter` |
-| `gridSort` | `$orderby` |
-| `gridSkip` | `$skip` (page offset) |
-| `gridTop` | `$top` (page size) |
+| `grid1_filter` | `$filter` |
+| `grid1_sort` | `$orderby` |
+| `grid1_skip` | `$skip` (page offset) |
+| `grid1_top` | `$top` (page size) |
+
+> **Naming rule:** Grafana variable names allow only letters, digits, and
+> underscores and can't start with a digit, so a Grid ID like `my-grid` is
+> invalid — use `my_grid`. The `grid` prefix keeps names letter-leading.
 
 ### 2. Configure Your Infinity Datasource Query
 
@@ -33,7 +43,7 @@ In your query editor, set:
 | **URL** | (full template below) |
 
 ```
-https://your-api.com/odata/YourEntity?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
+https://your-api.com/odata/YourEntity?$filter=${grid1_filter}&$orderby=${grid1_sort}&$skip=${grid1_skip}&$top=${grid1_top}&$count=true
 ```
 
 ⚠️ Put `$filter` / `$orderby` / `$skip` / `$top` in the **URL field**.
@@ -53,14 +63,15 @@ the filter, it isn't decoding the query per RFC 3986 — see the
 In the Enhanced Grid panel **Server-Side** section:
 
 1. Toggle **Enable Server-Side Mode** ON
-2. Set **Query Format** to `OData ($filter, $orderby)`
-3. Set **Filter Variable Name** to `gridFilter`
-4. Set **Sort Variable Name** to `gridSort`
-5. Enable **Pagination**, then toggle **Enable Server-Side Pagination** ON
-6. Set **Skip/Offset Variable Name** to `gridSkip` and **Top/Limit
-   Variable Name** to `gridTop`
-7. To show the total in the footer, set **Count Variable Name** (for
-   example `gridCount`)
+2. Set **Grid ID** to `grid1` (or leave blank for the `grid<panelId>` default)
+3. Set **Query Format** to `OData ($filter, $orderby)`
+4. Enable **Pagination**, then toggle **Enable Server-Side Pagination** ON
+5. To show the total in the footer, create a `grid1_count` variable
+
+The **Resolved variables** list confirms the exact names (`grid1_filter`,
+`grid1_sort`, `grid1_skip`, `grid1_top`, `grid1_count`) with copy buttons —
+these must match the dashboard variables you made in step 1 and the URL in
+step 2.
 
 > **Total row count:** with server-side pagination on, the panel reads the
 > total from the data frame (a `count`, `total`, `totalCount`, or
@@ -83,14 +94,14 @@ In the Enhanced Grid panel **Server-Side** section:
 
 ### 1. Create Dashboard Variables
 
-Same as above (create `gridFilter` and `gridSort` variables)
+Same as above (create `grid1_filter` and `grid1_sort` variables)
 
 ### 2. Configure Your SQL Query
 
 ```sql
 SELECT * FROM your_table
-WHERE 1=1 ${gridFilter:raw}
-ORDER BY ${gridSort:raw}
+WHERE 1=1 ${grid1_filter:raw}
+ORDER BY ${grid1_sort:raw}
 ```
 
 **Important:** Use `:raw` to prevent variable escaping!
@@ -98,9 +109,11 @@ ORDER BY ${gridSort:raw}
 ### 3. Enable Server-Side Mode in Panel
 
 1. **Server-Side** section → Enable
-2. **Query Format** → `SQL (WHERE, ORDER BY)`
-3. **Filter Variable Name** → `gridFilter`
-4. **Sort Variable Name** → `gridSort`
+2. Set **Grid ID** → `grid1` (or leave blank for the `grid<panelId>` default)
+3. **Query Format** → `SQL (WHERE, ORDER BY)`
+
+The **Resolved variables** list shows the exact names (`grid1_filter`,
+`grid1_sort`, …) to match in your query and dashboard variables.
 
 ### 4. Pick the SQL Dialect
 
@@ -149,21 +162,21 @@ When you filter "Name" column with "laptop" and sort by "Price" descending:
 **OData format generates:**
 
 ```
-gridFilter = contains(tolower(Name), 'laptop')
-gridSort = Price desc
+grid1_filter = contains(tolower(Name), 'laptop')
+grid1_sort = Price desc
 ```
 
 **SQL format generates** (depends on the **SQL Dialect** option):
 
 ```
-postgres:   gridFilter = "name" ILIKE '%laptop%'
-            gridSort   = "price" DESC
+postgres:   grid1_filter = "name" ILIKE '%laptop%'
+            grid1_sort   = "price" DESC
 
-sqlserver:  gridFilter = [name] LIKE '%laptop%'
-            gridSort   = [price] DESC
+sqlserver:  grid1_filter = [name] LIKE '%laptop%'
+            grid1_sort   = [price] DESC
 
-ansi:       gridFilter = LOWER("name") LIKE LOWER('%laptop%')
-            gridSort   = "price" DESC
+ansi:       grid1_filter = LOWER("name") LIKE LOWER('%laptop%')
+            grid1_sort   = "price" DESC
 ```
 
 **Your datasource receives** (PostgreSQL example):
@@ -184,8 +197,8 @@ A: Check variable names match exactly (case-sensitive)
 A: Empty/no-op variable values are handled for you:
 
 - SQL: the panel writes `1=1` (filter) / `1` (sort) when nothing is active, so
-  `WHERE ${gridFilter:raw}` and `ORDER BY ${gridSort:raw}` stay valid.
-- OData: the panel writes `true` for an empty filter, so `$filter=${gridFilter}`
+  `WHERE ${grid1_filter:raw}` and `ORDER BY ${grid1_sort:raw}` stay valid.
+- OData: the panel writes `true` for an empty filter, so `$filter=${grid1_filter}`
   becomes `$filter=true` (matches all rows). Sort is left empty, which is a
   valid empty `$orderby`. No `:queryparam` trick or variable default needed.
 - Still getting no rows from an OData API? Check the **Rows/Root selector** is
@@ -198,47 +211,50 @@ A: Just toggle "Enable Server-Side Mode" OFF - panel returns to client-side filt
 
 ## Advanced: Multiple Grids on One Dashboard
 
-> **Each grid panel on a dashboard MUST use unique values for Filter
-> Variable Name and Sort Variable Name.** Sharing names causes the panels
-> to race each other on every state change, producing inconsistent
-> results. The panel detects collisions at mount and renders a yellow
-> warning banner at the top of the panel until the names are made
-> distinct in panel options.
+This is where the Grid ID model pays off. **Give each grid panel a distinct
+Grid ID** and all five of its variable names are unique automatically — no
+more setting five separate names per grid. (If you leave Grid ID blank, the
+`grid<panelId>` default is already unique per panel.) Sharing names causes
+the panels to race each other on every state change, producing inconsistent
+results. The panel detects collisions at mount and renders a yellow warning
+banner at the top of the panel until the IDs are made distinct.
 
-Example — two grids on the same dashboard:
+Example — two grids on the same dashboard, each with its own Grid ID:
 
-**Grid 1 (Inventory):**
+**Grid 1 — Grid ID `inventory`:**
 
-- Filter Variable: `inventoryFilter`
-- Sort Variable: `inventorySort`
+- Variables: `inventory_filter`, `inventory_sort` (plus `_skip`, `_top`,
+  `_count` if paginating)
 
-**Grid 2 (Customers):**
+**Grid 2 — Grid ID `customers`:**
 
-- Filter Variable: `customerFilter`
-- Sort Variable: `customerSort`
+- Variables: `customers_filter`, `customers_sort` (plus `_skip`, `_top`,
+  `_count` if paginating)
 
-Create separate dashboard variables for each grid, and reference them in
-each grid's templated query.
+Create separate dashboard variables for each grid using the names from each
+panel's **Resolved variables** list, and reference them in each grid's
+templated query.
 
 ## Deep links — pre-filled filters via URL
 
 Send a link that lands on the dashboard with the grid already filtered:
 
 ```
-https://grafana.example.com/d/<dashboard-uid>?gridFilter.status=equals:active
-                                            &gridFilter.price=between:100:500
-                                            &gridSort=price:desc
+https://grafana.example.com/d/<dashboard-uid>?grid1_filter.status=equals:active
+                                            &grid1_filter.price=between:100:500
+                                            &grid1_sort=price:desc
 ```
 
-Syntax (where `gridFilter` and `gridSort` come from the panel's
-configured Filter / Sort Variable Names):
+Syntax (where `grid1_filter` and `grid1_sort` are the panel's resolved filter
+and sort variable names — substitute your own grid's names if you use a
+different Grid ID):
 
 | URL form | Operators it accepts |
 | --- | --- |
-| `?gridFilter.{field}={op}` | `blank`, `not_blank` |
-| `?gridFilter.{field}={op}:{value}` | `contains`, `equals`, `starts_with`, `ends_with`, `eq`, `ne`, `gt`, `lt`, `gte`, `lte` |
-| `?gridFilter.{field}={op}:{value}:{value2}` | `between` |
-| `?gridSort={field}:{direction}` | `asc`, `desc` |
+| `?grid1_filter.{field}={op}` | `blank`, `not_blank` |
+| `?grid1_filter.{field}={op}:{value}` | `contains`, `equals`, `starts_with`, `ends_with`, `eq`, `ne`, `gt`, `lt`, `gte`, `lte` |
+| `?grid1_filter.{field}={op}:{value}:{value2}` | `between` |
+| `?grid1_sort={field}:{direction}` | `asc`, `desc` |
 
 The panel validates every entry on mount: operator must be in the known
 list, field must exist in the data frame's columns. Anything that fails
@@ -246,8 +262,8 @@ validation is dropped (logged in the browser console). Surviving entries
 flow through the same SQL escape pipeline as filters typed in the UI.
 
 > URL deep links carry **intent**, not raw SQL. A URL like
-> `?var-gridFilter=name='evil'` is silently overwritten by the panel on
-> the next state publish — use the structured `?gridFilter.{field}=...`
+> `?var-grid1_filter=name='evil'` is silently overwritten by the panel on
+> the next state publish — use the structured `?grid1_filter.{field}=...`
 > syntax above instead.
 
 ---
