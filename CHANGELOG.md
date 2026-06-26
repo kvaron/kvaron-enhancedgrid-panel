@@ -1,3 +1,11 @@
+## 0.3.0 (2026-06-26)
+
+### Features
+- feat: dynamic grid variables and odata updates
+
+### Bug Fixes
+- feat: dynamic grid variables and odata updates
+
 ## 0.2.6 (2026-06-26)
 
 ## 0.2.5 (2026-06-26)
