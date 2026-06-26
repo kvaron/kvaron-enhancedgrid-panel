@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { DataFrame } from '@grafana/data';
 import { Alert, useTheme2 } from '@grafana/ui';
-import { getTemplateSrv, locationService } from '@grafana/runtime';
+import { locationService } from '@grafana/runtime';
 import { css } from '@emotion/css';
 import { EnhancedGridOptions, HighlightRule, ColumnFilter, EnhancedGridFieldConfig } from '../../types';
 import { transformDataFrame, GridColumn } from '../../utils/dataTransformer';
