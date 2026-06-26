@@ -221,25 +221,25 @@ describe('OData fragment generator', () => {
       ).toBe(`contains(tolower(Name), 'o''brien')`);
     });
 
-    it('drops numeric injection via Number → NaN', () => {
+    it('drops numeric injection via Number → NaN (returns true no-op, payload absent)', () => {
       expect(
         buildODataFilter({ Age: { operator: 'gt', value: '1; DROP TABLE x' } })
-      ).toBe('');
+      ).toBe('true');
     });
 
-    it('drops numeric Infinity via Number.isFinite', () => {
-      expect(buildODataFilter({ Age: { operator: 'gt', value: Infinity } })).toBe('');
+    it('drops numeric Infinity via Number.isFinite (returns true no-op)', () => {
+      expect(buildODataFilter({ Age: { operator: 'gt', value: Infinity } })).toBe('true');
     });
   });
 
   describe('identifier validation', () => {
-    it('drops field names with whitespace or punctuation', () => {
+    it('drops field names with whitespace or punctuation (returns true no-op, payload absent)', () => {
       expect(
         buildODataFilter({ 'created at': { operator: 'contains', value: 'x' } })
-      ).toBe('');
+      ).toBe('true');
       expect(
         buildODataFilter({ "evil') OR ('1": { operator: 'contains', value: 'x' } })
-      ).toBe('');
+      ).toBe('true');
     });
 
     it('drops sort with invalid field names', () => {

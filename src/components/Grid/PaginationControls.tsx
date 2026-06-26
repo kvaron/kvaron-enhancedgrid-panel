@@ -7,6 +7,7 @@ interface PaginationControlsProps {
   currentPage: number; // 0-based
   pageSize: number;
   totalRows: number | null; // null if unknown (server-side without count)
+  currentPageRowCount: number; // actual rows rendered on the current page (end-of-data signal when total unknown)
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
@@ -15,6 +16,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
   currentPage,
   pageSize,
   totalRows,
+  currentPageRowCount,
   onPageChange,
   onPageSizeChange,
 }) => {
@@ -22,21 +24,40 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
 
   const totalPages = totalRows != null ? Math.ceil(totalRows / pageSize) : null;
   const startRow = currentPage * pageSize + 1;
-  const endRow = totalRows != null ? Math.min((currentPage + 1) * pageSize, totalRows) : (currentPage + 1) * pageSize;
+  // When the total is unknown (server-side paging without a count) the last
+  // visible row is derived from what the current page actually returned, not
+  // from the optimistic (currentPage + 1) * pageSize.
+  const endRow =
+    totalRows != null
+      ? Math.min((currentPage + 1) * pageSize, totalRows)
+      : startRow + currentPageRowCount - 1;
 
   const canGoPrevious = currentPage > 0;
-  const canGoNext = totalPages != null ? currentPage < totalPages - 1 : true;
+  // With a known total, paging off the last page is disallowed. With an unknown
+  // total, a full page (>= pageSize rows) is the signal that more data may
+  // exist; a short/empty page means we have reached the end.
+  const canGoNext = totalPages != null ? currentPage < totalPages - 1 : currentPageRowCount >= pageSize;
 
   const pageSizeOptions = [10, 20, 50, 100, 200];
 
   const handlePageInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 1) {
-      const pageNumber = value - 1; // Convert to 0-based
-      if (totalPages == null || pageNumber < totalPages) {
-        onPageChange(pageNumber);
-      }
+    if (isNaN(value)) {
+      return;
     }
+    const requested = value - 1; // Convert to 0-based
+    let clamped = Math.max(0, requested);
+    if (totalPages != null) {
+      // Known total: clamp into [0, totalPages - 1].
+      clamped = Math.min(clamped, totalPages - 1);
+    } else {
+      // Unknown total: never jump past the next reachable page. Backwards
+      // navigation is always allowed; forward is limited to the next page and
+      // only when the current page looks full (canGoNext).
+      const maxReachable = canGoNext ? currentPage + 1 : currentPage;
+      clamped = Math.min(clamped, maxReachable);
+    }
+    onPageChange(clamped);
   };
 
   const handlePageSizeChange = (option: ComboboxOption<number> | null) => {
@@ -92,7 +113,7 @@ export const PaginationControls: React.FC<PaginationControlsProps> = ({
             value={currentPage + 1}
             onChange={handlePageInputChange}
             min={1}
-            max={totalPages || undefined}
+            max={totalPages != null ? totalPages : canGoNext ? currentPage + 2 : currentPage + 1}
             className={styles.pageInput}
           />
           {totalPages != null && <span className={styles.pageText}>of {totalPages}</span>}

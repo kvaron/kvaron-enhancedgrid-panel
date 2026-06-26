@@ -1,6 +1,7 @@
 import {
   buildODataFilter,
   buildODataPagination,
+  buildODataQuery,
   buildODataSort,
   buildSQLFilter,
   buildSQLPagination,
@@ -301,20 +302,20 @@ describe('OData identifier validation', () => {
     expect(buildODataSort({ field: 'Name', direction: 'desc' })).toBe(`Name desc`);
   });
 
-  it('drops field names with whitespace, punctuation, or operators', () => {
+  it('drops field names with whitespace, punctuation, or operators (returns true no-op)', () => {
     expect(
       buildODataFilter({ 'created at': { operator: 'contains', value: 'x' } })
-    ).toBe('');
+    ).toBe('true');
     expect(
       buildODataFilter({ "evil') OR ('1": { operator: 'contains', value: 'x' } })
-    ).toBe('');
+    ).toBe('true');
     expect(buildODataSort({ field: "x; DROP TABLE y", direction: 'asc' })).toBe('');
   });
 
-  it('drops field names that start with a digit', () => {
+  it('drops field names that start with a digit (returns true no-op)', () => {
     expect(
       buildODataFilter({ '1stColumn': { operator: 'contains', value: 'x' } })
-    ).toBe('');
+    ).toBe('true');
   });
 
   it('drops invalid fields independently — other valid filters survive', () => {
@@ -333,6 +334,25 @@ describe('OData identifier validation', () => {
     expect(
       buildODataSort({ field: 'Name', direction: 'asc; DROP TABLE x; --' as 'asc' })
     ).toBe(`Name asc`);
+  });
+});
+
+describe('OData empty-state no-op', () => {
+  it('returns the `true` boolean literal when no filters are active', () => {
+    // `$filter=true` matches all rows and is valid OData V4, unlike a bare
+    // `$filter=` which strict services reject. Mirrors the SQL `1=1` no-op.
+    expect(buildODataFilter({})).toBe('true');
+  });
+
+  it('returns `true` for the filter and empty for orderby in buildODataQuery', () => {
+    expect(
+      buildODataQuery({}, { field: null, direction: 'asc' }, null)
+    ).toEqual({
+      filter: 'true',
+      orderby: '',
+      skip: '0',
+      top: '50',
+    });
   });
 });
 
@@ -382,14 +402,205 @@ describe('length caps', () => {
   });
 
   describe('OData', () => {
-    it('drops fragment when filter value exceeds 1024 chars', () => {
+    it('drops fragment when filter value exceeds 1024 chars (returns true no-op)', () => {
       expect(
         buildODataFilter({ Name: { operator: 'contains', value: longValue } })
-      ).toBe('');
+      ).toBe('true');
     });
 
     it('drops sort when field name exceeds 256 chars', () => {
       expect(buildODataSort({ field: longField, direction: 'asc' })).toBe('');
     });
+  });
+});
+
+describe('OData type-aware filters: boolean', () => {
+  it('maps text-style equals/contains to an unquoted Edm boolean literal', () => {
+    expect(
+      buildODataFilter({ Active: { operator: 'equals', value: 'true' } }, { Active: 'boolean' })
+    ).toBe('Active eq true');
+    expect(
+      buildODataFilter({ Active: { operator: 'contains', value: 'False' } }, { Active: 'boolean' })
+    ).toBe('Active eq false');
+  });
+
+  it('coerces common truthy/falsy tokens and supports ne', () => {
+    expect(buildODataFilter({ A: { operator: 'starts_with', value: 'yes' } }, { A: 'boolean' })).toBe('A eq true');
+    expect(buildODataFilter({ A: { operator: 'ends_with', value: '0' } }, { A: 'boolean' })).toBe('A eq false');
+    expect(buildODataFilter({ A: { operator: 'ne', value: 'true' } }, { A: 'boolean' })).toBe('A ne true');
+  });
+
+  it('drops a boolean filter whose value is not boolean-like (returns true no-op)', () => {
+    expect(buildODataFilter({ A: { operator: 'equals', value: 'maybe' } }, { A: 'boolean' })).toBe('true');
+  });
+
+  it("uses a null check for blank/not_blank on boolean (no eq '')", () => {
+    expect(buildODataFilter({ A: { operator: 'blank', value: '' } }, { A: 'boolean' })).toBe('A eq null');
+    expect(buildODataFilter({ A: { operator: 'not_blank', value: '' } }, { A: 'boolean' })).toBe('A ne null');
+  });
+});
+
+describe('OData type-aware filters: date', () => {
+  it('maps equals to an unquoted Edm.Date literal', () => {
+    expect(
+      buildODataFilter({ Created: { operator: 'equals', value: '2024-01-15' } }, { Created: 'date' })
+    ).toBe('Created eq 2024-01-15');
+  });
+
+  it('accepts Edm.DateTimeOffset literals', () => {
+    expect(
+      buildODataFilter({ Created: { operator: 'equals', value: '2024-01-15T08:30:00Z' } }, { Created: 'date' })
+    ).toBe('Created eq 2024-01-15T08:30:00Z');
+  });
+
+  it('maps comparison operators to unquoted date literals', () => {
+    expect(buildODataFilter({ D: { operator: 'gt', value: '2024-01-01' } }, { D: 'date' })).toBe('D gt 2024-01-01');
+    expect(buildODataFilter({ D: { operator: 'lte', value: '2024-12-31' } }, { D: 'date' })).toBe('D le 2024-12-31');
+  });
+
+  it('maps between to a closed date range', () => {
+    expect(
+      buildODataFilter({ D: { operator: 'between', value: '2024-01-01', value2: '2024-06-30' } }, { D: 'date' })
+    ).toBe('(D ge 2024-01-01 and D le 2024-06-30)');
+  });
+
+  it('drops fuzzy operators and invalid/injected date values (returns true no-op)', () => {
+    expect(buildODataFilter({ D: { operator: 'contains', value: '2024' } }, { D: 'date' })).toBe('true');
+    expect(buildODataFilter({ D: { operator: 'starts_with', value: '2024' } }, { D: 'date' })).toBe('true');
+    expect(buildODataFilter({ D: { operator: 'equals', value: "2024' or '1'='1" } }, { D: 'date' })).toBe('true');
+    expect(buildODataFilter({ D: { operator: 'equals', value: 'not-a-date' } }, { D: 'date' })).toBe('true');
+  });
+
+  it("uses a null check for blank/not_blank on date (no eq '')", () => {
+    expect(buildODataFilter({ D: { operator: 'blank', value: '' } }, { D: 'date' })).toBe('D eq null');
+    expect(buildODataFilter({ D: { operator: 'not_blank', value: '' } }, { D: 'date' })).toBe('D ne null');
+  });
+});
+
+describe('OData type-aware filters: number blank/not_blank', () => {
+  it("uses a null check only (no eq '') for numeric columns", () => {
+    expect(buildODataFilter({ Age: { operator: 'blank', value: '' } }, { Age: 'number' })).toBe('Age eq null');
+    expect(buildODataFilter({ Age: { operator: 'not_blank', value: '' } }, { Age: 'number' })).toBe('Age ne null');
+  });
+
+  it('still emits numeric comparisons unchanged', () => {
+    expect(buildODataFilter({ Age: { operator: 'gte', value: 21 } }, { Age: 'number' })).toBe('Age ge 21');
+  });
+});
+
+describe('OData type-aware filters: string unchanged + defaults', () => {
+  it('keeps tolower/contains for string columns', () => {
+    expect(buildODataFilter({ Name: { operator: 'contains', value: 'Foo' } }, { Name: 'text' })).toBe(
+      `contains(tolower(Name), 'foo')`
+    );
+  });
+
+  it("keeps the legacy blank form (eq null or eq '') for string columns", () => {
+    expect(buildODataFilter({ Name: { operator: 'blank', value: '' } }, { Name: 'text' })).toBe(
+      `(Name eq null or Name eq '')`
+    );
+  });
+
+  it('defaults to string behavior when no type map is supplied', () => {
+    expect(buildODataFilter({ Name: { operator: 'equals', value: 'Bar' } })).toBe(`tolower(Name) eq 'bar'`);
+  });
+});
+
+describe('SQL type-aware filters', () => {
+  it('boolean: maps text operators to dialect boolean literals', () => {
+    expect(buildSQLFilter({ Active: { operator: 'equals', value: 'true' } }, 'postgres', { Active: 'boolean' })).toBe(
+      `"Active" = TRUE`
+    );
+    expect(buildSQLFilter({ Active: { operator: 'equals', value: 'no' } }, 'sqlserver', { Active: 'boolean' })).toBe(
+      `[Active] = 0`
+    );
+  });
+
+  it('date: equality/comparison/between use quoted, validated date literals', () => {
+    expect(buildSQLFilter({ D: { operator: 'equals', value: '2024-01-15' } }, 'postgres', { D: 'date' })).toBe(
+      `"D" = '2024-01-15'`
+    );
+    expect(
+      buildSQLFilter({ D: { operator: 'between', value: '2024-01-01', value2: '2024-06-30' } }, 'postgres', { D: 'date' })
+    ).toBe(`"D" BETWEEN '2024-01-01' AND '2024-06-30'`);
+    expect(buildSQLFilter({ D: { operator: 'contains', value: '2024' } }, 'postgres', { D: 'date' })).toBe('1=1');
+  });
+
+  it('blank/not_blank use IS NULL / IS NOT NULL on non-string columns', () => {
+    expect(buildSQLFilter({ Age: { operator: 'blank', value: '' } }, 'postgres', { Age: 'number' })).toBe(
+      `"Age" IS NULL`
+    );
+    expect(buildSQLFilter({ D: { operator: 'not_blank', value: '' } }, 'postgres', { D: 'date' })).toBe(
+      `"D" IS NOT NULL`
+    );
+  });
+
+  it('keeps the legacy blank form for string columns', () => {
+    expect(buildSQLFilter({ Name: { operator: 'blank', value: '' } }, 'postgres', { Name: 'text' })).toBe(
+      `("Name" IS NULL OR "Name" = '' OR TRIM("Name") = '')`
+    );
+  });
+});
+
+describe('numeric empty-value guard', () => {
+  it('drops the eq fragment for an empty-string value (deep-link ?gridFilter.Age=eq:)', () => {
+    expect(buildSQLFilter({ Age: { operator: 'eq', value: '' } }, 'postgres')).toBe('1=1');
+    expect(buildODataFilter({ Age: { operator: 'eq', value: '' } })).toBe('true');
+  });
+
+  it('drops the fragment for a whitespace-only value', () => {
+    expect(buildSQLFilter({ Age: { operator: 'gt', value: '   ' } }, 'postgres')).toBe('1=1');
+    expect(buildODataFilter({ Age: { operator: 'gt', value: '  ' } })).toBe('true');
+  });
+
+  it('drops a between fragment when either bound is empty/whitespace', () => {
+    expect(
+      buildSQLFilter({ Age: { operator: 'between', value: '', value2: '10' } }, 'postgres')
+    ).toBe('1=1');
+    expect(
+      buildSQLFilter({ Age: { operator: 'between', value: '1', value2: '  ' } }, 'postgres')
+    ).toBe('1=1');
+    expect(
+      buildODataFilter({ Age: { operator: 'between', value: '', value2: 10 } })
+    ).toBe('true');
+  });
+
+  it('still emits an explicit numeric zero (0 and "0" are not blank)', () => {
+    expect(buildSQLFilter({ Age: { operator: 'eq', value: 0 } }, 'postgres')).toBe('"Age" = 0');
+    expect(buildSQLFilter({ Age: { operator: 'eq', value: '0' } }, 'postgres')).toBe('"Age" = 0');
+    expect(buildODataFilter({ Age: { operator: 'eq', value: 0 } })).toBe('Age eq 0');
+  });
+});
+
+describe('pagination zero and magnitude clamping', () => {
+  it('treats pageSize 0 (and sub-1) as the default page size', () => {
+    expect(buildSQLPagination({ currentPage: 0, pageSize: 0 })).toEqual({ limit: 50, offset: 0 });
+    expect(buildODataPagination({ currentPage: 0, pageSize: 0 })).toEqual({ skip: 0, top: 50 });
+    expect(buildSQLPagination({ currentPage: 1, pageSize: 0.5 })).toEqual({ limit: 50, offset: 50 });
+  });
+
+  it('clamps a huge offset to a safe integer that stringifies as a decimal (no exponent)', () => {
+    const huge = 1e21;
+    expect(buildSQLPagination({ currentPage: huge, pageSize: 50 }).offset).toBe(
+      Number.MAX_SAFE_INTEGER
+    );
+    const q = buildSQLQuery(
+      {},
+      { field: null, direction: 'asc' },
+      { currentPage: huge, pageSize: 50 }
+    );
+    expect(q.offset).toBe('9007199254740991');
+    expect(q.offset).not.toMatch(/e/i);
+  });
+
+  it('clamps OData skip likewise (decimal string, no exponent)', () => {
+    const huge = 1e21;
+    const od = buildODataQuery(
+      {},
+      { field: null, direction: 'asc' },
+      { currentPage: huge, pageSize: 50 }
+    );
+    expect(od.skip).toBe('9007199254740991');
+    expect(od.skip).not.toMatch(/e/i);
   });
 });

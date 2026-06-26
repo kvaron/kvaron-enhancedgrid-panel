@@ -2,7 +2,7 @@
  * Utility functions for building OData query strings from filter and sort state
  */
 
-import { ColumnFilter, SqlDialect } from '../types';
+import { ColumnFilter, ColumnType, SqlDialect } from '../types';
 
 // Defensive caps applied at the fragment-builder boundary. Values exceeding
 // these lengths drop the filter / sort fragment instead of inflating the
@@ -16,12 +16,26 @@ function isOversizedValue(v: unknown): boolean {
   return typeof v === 'string' && v.length > MAX_FILTER_VALUE_LENGTH;
 }
 
+// A numeric operator with an empty/whitespace-only *string* value must drop its
+// fragment, NOT emit `field eq 0`. `Number('') === 0` and `Number('  ') === 0`
+// are finite, so without this guard a deep-link like `?gridFilter.Age=eq:`
+// (value === '') would silently filter on zero. An explicit numeric 0 (or '0')
+// is intentionally NOT blank and is preserved.
+function isBlankNumericValue(v: unknown): boolean {
+  return typeof v === 'string' && v.trim() === '';
+}
+
 function isOversizedIdentifier(name: string): boolean {
   return name.length > MAX_IDENTIFIER_LENGTH;
 }
 
 export interface FilterState {
   [fieldName: string]: ColumnFilter;
+}
+
+/** Maps field name -> detected column type, used to emit type-correct literals. */
+export interface ColumnTypeMap {
+  [fieldName: string]: ColumnType;
 }
 
 export interface SortState {
@@ -47,9 +61,44 @@ function isValidODataIdentifier(name: string): boolean {
 }
 
 /**
+ * Strict OData V4 temporal-literal patterns. A value must match one of these
+ * EXACTLY to be emitted as an (unquoted) Edm.Date / Edm.DateTimeOffset literal.
+ * Rejecting everything else is both injection-safe (no raw interpolation is
+ * possible — the value is a pure date token) and avoids emitting literals the
+ * service would reject.
+ */
+const ODATA_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ODATA_DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** Returns a validated temporal literal (date or datetimeoffset), or null. */
+function formatTemporalLiteral(value: string | number): string | null {
+  const s = String(value).trim();
+  return ODATA_DATE_RE.test(s) || ODATA_DATETIME_RE.test(s) ? s : null;
+}
+
+const TRUE_TOKENS = new Set(['true', '1', 'yes', 'y']);
+const FALSE_TOKENS = new Set(['false', '0', 'no', 'n']);
+
+/** Coerce a user value to a canonical boolean token, or null if not boolean-like. */
+function coerceBooleanToken(value: string | number): 'true' | 'false' | null {
+  const s = String(value).trim().toLowerCase();
+  if (TRUE_TOKENS.has(s)) {
+    return 'true';
+  }
+  if (FALSE_TOKENS.has(s)) {
+    return 'false';
+  }
+  return null;
+}
+
+/**
  * Builds an OData expression for a single filter
  */
-function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): string {
+function buildODataFilterExpression(
+  fieldName: string,
+  filter: ColumnFilter,
+  columnType: ColumnType = 'text'
+): string {
   // Reject field names that are not valid OData identifiers — OData has no
   // quoting mechanism, so a name like `weird name` or `evil); attack(` would
   // otherwise interpolate raw into the filter expression.
@@ -62,13 +111,68 @@ function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): st
     return '';
   }
 
-  // Handle blank/not blank
+  const isNonString = columnType === 'number' || columnType === 'date' || columnType === 'boolean';
+
+  // Blank / not blank — type-aware. Numeric, date, and boolean columns cannot
+  // be compared to the empty string in OData V4 (`eq ''` is a type error), so
+  // they use a null check only.
   if (operator === 'blank') {
-    return `(${fieldName} eq null or ${fieldName} eq '')`;
+    return isNonString ? `${fieldName} eq null` : `(${fieldName} eq null or ${fieldName} eq '')`;
   }
   if (operator === 'not_blank') {
-    return `(${fieldName} ne null and ${fieldName} ne '')`;
+    return isNonString ? `${fieldName} ne null` : `(${fieldName} ne null and ${fieldName} ne '')`;
   }
+
+  // Boolean columns: every text-style operator collapses to equality against a
+  // coerced Edm boolean literal. The value is coerced, never interpolated.
+  if (columnType === 'boolean') {
+    if (
+      operator === 'contains' ||
+      operator === 'equals' ||
+      operator === 'starts_with' ||
+      operator === 'ends_with' ||
+      operator === 'eq' ||
+      operator === 'ne'
+    ) {
+      const bool = coerceBooleanToken(value);
+      if (bool === null) {
+        return '';
+      }
+      return `${fieldName} ${operator === 'ne' ? 'ne' : 'eq'} ${bool}`;
+    }
+    return '';
+  }
+
+  // Date / datetime columns: 'equals'/'eq' map to an equality comparison
+  // against an unquoted, regex-validated temporal literal; numeric comparison
+  // operators map to date comparisons; between maps to a closed range. The
+  // fuzzy string operators (contains/starts_with/ends_with) have no valid
+  // Edm.Date equivalent in OData V4 and are dropped (fragment omitted).
+  if (columnType === 'date') {
+    if (operator === 'equals' || operator === 'eq') {
+      const lit = formatTemporalLiteral(value);
+      return lit === null ? '' : `${fieldName} eq ${lit}`;
+    }
+    if (operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+      const lit = formatTemporalLiteral(value);
+      if (lit === null) {
+        return '';
+      }
+      const ops: Record<string, string> = { ne: 'ne', gt: 'gt', lt: 'lt', gte: 'ge', lte: 'le' };
+      return `${fieldName} ${ops[operator]} ${lit}`;
+    }
+    if (operator === 'between' && value2 != null) {
+      const lit = formatTemporalLiteral(value);
+      const lit2 = formatTemporalLiteral(value2);
+      if (lit === null || lit2 === null) {
+        return '';
+      }
+      return `(${fieldName} ge ${lit} and ${fieldName} le ${lit2})`;
+    }
+    return '';
+  }
+
+  // ---- string + number columns ----
 
   // Escape single quotes in values
   const escapeValue = (v: string | number): string => {
@@ -77,24 +181,31 @@ function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): st
 
   const escapedValue = escapeValue(value);
 
-  // Text operators
-  if (operator === 'contains') {
-    return `contains(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
-  }
-  if (operator === 'equals') {
-    return `tolower(${fieldName}) eq '${escapedValue.toLowerCase()}'`;
-  }
-  if (operator === 'starts_with') {
-    return `startswith(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
-  }
-  if (operator === 'ends_with') {
-    return `endswith(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
+  // Text operators — only valid on string columns. tolower()/contains() are
+  // type errors on Edm numeric columns, so they are skipped for 'number'.
+  if (columnType !== 'number') {
+    if (operator === 'contains') {
+      return `contains(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
+    }
+    if (operator === 'equals') {
+      return `tolower(${fieldName}) eq '${escapedValue.toLowerCase()}'`;
+    }
+    if (operator === 'starts_with') {
+      return `startswith(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
+    }
+    if (operator === 'ends_with') {
+      return `endswith(tolower(${fieldName}), '${escapedValue.toLowerCase()}')`;
+    }
   }
 
   // Numeric operators — coerce to number to prevent injection via string values.
   // Number.isFinite rejects NaN, Infinity, and -Infinity (Infinity would render
   // as the bare token `Infinity`, which the database rejects as a parse error).
+  // A blank/whitespace string value is dropped so it never becomes `eq 0`.
   if (operator === 'eq' || operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+    if (isBlankNumericValue(value)) {
+      return '';
+    }
     const safeNum = Number(value);
     if (!Number.isFinite(safeNum)) {
       return '';
@@ -103,6 +214,9 @@ function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): st
     return `${fieldName} ${ops[operator]} ${safeNum}`;
   }
   if (operator === 'between' && value2 != null) {
+    if (isBlankNumericValue(value) || isBlankNumericValue(value2)) {
+      return '';
+    }
     const safeNum = Number(value);
     const safeNum2 = Number(value2);
     if (!Number.isFinite(safeNum) || !Number.isFinite(safeNum2)) {
@@ -117,9 +231,11 @@ function buildODataFilterExpression(fieldName: string, filter: ColumnFilter): st
 /**
  * Builds an OData $filter query string from filter state
  * @param filters - Object mapping field names to filter objects
- * @returns OData $filter query string
+ * @returns OData $filter query string. When no filter is active, returns the
+ *   OData boolean literal `true` (matches all rows) so templates like
+ *   `$filter=${gridFilter}` stay valid in every state.
  */
-export function buildODataFilter(filters: FilterState): string {
+export function buildODataFilter(filters: FilterState, types: ColumnTypeMap = {}): string {
   const filterExpressions: string[] = [];
 
   for (const [fieldName, filter] of Object.entries(filters)) {
@@ -127,10 +243,19 @@ export function buildODataFilter(filters: FilterState): string {
       continue;
     }
 
-    const expression = buildODataFilterExpression(fieldName, filter);
+    const expression = buildODataFilterExpression(fieldName, filter, types[fieldName] ?? 'text');
     if (expression) {
       filterExpressions.push(expression);
     }
+  }
+
+  // When no filters are active (or all were dropped as invalid), emit the
+  // OData boolean literal `true` — a valid $filter expression that matches
+  // every row. This mirrors the SQL builder's `1=1` no-op and keeps URL
+  // templates like `$filter=${gridFilter}` valid in every state, because a
+  // bare `$filter=` is rejected by strict OData V4 services.
+  if (filterExpressions.length === 0) {
+    return 'true';
   }
 
   // Combine all filter expressions with 'and'
@@ -159,19 +284,39 @@ export function buildODataSort(sortState: SortState): string {
 // Default page size used whenever an absent or invalid value is supplied.
 const DEFAULT_PAGE_SIZE = 50;
 
+// Largest value we will ever emit into a query string. Number.MAX_SAFE_INTEGER
+// stringifies as a plain decimal ("9007199254740991"); any value >= 1e21 would
+// render in exponential notation ("5e+21"), which is not a valid integer literal
+// in OData/SQL. Clamping guarantees a decimal string.
+const MAX_SAFE_PAGE_INT = Number.MAX_SAFE_INTEGER;
+
 /**
- * Coerce a pagination field to a non-negative integer, falling back to the
- * supplied default. Defends against runtime type-erasure surprises (e.g. a
- * future caller delivering pageSize as a string from URL params or a
- * deserialized JSON state).
+ * Coerce a pagination field to an integer in [min, MAX_SAFE_PAGE_INT], falling
+ * back to `fallback` for non-finite or below-min inputs. Defends against runtime
+ * type-erasure surprises (string from URL params, deserialized JSON) and against
+ * pathological magnitudes that would stringify in exponential notation.
  */
-function safePageInt(value: unknown, fallback: number): number {
+function safePageInt(value: unknown, fallback: number, min = 0): number {
   const n = Number(value);
   if (!Number.isFinite(n)) {
     return fallback;
   }
   const i = Math.trunc(n);
-  return i < 0 ? fallback : i;
+  if (i < min) {
+    return fallback;
+  }
+  return i > MAX_SAFE_PAGE_INT ? MAX_SAFE_PAGE_INT : i;
+}
+
+/**
+ * Clamp a computed offset/skip (page * size) to a magnitude that stringifies as
+ * a decimal. The product of two safe integers can still exceed MAX_SAFE_PAGE_INT.
+ */
+function clampPageMagnitude(n: number): number {
+  if (!Number.isFinite(n) || n > MAX_SAFE_PAGE_INT) {
+    return MAX_SAFE_PAGE_INT;
+  }
+  return n < 0 ? 0 : n;
 }
 
 /**
@@ -187,10 +332,10 @@ export function buildODataPagination(paginationState: PaginationState | null): {
     return { skip: 0, top: DEFAULT_PAGE_SIZE };
   }
 
-  const top = safePageInt(paginationState.pageSize, DEFAULT_PAGE_SIZE);
+  const top = safePageInt(paginationState.pageSize, DEFAULT_PAGE_SIZE, 1);
   const currentPage = safePageInt(paginationState.currentPage, 0);
   return {
-    skip: currentPage * top,
+    skip: clampPageMagnitude(currentPage * top),
     top,
   };
 }
@@ -205,7 +350,8 @@ export function buildODataPagination(paginationState: PaginationState | null): {
 export function buildODataQuery(
   filters: FilterState,
   sortState: SortState,
-  paginationState: PaginationState | null = null
+  paginationState: PaginationState | null = null,
+  types: ColumnTypeMap = {}
 ): {
   filter: string;
   orderby: string;
@@ -215,7 +361,7 @@ export function buildODataQuery(
   const pagination = buildODataPagination(paginationState);
 
   return {
-    filter: buildODataFilter(filters),
+    filter: buildODataFilter(filters, types),
     orderby: buildODataSort(sortState),
     skip: pagination.skip.toString(),
     top: pagination.top.toString(),
@@ -304,13 +450,27 @@ function buildSQLTextEquals(quotedField: string, value: string, dialect: SqlDial
   return `LOWER(${quotedField}) = LOWER('${value}')`;
 }
 
+/** Render a coerced boolean token as a dialect-appropriate SQL literal. */
+function sqlBooleanLiteral(value: string | number, dialect: SqlDialect): string | null {
+  const token = coerceBooleanToken(value);
+  if (token === null) {
+    return null;
+  }
+  if (dialect === 'postgres') {
+    return token === 'true' ? 'TRUE' : 'FALSE';
+  }
+  // sqlserver (BIT) and ansi/sqlite: 1 / 0 is the most portable boolean form.
+  return token === 'true' ? '1' : '0';
+}
+
 /**
  * Builds a SQL expression for a single filter
  */
 function buildSQLFilterExpression(
   fieldName: string,
   filter: ColumnFilter,
-  dialect: SqlDialect = 'postgres'
+  dialect: SqlDialect = 'postgres',
+  columnType: ColumnType = 'text'
 ): string {
   if (isOversizedIdentifier(fieldName)) {
     return '';
@@ -323,14 +483,72 @@ function buildSQLFilterExpression(
 
   // Escape field name to prevent SQL injection and handle special characters/spaces
   const quotedField = escapeSQLIdentifier(fieldName, dialect);
+  const isNonString = columnType === 'number' || columnType === 'date' || columnType === 'boolean';
 
-  // Handle blank/not blank
+  // Blank / not blank — type-aware. `col = ''` and TRIM(col) raise type errors
+  // on numeric/date/boolean columns (e.g. Postgres), so use a null check only.
   if (operator === 'blank') {
-    return `(${quotedField} IS NULL OR ${quotedField} = '' OR TRIM(${quotedField}) = '')`;
+    return isNonString
+      ? `${quotedField} IS NULL`
+      : `(${quotedField} IS NULL OR ${quotedField} = '' OR TRIM(${quotedField}) = '')`;
   }
   if (operator === 'not_blank') {
-    return `(${quotedField} IS NOT NULL AND ${quotedField} != '' AND TRIM(${quotedField}) != '')`;
+    return isNonString
+      ? `${quotedField} IS NOT NULL`
+      : `(${quotedField} IS NOT NULL AND ${quotedField} != '' AND TRIM(${quotedField}) != '')`;
   }
+
+  // Boolean columns: text-style operators collapse to equality against a
+  // dialect boolean literal. ILIKE/LIKE on a boolean column is a type error.
+  if (columnType === 'boolean') {
+    if (
+      operator === 'contains' ||
+      operator === 'equals' ||
+      operator === 'starts_with' ||
+      operator === 'ends_with' ||
+      operator === 'eq' ||
+      operator === 'ne'
+    ) {
+      const lit = sqlBooleanLiteral(value, dialect);
+      if (lit === null) {
+        return '';
+      }
+      return `${quotedField} ${operator === 'ne' ? '!=' : '='} ${lit}`;
+    }
+    return '';
+  }
+
+  // Date columns: equality/comparison against a regex-validated, quoted date
+  // literal. Fuzzy string operators have no date equivalent and are dropped.
+  if (columnType === 'date') {
+    const dateLit = (v: string | number): string | null => {
+      const f = formatTemporalLiteral(v);
+      return f === null ? null : `'${f}'`; // regex-validated: no quote can appear
+    };
+    if (operator === 'equals' || operator === 'eq') {
+      const lit = dateLit(value);
+      return lit === null ? '' : `${quotedField} = ${lit}`;
+    }
+    if (operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+      const lit = dateLit(value);
+      if (lit === null) {
+        return '';
+      }
+      const ops: Record<string, string> = { ne: '!=', gt: '>', lt: '<', gte: '>=', lte: '<=' };
+      return `${quotedField} ${ops[operator]} ${lit}`;
+    }
+    if (operator === 'between' && value2 != null) {
+      const lit = dateLit(value);
+      const lit2 = dateLit(value2);
+      if (lit === null || lit2 === null) {
+        return '';
+      }
+      return `${quotedField} BETWEEN ${lit} AND ${lit2}`;
+    }
+    return '';
+  }
+
+  // ---- string + number columns ----
 
   // Escape single quotes in values
   const escapeValue = (v: string | number): string => {
@@ -339,26 +557,32 @@ function buildSQLFilterExpression(
 
   const escapedValue = escapeValue(value);
 
-  // Text operators — dialect-specific case-insensitive comparison.
-  // LIKE-pattern metacharacters in the user's value are escaped inside
-  // buildSQLTextMatch via the LIKE ESCAPE clause.
-  if (operator === 'contains') {
-    return buildSQLTextMatch(quotedField, escapedValue, 'contains', dialect);
-  }
-  if (operator === 'equals') {
-    return buildSQLTextEquals(quotedField, escapedValue, dialect);
-  }
-  if (operator === 'starts_with') {
-    return buildSQLTextMatch(quotedField, escapedValue, 'starts_with', dialect);
-  }
-  if (operator === 'ends_with') {
-    return buildSQLTextMatch(quotedField, escapedValue, 'ends_with', dialect);
+  // Text operators — skip for numeric columns (ILIKE/LOWER() on a numeric
+  // column is a type error in Postgres). LIKE-pattern metacharacters in the
+  // user's value are escaped inside buildSQLTextMatch via the LIKE ESCAPE clause.
+  if (columnType !== 'number') {
+    if (operator === 'contains') {
+      return buildSQLTextMatch(quotedField, escapedValue, 'contains', dialect);
+    }
+    if (operator === 'equals') {
+      return buildSQLTextEquals(quotedField, escapedValue, dialect);
+    }
+    if (operator === 'starts_with') {
+      return buildSQLTextMatch(quotedField, escapedValue, 'starts_with', dialect);
+    }
+    if (operator === 'ends_with') {
+      return buildSQLTextMatch(quotedField, escapedValue, 'ends_with', dialect);
+    }
   }
 
   // Numeric operators — coerce to number to prevent SQL injection via string values.
   // Number.isFinite rejects NaN, Infinity, and -Infinity (Infinity would render
   // as the bare token `Infinity`, which the database rejects as a parse error).
+  // A blank/whitespace string value is dropped so it never becomes `= 0`.
   if (operator === 'eq' || operator === 'ne' || operator === 'gt' || operator === 'lt' || operator === 'gte' || operator === 'lte') {
+    if (isBlankNumericValue(value)) {
+      return '';
+    }
     const safeNum = Number(value);
     if (!Number.isFinite(safeNum)) {
       return '';
@@ -367,6 +591,9 @@ function buildSQLFilterExpression(
     return `${quotedField} ${ops[operator]} ${safeNum}`;
   }
   if (operator === 'between' && value2 != null) {
+    if (isBlankNumericValue(value) || isBlankNumericValue(value2)) {
+      return '';
+    }
     const safeNum = Number(value);
     const safeNum2 = Number(value2);
     if (!Number.isFinite(safeNum) || !Number.isFinite(safeNum2)) {
@@ -384,7 +611,11 @@ function buildSQLFilterExpression(
  * @param dialect - SQL dialect for syntax (default: 'postgres')
  * @returns SQL WHERE clause
  */
-export function buildSQLFilter(filters: FilterState, dialect: SqlDialect = 'postgres'): string {
+export function buildSQLFilter(
+  filters: FilterState,
+  dialect: SqlDialect = 'postgres',
+  types: ColumnTypeMap = {}
+): string {
   const filterExpressions: string[] = [];
 
   for (const [fieldName, filter] of Object.entries(filters)) {
@@ -392,7 +623,7 @@ export function buildSQLFilter(filters: FilterState, dialect: SqlDialect = 'post
       continue;
     }
 
-    const expression = buildSQLFilterExpression(fieldName, filter, dialect);
+    const expression = buildSQLFilterExpression(fieldName, filter, dialect, types[fieldName] ?? 'text');
     if (expression) {
       filterExpressions.push(expression);
     }
@@ -445,11 +676,11 @@ export function buildSQLPagination(paginationState: PaginationState | null): {
     return { limit: DEFAULT_PAGE_SIZE, offset: 0 };
   }
 
-  const limit = safePageInt(paginationState.pageSize, DEFAULT_PAGE_SIZE);
+  const limit = safePageInt(paginationState.pageSize, DEFAULT_PAGE_SIZE, 1);
   const currentPage = safePageInt(paginationState.currentPage, 0);
   return {
     limit,
-    offset: currentPage * limit,
+    offset: clampPageMagnitude(currentPage * limit),
   };
 }
 
@@ -465,7 +696,8 @@ export function buildSQLQuery(
   filters: FilterState,
   sortState: SortState,
   paginationState: PaginationState | null = null,
-  dialect: SqlDialect = 'postgres'
+  dialect: SqlDialect = 'postgres',
+  types: ColumnTypeMap = {}
 ): {
   where: string;
   orderby: string;
@@ -475,7 +707,7 @@ export function buildSQLQuery(
   const pagination = buildSQLPagination(paginationState);
 
   return {
-    where: buildSQLFilter(filters, dialect),
+    where: buildSQLFilter(filters, dialect, types),
     orderby: buildSQLSort(sortState, dialect),
     limit: pagination.limit.toString(),
     offset: pagination.offset.toString(),

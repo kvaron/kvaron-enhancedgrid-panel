@@ -1,0 +1,105 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "links": [],
+  "preload": false,
+  "refresh": "",
+  "schemaVersion": 42,
+  "tags": ["e2e", "odata"],
+  "templating": {
+    "list": [
+      {
+        "type": "textbox",
+        "name": "gridFilter",
+        "label": "gridFilter",
+        "query": "true",
+        "current": { "text": "true", "value": "true" },
+        "options": [{ "text": "true", "value": "true", "selected": true }],
+        "hide": 2
+      },
+      {
+        "type": "textbox",
+        "name": "gridSort",
+        "label": "gridSort",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "options": [{ "text": "", "value": "", "selected": true }],
+        "hide": 2
+      },
+      {
+        "type": "textbox",
+        "name": "gridSkip",
+        "label": "gridSkip",
+        "query": "0",
+        "current": { "text": "0", "value": "0" },
+        "options": [{ "text": "0", "value": "0", "selected": true }],
+        "hide": 2
+      },
+      {
+        "type": "textbox",
+        "name": "gridTop",
+        "label": "gridTop",
+        "query": "5",
+        "current": { "text": "5", "value": "5" },
+        "options": [{ "text": "5", "value": "5", "selected": true }],
+        "hide": 2
+      },
+      {
+        "type": "textbox",
+        "name": "gridCount",
+        "label": "gridCount",
+        "query": "",
+        "current": { "text": "", "value": "" },
+        "options": [{ "text": "", "value": "", "selected": true }],
+        "hide": 2
+      }
+    ]
+  },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "OData + Infinity E2E",
+  "uid": "odata-grid-e2e",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "type": "kvaron-enhancedgrid-panel",
+      "title": "Products (server-side OData)",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "odata-infinity" },
+      "gridPos": { "h": 18, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": {} }, "overrides": [] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "odata-infinity" },
+          "type": "json",
+          "parser": "backend",
+          "source": "url",
+          "format": "table",
+          "url": "http://odata:8080/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true",
+          "url_options": { "method": "GET", "data": "" },
+          "root_selector": "value",
+          "columns": [],
+          "filters": []
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "paginationEnabled": true,
+        "pageSize": 5,
+        "serverSideMode": true,
+        "queryFormat": "odata",
+        "filterVariableName": "gridFilter",
+        "sortVariableName": "gridSort",
+        "serverSidePagination": true,
+        "skipVariableName": "gridSkip",
+        "topVariableName": "gridTop",
+        "includeCount": true,
+        "countVariableName": "gridCount"
+      }
+    }
+  ]
+}

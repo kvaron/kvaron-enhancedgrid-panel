@@ -1,0 +1,7 @@
+apiVersion: 1
+
+providers:
+  - name: 'odata-e2e'
+    type: file
+    options:
+      path: /etc/grafana/provisioning/dashboards

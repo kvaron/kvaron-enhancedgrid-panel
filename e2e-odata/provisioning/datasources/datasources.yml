@@ -1,0 +1,15 @@
+apiVersion: 1
+
+datasources:
+  - name: OData Mock (Infinity)
+    type: yesoreyeram-infinity-datasource
+    uid: odata-infinity
+    access: proxy
+    isDefault: true
+    editable: true
+    jsonData:
+      # The dashboard query carries the full OData URL; no global URL needed.
+      # Allow the in-network mock host so Infinity's proxy will fetch it.
+      allowedHosts:
+        - http://odata:8080
+      tlsSkipVerify: true

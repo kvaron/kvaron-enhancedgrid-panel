@@ -4,43 +4,78 @@ Get server-side filtering and sorting working in 5 minutes!
 
 ## Quick Setup (Infinity Datasource + OData)
 
+This is the **full** filter + sort + paging setup, which is the recommended
+default.
+
 ### 1. Create Dashboard Variables
 
-In your Grafana dashboard settings → Variables, create:
+In your Grafana dashboard settings → Variables, create four **Text box**
+variables (set Hide: **Variable** on each):
 
-- **Variable 1:**
-  - Name: `gridFilter`
-  - Type: Text box
-  - Hide: Variable ✓
-
-- **Variable 2:**
-  - Name: `gridSort`
-  - Type: Text box
-  - Hide: Variable ✓
+| Name | Drives |
+| --- | --- |
+| `gridFilter` | `$filter` |
+| `gridSort` | `$orderby` |
+| `gridSkip` | `$skip` (page offset) |
+| `gridTop` | `$top` (page size) |
 
 ### 2. Configure Your Infinity Datasource Query
 
-In your query editor, set the URL to:
+In your query editor, set:
+
+| Field | Value |
+| --- | --- |
+| **Type** | `URL` |
+| **Parser** | `Backend` (recommended) or `Frontend` |
+| **Format** | `Table` |
+| **Method** | `GET` |
+| **Rows / Root selector** | `value`  ⚠️ **required** — OData nests rows in a `value` array; leave it blank and you get zero rows |
+| **URL** | (full template below) |
 
 ```
-https://your-api.com/odata/YourEntity?$filter=${gridFilter}&$orderby=${gridSort}
+https://your-api.com/odata/YourEntity?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
 ```
+
+⚠️ Put `$filter` / `$orderby` / `$skip` / `$top` in the **URL field**.
+Infinity percent-encodes the URL (`$` → `%24`, spaces → `+`); that's valid
+and a spec-compliant OData service decodes it back. If your service ignores
+the filter, it isn't decoding the query per RFC 3986 — see the
+[troubleshooting table](../README.md#troubleshooting-odata--infinity).
+
+> **Verify first:** before adding the `?$filter=...` part, run the bare
+> `https://your-api.com/odata/YourEntity` query and confirm rows appear.
+> That isolates the root-selector setup from the filtering wiring. The
+> [README walkthrough](../README.md#setting-up-odata-filters-with-the-infinity-datasource)
+> covers this step by step.
 
 ### 3. Enable Server-Side Mode in Panel
 
-In the Enhanced Grid panel settings:
+In the Enhanced Grid panel **Server-Side** section:
 
-1. Go to **Server-Side** section
-2. Toggle **Enable Server-Side Mode** ON
-3. Set **Query Format** to `OData ($filter, $orderby)`
-4. Set **Filter Variable Name** to `gridFilter`
-5. Set **Sort Variable Name** to `gridSort`
+1. Toggle **Enable Server-Side Mode** ON
+2. Set **Query Format** to `OData ($filter, $orderby)`
+3. Set **Filter Variable Name** to `gridFilter`
+4. Set **Sort Variable Name** to `gridSort`
+5. Enable **Pagination**, then toggle **Enable Server-Side Pagination** ON
+6. Set **Skip/Offset Variable Name** to `gridSkip` and **Top/Limit
+   Variable Name** to `gridTop`
+7. To show the total in the footer, set **Count Variable Name** (for
+   example `gridCount`)
 
-### 4. Test It!
+> **Total row count:** with server-side pagination on, the panel reads the
+> total from the data frame (a `count`, `total`, `totalCount`, or
+> `@odata.count` field in the response metadata) or from the **Count
+> Variable**. When a total is available, the footer shows it plus `Page N
+> of M`. When it isn't, the footer shows `Showing 1 to 50` and `Page 1`,
+> and **Next** stops at the last page once a short page returns. Paging
+> works either way.
+
+### 4. Test it
 
 - Type in any column filter box
 - Click a column header to sort
-- Watch the data refresh from your API!
+- Page through the results
+- Watch the data refresh from your API on each change
 
 ---
 
@@ -146,10 +181,15 @@ SQL:   WHERE "name" ILIKE '%laptop%' ORDER BY "price" DESC
 A: Check variable names match exactly (case-sensitive)
 
 **Q: Getting empty results?**
-A: Make sure to handle empty variables:
+A: Empty/no-op variable values are handled for you:
 
-- SQL: Use `WHERE 1=1 ${gridFilter:raw}` (the `1=1` ensures valid SQL when empty)
-- OData: Variables will be empty strings when no filter/sort applied
+- SQL: the panel writes `1=1` (filter) / `1` (sort) when nothing is active, so
+  `WHERE ${gridFilter:raw}` and `ORDER BY ${gridSort:raw}` stay valid.
+- OData: the panel writes `true` for an empty filter, so `$filter=${gridFilter}`
+  becomes `$filter=true` (matches all rows). Sort is left empty, which is a
+  valid empty `$orderby`. No `:queryparam` trick or variable default needed.
+- Still getting no rows from an OData API? Check the **Rows/Root selector** is
+  set to `value` (see step 2).
 
 **Q: Want to disable server-side temporarily?**
 A: Just toggle "Enable Server-Side Mode" OFF - panel returns to client-side filtering

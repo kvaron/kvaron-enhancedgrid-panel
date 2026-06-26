@@ -50,11 +50,38 @@ When **Server-Side Mode** is enabled, the panel pushes filter and sort state to 
 
 #### For Infinity Datasource (OData API)
 
-Configure your URL template to use the variables:
+> **Read [Setting Up OData Filters with the Infinity Datasource](../README.md#setting-up-odata-filters-with-the-infinity-datasource)
+> first** — it is a step-by-step, verify-as-you-go walkthrough that covers
+> the two gotchas (root selector and URL encoding) most people hit. This
+> section is the reference summary.
+
+Configure the Infinity query like this:
+
+| Field | Value |
+| --- | --- |
+| **Type** | `URL` |
+| **Parser** | `Backend` (recommended) or `Frontend` |
+| **Format** | `Table` |
+| **Method** | `GET` |
+| **Rows / Root selector** | `value`  ← OData nests rows in a `value` array; **required**, or you get zero rows |
+| **URL** | (full filter + sort + paging template below) |
 
 ```
-https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
+https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}&$skip=${gridSkip}&$top=${gridTop}&$count=true
 ```
+
+This full template is the recommended default — it wires up filtering,
+sorting, **and** server-side paging in one query. (`$skip` / `$top` stay
+inert until you enable **Server-Side Pagination** in the panel; `$count=true`
+asks OData to return `@odata.count` for the footer total.) If you only want
+filter + sort, drop the `$skip` / `$top` / `$count` options.
+
+Put the `$filter` / `$orderby` / `$skip` / `$top` options in the **URL
+field**. Infinity percent-encodes the URL (`$` becomes `%24`, spaces become
+`+`); that's valid encoding and a spec-compliant OData service decodes it
+back — verified end-to-end. If your service ignores the filter or returns a
+400 for `%24filter`, it isn't decoding the query per RFC 3986; see the
+README's [troubleshooting table](../README.md#troubleshooting-odata--infinity).
 
 **Example with filters applied:**
 
@@ -110,9 +137,21 @@ This ensures the query is valid even when variables are empty.
 
 **OData:**
 
+No special handling is needed. When no filter is active the panel writes the
+OData boolean literal `true` into the filter variable, so the template
+
 ```
-https://api.example.com/odata/Products?${gridFilter:queryparam}&${gridSort:queryparam}
+https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
 ```
+
+interpolates to `...?$filter=true&$orderby=` — a valid OData request that
+returns all rows in no particular order. (`$filter=true` matches everything;
+an empty `$orderby=` is valid OData meaning "no ordering".)
+
+> Do **not** use the `:queryparam` format specifier here. `${gridFilter:queryparam}`
+> expands to `var-gridFilter=<value>`, which is a Grafana dashboard-variable
+> parameter, **not** the OData `$filter=` your service expects. Reference the
+> variable directly as `$filter=${gridFilter}`.
 
 ## Query Format Examples
 
@@ -358,7 +397,11 @@ When server-side mode is enabled, the panel:
 The panel writes the variables only when a value applies:
 
 - The filter and sort variables are written on every change in server-side
-  mode (empty string when the user clears all filters or sort).
+  mode. When the user clears all filters, the panel writes a format-specific
+  **no-op** rather than a bare empty string, so templates stay valid:
+  `1=1` for SQL and `true` for OData (the filter variable); SQL sort
+  becomes `1` (`ORDER BY 1`) while OData sort is left empty (a valid empty
+  `$orderby`).
 - Skip / top variables are written only when **Enable Server-Side
   Pagination** is on.
 
@@ -382,6 +425,10 @@ The SQL column shows `postgres` output. Substitute identifier quoting and
 text-comparison shape from [SQL Dialects](#sql-dialects) for the other
 dialects. Numeric / blank operators differ only in identifier quoting.
 
+The fragment depends on the **column type** the panel detects (text,
+number, date, or boolean), so string functions are never applied to a
+non-string field.
+
 | Filter (column type) | Operator    | SQL fragment (`postgres`)                          | OData fragment (`queryFormat: odata`)               |
 | -------------------- | ----------- | -------------------------------------------------- | --------------------------------------------------- |
 | Text                 | contains    | `"col" ILIKE '%val%' ESCAPE '!'`                   | `contains(tolower(col), 'val')`                     |
@@ -390,8 +437,22 @@ dialects. Numeric / blank operators differ only in identifier quoting.
 | Text                 | ends_with   | `"col" ILIKE '%val' ESCAPE '!'`                    | `endswith(tolower(col), 'val')`                     |
 | Number               | =, ≠, >, <  | `"col" = 42` (or `!=`, `>`, `<`, `>=`, `<=`) | `col eq 42` (or `ne`, `gt`, `lt`, `ge`, `le`)     |
 | Number               | between     | `"col" BETWEEN 10 AND 20`                  | `(col ge 10 and col le 20)`                         |
-| Any                  | blank       | `("col" IS NULL OR "col" = '' OR TRIM("col") = '')` | `(col eq null or col eq '')`               |
-| Any                  | not_blank   | `("col" IS NOT NULL AND "col" != '' AND TRIM("col") != '')` | `(col ne null and col ne '')`     |
+| Date                 | equals      | `"col" = '2024-01-15'`                             | `col eq 2024-01-15`                                  |
+| Date                 | >, <, between | `"col" > '2024-01-15'`, `"col" BETWEEN '…' AND '…'` | `col gt 2024-01-15`, `(col ge … and col le …)`   |
+| Boolean              | equals      | `"col" = TRUE`                                     | `col eq true`                                        |
+| Text                 | blank       | `("col" IS NULL OR "col" = '' OR TRIM("col") = '')` | `(col eq null or col eq '')`               |
+| Text                 | not_blank   | `("col" IS NOT NULL AND "col" != '' AND TRIM("col") != '')` | `(col ne null and col ne '')`     |
+| Number/Date/Boolean  | blank       | `"col" IS NULL`                                    | `col eq null`                                       |
+| Number/Date/Boolean  | not_blank   | `"col" IS NOT NULL`                                | `col ne null`                                       |
+
+> **Date and boolean columns.** Date columns accept `equals`, the
+> comparison operators, and `between` — each emits a date literal like
+> `2024-01-15`. The fuzzy text operators (`contains`, `starts_with`,
+> `ends_with`) have no valid date form and are dropped, so pick **Equals**
+> or **Between**. Boolean columns map any text operator to `eq true` /
+> `eq false`; enter `true` or `false` (the panel also accepts `yes`/`no`
+> and `1`/`0`). Non-string columns use a null check for blank / not_blank,
+> because comparing them to `''` is a type error.
 
 The same `name contains 'foo'` filter across dialects:
 
@@ -506,17 +567,17 @@ ORDER BY id
 
 #### Example 4 — date column
 
-The column type detector classifies date columns, but they reuse the
-**text-style** operators (`contains`, `equals`, `starts_with`, `ends_with`).
-The numeric `between` operator is **not** offered for date columns, because
-date strings cannot be coerced via `Number(...)`.
+When the panel detects a date or time column, it emits a date literal
+instead of a string match. Use **Equals** with a full date, since the
+fuzzy operators (`contains`, `starts_with`, `ends_with`) have no valid
+date form and are dropped.
 
-User action: filter `created_at` with **starts_with** value `2026-03`.
+User action: filter `created_at` with **Equals** value `2026-03-01`.
 
-`gridFilter`:
+`gridFilter` (SQL):
 
 ```
-"created_at" ILIKE '2026-03%'
+"created_at" = '2026-03-01'
 ```
 
 Query after interpolation:
@@ -524,15 +585,20 @@ Query after interpolation:
 ```sql
 SELECT id, name, created_at
 FROM events
-WHERE "created_at" ILIKE '2026-03%'
+WHERE "created_at" = '2026-03-01'
 ORDER BY id
 ```
 
-> If `created_at` is stored as `timestamp` rather than `text`, PostgreSQL
-> may need an explicit cast in your query template, e.g.
-> `WHERE to_char(created_at, 'YYYY-MM-DD') ILIKE '2026-03%'`. You can adapt
-> the column expression at query authoring time without changing the panel
-> output.
+The OData equivalent is `created_at eq 2026-03-01` (an unquoted Edm.Date
+literal). The panel validates the value against a strict date pattern, so
+anything that isn't a date is dropped rather than passed through.
+
+> **To match a whole month or year,** filter on a date range instead of a
+> partial string. Comparison and `between` operators emit date literals
+> (for example `created_at ge 2026-03-01 and created_at le 2026-03-31`)
+> and are available through [deep links](#deep-links). If your column is
+> stored as **text** rather than a real date/time type, the panel treats
+> it as text and the `contains` / `starts_with` forms above still apply.
 
 #### Example 5 — multi-select equivalent
 
@@ -573,11 +639,17 @@ Final URL Infinity calls:
 https://api.example.com/odata/Products?$filter=contains(tolower(Name), 'laptop') and Price ge 500&$orderby=
 ```
 
-Because the OData `$filter` parameter must be omitted (not empty) when no
-filter is active, prefer the conditional form documented in
-[Handle Empty Variables](#step-4-handle-empty-variables) — for example
-`?${gridFilter:queryparam}` — so Grafana drops the parameter entirely when
-the variable is empty.
+When **no** filter is active the panel writes the OData boolean literal
+`true` (not an empty string), so the same template produces a valid request
+on first load:
+
+```
+https://api.example.com/odata/Products?$filter=true&$orderby=
+```
+
+`$filter=true` matches all rows, mirroring the SQL builder's `1=1` no-op, so
+you do not need the `:queryparam` trick or a dashboard-variable default to
+keep the request valid. (`$orderby=` empty is valid OData — "no ordering".)
 
 #### Empty-state handling for SQL filters
 
@@ -668,7 +740,7 @@ URL template:
 https://api.example.com/odata/Products?$filter=${gridFilter}&$orderby=${gridSort}
 ```
 
-User action: click **Name** to sort ascending.
+User action: click **Name** to sort ascending (no column filters active).
 
 `gridSort`:
 
@@ -676,10 +748,10 @@ User action: click **Name** to sort ascending.
 Name asc
 ```
 
-Final URL:
+`gridFilter` (no filters active) is the no-op `true`, so the final URL is:
 
 ```
-https://api.example.com/odata/Products?$filter=&$orderby=Name asc
+https://api.example.com/odata/Products?$filter=true&$orderby=Name asc
 ```
 
 #### Multi-column sort (workaround)
@@ -787,7 +859,7 @@ User state: page size 50, on page index 0 (first page), no filters, no sort.
 Variables written:
 
 ```
-gridFilter = (empty)
+gridFilter = true     (no-op: matches all rows)
 gridSort   = (empty)
 gridSkip   = 0
 gridTop    = 50
@@ -796,14 +868,23 @@ gridTop    = 50
 Final URL:
 
 ```
-https://api.example.com/odata/Products?$filter=&$orderby=&$skip=0&$top=50&$count=true
+https://api.example.com/odata/Products?$filter=true&$orderby=&$skip=0&$top=50&$count=true
 ```
 
-When `$count=true` is supported by your OData service, point the panel's
-**Count Variable Name** at the response field that holds the total count so
-the pagination footer can show the correct page-of-pages indicator. (For
-SQL data sources you can set this variable manually from a separate
-`SELECT COUNT(*)` query.)
+> **Show the total in the footer.** With server-side pagination on, the
+> panel reads the total row count from one of two places:
+>
+> - **The data frame** — a `count`, `total`, `totalCount`, or
+>   `@odata.count` field in the response metadata. The panel picks it up
+>   automatically.
+> - **The Count Variable** — set **Count Variable Name** to a dashboard
+>   variable that holds the total. SQL users fill it from a `SELECT
+>   COUNT(*)` query; OData users can map `@odata.count` into it.
+>
+> When a total is available, the footer shows it plus `Page N of M`. When
+> it isn't, the footer shows `Showing X to Y` and `Page N`, and **Next**
+> stops at the last page once a short page returns. Paging works either
+> way — the count only adds the total.
 
 #### Cursor-based pagination
 
@@ -872,7 +953,10 @@ If you need a custom format, you can modify the query builder in `src/utils/odat
 ### Infinity Datasource (OData)
 
 - Format: OData
+- Infinity query: Type `URL`, Parser `Backend`, Format `Table`, Method `GET`
+- **Rows / Root selector: `value`** (OData nests rows in a `value` array — required)
 - URL: `https://services.odata.org/V4/Northwind/Northwind.svc/Products?$filter=${gridFilter}&$orderby=${gridSort}`
+- See the [step-by-step walkthrough](../README.md#setting-up-odata-filters-with-the-infinity-datasource) for the full setup and troubleshooting.
 
 ### PostgreSQL / TimescaleDB
 

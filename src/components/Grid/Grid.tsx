@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { DataFrame } from '@grafana/data';
 import { Alert, useTheme2 } from '@grafana/ui';
-import { locationService } from '@grafana/runtime';
+import { getTemplateSrv, locationService } from '@grafana/runtime';
 import { css } from '@emotion/css';
 import { EnhancedGridOptions, HighlightRule, ColumnFilter, EnhancedGridFieldConfig } from '../../types';
 import { transformDataFrame, GridColumn } from '../../utils/dataTransformer';
@@ -18,8 +18,9 @@ import { GridHeader } from './GridHeader';
 import { GridBody, GridBodyHandle } from './GridBody';
 import { PaginationControls } from './PaginationControls';
 import { SparkChartNamespaceContext } from '../SparkChart/sparkChartNamespace';
-import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState } from '../../utils/odataQueryBuilder';
-import { capRowsForRender } from '../../utils/rowCap';
+import { buildODataQuery, buildSQLQuery, buildGenericQuery, PaginationState, ColumnTypeMap } from '../../utils/odataQueryBuilder';
+import { capRowsForRender, computeRowCap } from '../../utils/rowCap';
+import { resolveServerSideCount } from '../../utils/countSource';
 import { parseUrlFilters } from '../../utils/urlFilterParser';
 import {
   deregister as deregisterPanel,
@@ -27,7 +28,7 @@ import {
   register as registerPanel,
   subscribe as subscribePanelRegistry,
 } from '../../utils/panelInstanceRegistry';
-import { isBlank } from '../../utils/columnTypeDetector';
+import { isBlank, detectColumnType } from '../../utils/columnTypeDetector';
 import { getScrollbarWidth, hasVerticalScrollbar, hasHorizontalScrollbar } from '../../utils/scrollbarUtils';
 import { calculateColumnWidth, getFontOptions } from '../../utils/textMeasurement';
 import { classifyColumns, hasFrozenColumns, ColumnGroups } from '../../utils/frozenColumnManager';
@@ -119,7 +120,15 @@ export const Grid: React.FC<GridProps> = ({
     const params = locationService.getSearch();
     const legacyFilter = params.get(`var-${options.filterVariableName}`);
     const legacySort = params.get(`var-${options.sortVariableName}`);
-    if (legacyFilter || legacySort) {
+    // The panel publishes its own state into these same `var-*` keys with
+    // replace=true, so on reload they are populated with the panel's own
+    // no-op sentinels (`1=1`/`true` for the filter, `1` for SQL sort). Those
+    // are not legacy deep-links or collisions — ignore them so the warning
+    // only fires for values the panel never emits for an empty state.
+    const PANEL_NOOP_SENTINELS = new Set(['', '1=1', 'true', '1']);
+    const filterIsLegacy = legacyFilter != null && !PANEL_NOOP_SENTINELS.has(legacyFilter);
+    const sortIsLegacy = legacySort != null && !PANEL_NOOP_SENTINELS.has(legacySort);
+    if (filterIsLegacy || sortIsLegacy) {
       console.warn(
         `[EnhancedGrid] var-${options.filterVariableName} / var-${options.sortVariableName} ` +
           `was already populated when this panel mounted. This is either (a) another grid panel ` +
@@ -145,6 +154,23 @@ export const Grid: React.FC<GridProps> = ({
   // Ref to track debounce timeout for URL updates
   const urlUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Map field name -> detected column type, used to emit type-correct
+  // server-side filter literals (Edm.Date / Boolean / numeric vs. string).
+  const columnTypeMap = useMemo<ColumnTypeMap>(() => {
+    const map: ColumnTypeMap = {};
+    if (data?.fields) {
+      for (const field of data.fields) {
+        const sampleCount = Math.min(field.values.length, 100);
+        const sampleValues: any[] = [];
+        for (let i = 0; i < sampleCount; i++) {
+          sampleValues.push(field.values[i]);
+        }
+        map[field.name] = detectColumnType(field, sampleValues);
+      }
+    }
+    return map;
+  }, [data]);
+
   // Update dashboard variables when server-side mode is enabled (debounced)
   useEffect(() => {
     if (!options.serverSideMode) {
@@ -168,7 +194,12 @@ export const Grid: React.FC<GridProps> = ({
 
       // Build queries based on the selected format
       if (options.queryFormat === 'odata') {
-        const { filter, orderby, skip, top } = buildODataQuery(filters, sortState, paginationState);
+        const { filter, orderby, skip, top } = buildODataQuery(
+          filters,
+          sortState,
+          paginationState,
+          columnTypeMap
+        );
         filterQuery = filter;
         sortQuery = orderby;
         skipQuery = skip;
@@ -178,7 +209,8 @@ export const Grid: React.FC<GridProps> = ({
           filters,
           sortState,
           paginationState,
-          options.sqlDialect ?? 'postgres'
+          options.sqlDialect ?? 'postgres',
+          columnTypeMap
         );
         filterQuery = where;
         sortQuery = orderby;
@@ -204,13 +236,22 @@ export const Grid: React.FC<GridProps> = ({
         newParams[`var-${options.sortVariableName}`] = sortQuery || '';
       }
 
-      // Set pagination variables if enabled
+      // Set pagination variables if enabled; otherwise clear any stale values
+      // left in the URL from a previous server-side-pagination session.
+      // Assigning `undefined` makes locationService.partial drop the key.
       if (options.serverSidePagination) {
         if (options.skipVariableName) {
           newParams[`var-${options.skipVariableName}`] = skipQuery;
         }
         if (options.topVariableName) {
           newParams[`var-${options.topVariableName}`] = topQuery;
+        }
+      } else {
+        if (options.skipVariableName) {
+          newParams[`var-${options.skipVariableName}`] = undefined;
+        }
+        if (options.topVariableName) {
+          newParams[`var-${options.topVariableName}`] = undefined;
         }
       }
 
@@ -238,6 +279,7 @@ export const Grid: React.FC<GridProps> = ({
     options.sortVariableName,
     options.skipVariableName,
     options.topVariableName,
+    columnTypeMap,
   ]);
 
   // Transform data
@@ -292,6 +334,23 @@ export const Grid: React.FC<GridProps> = ({
       ) as typeof rawRows,
     [rawRows, options.serverSideMode, options.serverSidePagination, pageSize]
   );
+
+  // Detect whether the row cap actually clipped the datasource response so the
+  // UI can surface a visible warning (capRowsForRender only console.warns).
+  // computeRowCap is the same policy capRowsForRender applies internally; we
+  // compare it against the *un-capped* rawRows length.
+  const rowCapLimit = useMemo(
+    () =>
+      computeRowCap(
+        {
+          serverSideMode: options.serverSideMode,
+          serverSidePagination: options.serverSidePagination,
+        },
+        pageSize
+      ),
+    [options.serverSideMode, options.serverSidePagination, pageSize]
+  );
+  const rowsTruncated = rawRows.length > rowCapLimit;
 
   // Build fieldConfig map from data fields
   const fieldConfigMap = useMemo(() => {
@@ -661,6 +720,9 @@ export const Grid: React.FC<GridProps> = ({
       setSortField(fieldName);
       setSortDirection('asc');
     }
+    // Reset to first page when the sort changes (mirrors handleFilter) so
+    // server-side paging does not leave the user on a now-stale page.
+    setCurrentPage(0);
   };
 
   const handleFilter = (fieldName: string, filter: ColumnFilter | null) => {
@@ -688,8 +750,15 @@ export const Grid: React.FC<GridProps> = ({
     return filteredRows.slice(startIndex, endIndex);
   }, [filteredRows, currentPage, pageSize, options.paginationEnabled, options.serverSidePagination]);
 
-  // Calculate total count for pagination
-  const displayTotalCount = options.serverSidePagination ? null : filteredRows.length;
+  // Calculate total count for pagination. In server-side mode the panel does not
+  // hold the full dataset, so the count comes from frame meta or the count variable.
+  const displayTotalCount = useMemo(
+    () =>
+      options.serverSidePagination
+        ? resolveServerSideCount(data, options.countVariableName)
+        : filteredRows.length,
+    [options.serverSidePagination, options.countVariableName, data, filteredRows.length]
+  );
 
   // Determine which rows to display
   const displayRows = options.paginationEnabled ? paginatedRows : filteredRows;
@@ -935,6 +1004,23 @@ export const Grid: React.FC<GridProps> = ({
           <div>Each grid panel must use a unique name. Open panel options to change it.</div>
         </Alert>
       )}
+      {rowsTruncated && (
+        <Alert
+          severity="warning"
+          title="Rows truncated"
+          data-testid="enhanced-grid-rowcap-alert"
+        >
+          <div>
+            The data source returned {rawRows.length.toLocaleString()} rows; only the first{' '}
+            {rowCapLimit.toLocaleString()} are displayed.
+          </div>
+          <div>
+            {options.serverSideMode && options.serverSidePagination
+              ? 'Verify server-side pagination and filtering are pushing down to the data source.'
+              : 'Reduce the result size at the data source or enable server-side pagination.'}
+          </div>
+        </Alert>
+      )}
       {options.showHeader && (
         <div className={styles.headerWrapper}>
           <GridHeader
@@ -985,8 +1071,12 @@ export const Grid: React.FC<GridProps> = ({
             currentPage={currentPage}
             pageSize={pageSize}
             totalRows={displayTotalCount}
+            currentPageRowCount={displayRows.length}
             onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(0);
+            }}
           />
         </div>
       )}
