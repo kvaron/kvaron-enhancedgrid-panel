@@ -1,3 +1,37 @@
+## 0.2.5 (2026-06-26)
+
+### Features
+- feat(server-side): typed filters, total-row count, pagination fixes, OData/Infinity e2e
+
+### Bug Fixes
+- feat(server-side): typed filters, total-row count, pagination fixes, OData/Infinity e2e
+- chore(deps): bump @tanstack/react-virtual from 3.14.2 to 3.14.3 (#88)
+- chore(deps-dev): bump semver from 7.8.4 to 7.8.5 (#87)
+- chore(deps-dev): bump @playwright/test from 1.60.0 to 1.61.0 (#86)
+- chore(deps-dev): bump semver from 7.8.2 to 7.8.4 (#82)
+- chore(deps-dev): bump sass from 1.100.0 to 1.101.0 (#80)
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.8.0 to 3.9.1 (#79)
+- chore(deps-dev): bump @swc/core from 1.15.40 to 1.15.41 (#78)
+- chore(deps-dev): bump prettier from 3.8.3 to 3.8.4 (#77)
+- chore(deps): bump @tanstack/react-virtual from 3.13.26 to 3.14.2 (#73)
+- chore(deps-dev): bump semver from 7.8.1 to 7.8.2 (#74)
+- chore(deps-dev): bump @types/node from 25.9.1 to 25.9.2 (#72)
+- chore(deps-dev): bump webpack from 5.107.1 to 5.107.2 (#71)
+- chore(deps): bump the grafana group with 5 updates (#70)
+- chore(deps-dev): bump @swc/core from 1.15.33 to 1.15.40 (#66)
+- chore(deps): bump @tanstack/react-virtual from 3.13.25 to 3.13.26 (#69)
+- chore(deps-dev): bump terser-webpack-plugin from 5.6.0 to 5.6.1 (#68)
+- chore(deps-dev): bump webpack-cli from 7.0.2 to 7.0.3 (#67)
+- chore(deps-dev): bump @swc/helpers from 0.5.21 to 0.5.23 (#65)
+- chore(deps-dev): bump @grafana/tsconfig from 2.1.0 to 2.2.0 (#64)
+- chore(deps-dev): bump @grafana/plugin-e2e from 3.6.1 to 3.8.0 (#63)
+- chore(deps-dev): bump @types/node from 25.8.0 to 25.9.1 (#62)
+- chore(deps-dev): bump sass from 1.99.0 to 1.100.0 (#61)
+- chore(deps-dev): bump webpack from 5.106.2 to 5.107.1 (#60)
+- chore(deps): bump @tanstack/react-virtual from 3.13.24 to 3.13.25 (#59)
+- chore(deps-dev): bump semver from 7.8.0 to 7.8.1 (#57)
+- chore(ci): bump grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.3 (#56)
+
 ## 0.2.4 (2026-05-21)
 
 ### Bug Fixes
