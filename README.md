@@ -1,60 +1,52 @@
 # Enhanced Grid Panel for Grafana
 
-A powerful Grafana panel plugin that provides an advanced grid/table visualization with sophisticated cell highlighting, conditional formatting, server-side operations, and rich data presentation features.
+**An interactive, server-side-capable grid for large operational datasets.** Enhanced Grid turns its own in-panel interaction into a query: when a viewer filters a column, sorts by a header, pages forward, or switches views, the panel publishes that state back into the data source's query, so you can work interactively over OData and SQL tables far too large to load in the browser. It layers on conditional formatting that spans multiple columns, a condition-driven flags column, rich in-cell micro-charts, and saved views your dashboard consumers switch at view time.
 
 ![Panel Overview](docs/screenshots/01-panel-overview.png)
 
 ## Features
 
-### Virtualization and Scrolling
+### Server-side operations
 
-Smooth scrolling with sparklines and highlight rules across a 20,000-row dataset.
+The panel's own filter, sort, and pagination interaction is debounced and pushed into dashboard variables, which re-run the query — built for datasets too large to ship to the browser while keeping per-column interactivity. Works over OData (via the Infinity datasource) and SQL, with a dialect selector for PostgreSQL, SQL Server, or portable ANSI SQL. See [SQL Dialects](docs/SERVER_SIDE_SETUP.md#sql-dialects).
 
-![20k Row Virtualized Scroll](docs/screenshots/20k-scroll.gif)
+![Server-Side Settings](docs/screenshots/07-server-side-settings.png)
 
-### 🎨 Advanced Cell Highlighting & Formatting
+### Conditional formatting
 
-- **Conditional Formatting Rules**: Apply colors, backgrounds, and styles based on cell values
-- **Nested Condition Groups**: Build complex logical expressions like `(A && B) || C` for precise highlighting
-- **Multiple Rule Types**:
-  - **Threshold Rules**: Color cells based on numeric thresholds
-  - **Value Mapping**: Map specific values to colors and icons
-  - **Data Range Gradients**: Apply color gradients across value ranges
-  - **Flags Columns**: Display icon flags based on conditions
-  - **SparkCharts**: Embed mini-charts within cells
+Color a cell from a nested boolean expression over several columns — `(margin < 0.1 AND region = 'EU') OR flagged = true` — or compare one column to another (`actual > budget`). Also includes threshold coloring, value mappings (value / range / regex / special, each with an optional icon), and data-range color gradients.
 
 ![Highlight Rules](docs/screenshots/04-highlight-rules-config.png)
 ![Nested Conditions](docs/screenshots/05-condition-builder.png)
 
-### 🔍 Smart Column Filtering
+### Flags column
 
-- **Automatic Type Detection**: Text, numeric, date, and boolean column types
-- **Operator-Based Filtering**: Different operators for each column type
-  - Text: Contains, Equals, Starts With, Ends With
-  - Numbers: =, ≠, >, <, ≥, ≤, Between
-  - Dates: Range filtering
-- **Client-side & Server-side Support**: Filter locally or push to datasource
+A synthetic column that shows multiple independent status icons in one cell, each driven by its own condition group, with tooltips that interpolate other column values.
+
+### In-cell micro-charts
+
+Line, bar, stacked, bullet, and state-timeline cells, with per-cell, column-wide, or global normalization.
+
+### View presets
+
+Save a bundle of visible columns, filter, and multi-key sort as a named view. Dashboard consumers switch between views at view time, and each view is deep-linkable via URL.
+
+### Filtering and sorting
+
+Per-column filtering with automatic type detection and typed operators — text (contains / equals / starts / ends), numeric and date comparisons, `between`, and blank filters — plus header sort. Runs client-side, or server-side when server operations are enabled.
 
 ![Column Filtering](docs/screenshots/02-column-filter-dropdown.png)
 
-### 📊 Flexible Pagination
+### Pagination and virtualization
 
-- **Client-Side Pagination**: Fast navigation for smaller datasets
-- **Server-Side Pagination**: Efficient handling of large datasets with OData/SQL support
-- **Configurable Page Size**: Customize rows per page
+Client-side or server-side pagination with configurable page size, and virtualized rendering for smooth scrolling across large result sets — here, across a 20,000-row dataset:
 
 ![Pagination Controls](docs/screenshots/03-pagination-controls.png)
+![20k Row Virtualized Scroll](docs/screenshots/20k-scroll.gif)
 
-### 🚀 Server-Side Operations
+### Field configuration
 
-- **OData Support**: Native integration with OData APIs via Infinity datasource
-- **SQL Support**: PostgreSQL, TimescaleDB, Microsoft SQL Server, and SQLite (plus MySQL/MariaDB/Oracle with caveats — see [SQL Dialects](docs/SERVER_SIDE_SETUP.md#sql-dialects))
-- **SQL Dialect Selector**: Choose between PostgreSQL (`ILIKE` + `"quoted"` identifiers), SQL Server (`LIKE` + `[bracketed]` identifiers), or portable ANSI SQL (`LOWER(...) LIKE LOWER(...)`) so generated `WHERE` / `ORDER BY` fragments match your database
-- **Server-Side Filtering**: Push filters to datasource queries
-- **Server-Side Sorting**: Offload sorting to the database
-- **Custom Query Formats**: Flexible query parameter customization
-
-![Server-Side Settings](docs/screenshots/07-server-side-settings.png)
+Column width, alignment, unit, decimals, display name, row striping, borders, and pinned/frozen columns.
 
 ## Installation
 
@@ -361,27 +353,6 @@ For issues, feature requests, or questions:
 
 - GitHub Issues: [Report an issue](https://github.com/kvaron/kvaron-enhancedgrid-panel/issues)
 - Documentation: Check the [docs](docs/) folder
-
-## Tech Stack
-
-### Runtime Dependencies
-
-| Package                                                                       | Version | Purpose                                                     |
-| ----------------------------------------------------------------------------- | ------- | ----------------------------------------------------------- |
-| [@tanstack/react-virtual](https://tanstack.com/virtual/latest)                | 3.x     | Virtual scrolling for efficient rendering of large datasets |
-| [@emotion/css](https://emotion.sh/)                                           | 11.x    | CSS-in-JS styling                                           |
-| [@grafana/ui](https://grafana.com/developers/plugin-tools/)                   | 12.x    | Grafana UI component library                                |
-| [@grafana/data](https://grafana.com/developers/plugin-tools/)                 | 12.x    | Grafana data utilities and types                            |
-| [@grafana/runtime](https://grafana.com/developers/plugin-tools/)              | 12.x    | Grafana runtime APIs                                        |
-
-### Development Tools
-
-| Tool       | Version | Purpose                |
-| ---------- | ------- | ---------------------- |
-| TypeScript | 5.9     | Type-safe JavaScript   |
-| Webpack    | 5.x     | Module bundler         |
-| Jest       | 30.x    | Unit testing framework |
-| Playwright | 1.x     | End-to-end testing     |
 
 ## License
 

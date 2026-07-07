@@ -4,8 +4,8 @@
   "name": "Enhanced Grid",
   "id": "kvaron-enhancedgrid-panel",
   "info": {
-    "keywords": ["panel", "table", "grid", "highlight", "conditional formatting", "sparkchart", "pagination", "odata"],
-    "description": "Advanced grid/table panel with conditional formatting, nested highlight rules, server-side filtering, pagination, and embedded SparkCharts.",
+    "keywords": ["server-side", "interactive", "odata", "sql", "large dataset", "conditional formatting", "flags", "view presets"],
+    "description": "Interactive server-side grid: in-panel filter, sort, and paging drive OData/SQL queries against datasets too large to load in the browser, with multi-field conditional formatting, a condition-driven flags column, and viewer-switchable view presets.",
     "author": {
       "name": "Kvaron",
       "url": "https://github.com/kvaron"
