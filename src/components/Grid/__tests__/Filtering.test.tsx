@@ -45,12 +45,25 @@ jest.mock('@grafana/ui', () => {
     spacing: (...args: number[]) => args.map((value) => `${value * 8}px`).join(' '),
   };
 
+  // A dedicated portal container, like Grafana's real #grafana-portal-container
+  // (NOT document.body — that would make every outside click count as inside).
+  let portalContainer: HTMLElement | null = null;
+  const getPortalContainer = () => {
+    if (!portalContainer) {
+      portalContainer = document.createElement('div');
+      portalContainer.setAttribute('id', 'grafana-portal-container');
+      document.body.appendChild(portalContainer);
+    }
+    return portalContainer;
+  };
+
   return {
   useTheme2: () => theme,
   useStyles2: (getStyles: any, ...args: any[]) => getStyles(theme, ...args),
+  getPortalContainer,
   Icon: ({ name }: { name: string }) => <span data-testid={`icon-${name}`} />,
   Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-  Combobox: ({ value, options, onChange, portalContainer }: any) => {
+  Combobox: ({ value, options, onChange }: any) => {
     const ReactDOM = require('react-dom');
 
     return (
@@ -66,19 +79,19 @@ jest.mock('@grafana/ui', () => {
             </option>
           ))}
         </select>
-        {portalContainer
-          ? ReactDOM.createPortal(
-              <button type="button" data-testid="operator-menu-option" role="option">
-                Operator menu option
-              </button>,
-              portalContainer
-            )
-          : null}
+        {/* Grafana's Combobox portals its dropdown to a shared container outside the menu.
+            The option carries an ARIA role (caught by the role check); the search input sits
+            outside any role element, so it is only kept "inside" by the portal-container check. */}
         {ReactDOM.createPortal(
-          <button type="button" data-testid="external-operator-menu-option" role="option">
-            External operator menu option
-          </button>,
-          document.body
+          <div>
+            <input data-testid="combobox-search-input" />
+            <div role="listbox">
+              <button type="button" data-testid="external-operator-menu-option" role="option">
+                External operator menu option
+              </button>
+            </div>
+          </div>,
+          getPortalContainer()
         )}
       </>
     );
@@ -310,10 +323,11 @@ describe('column filtering', () => {
     fireEvent.focus(valueInput);
     expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByTestId('operator-menu-option'));
+    fireEvent.pointerDown(screen.getByTestId('external-operator-menu-option'));
     expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
 
-    fireEvent.pointerDown(screen.getByTestId('external-operator-menu-option'));
+    // The Combobox search input has no ARIA role, so only the portal-container check keeps the menu open.
+    fireEvent.pointerDown(screen.getByTestId('combobox-search-input'));
     expect(screen.getByTestId('column-filter-dropdown-name')).toBeInTheDocument();
   });
 

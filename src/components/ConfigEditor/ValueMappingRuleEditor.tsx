@@ -28,8 +28,12 @@ const getStyles = (theme: GrafanaTheme2) => ({
   valueMappingHeader: css`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: ${theme.spacing(1)};
     margin-bottom: ${theme.spacing(2)};
+  `,
+  matchValueRow: css`
+    flex: 1;
+    min-width: 0;
   `,
   addButton: css`
     margin-top: ${theme.spacing(2)};
@@ -81,10 +85,8 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
     const newMapping: ValueMappingEntry = {
       id: crypto.randomUUID ? crypto.randomUUID() : `mapping-${Date.now()}`,
       value: '',
-      style: {
-        backgroundColor: '#ffffff',
-        textColor: '#000000',
-      },
+      // New mappings start empty so they only add formatting the user picks.
+      style: {},
     };
 
     onChange({
@@ -163,14 +165,14 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
         />
       </Field>
 
-      {/* Value Mappings */}
+      {/* Value Mappings - each entry stays neutral until the user picks a style. */}
       <Field label="Value Mappings" description="Define exact values and their styles">
         <Stack direction="column">
           {(rule.valueMappings || []).map((mapping, index) => (
             <div key={mapping.id} className={styles.valueMappingContainer}>
               <div className={styles.valueMappingHeader}>
-                <InlineFieldRow>
-                  <InlineField label="Match Value" labelWidth={20}>
+                <InlineFieldRow className={styles.matchValueRow}>
+                  <InlineField label="Match Value" labelWidth={14} grow>
                     <Input
                       type="text"
                       value={formatValueForDisplay(mapping.value)}
@@ -179,7 +181,6 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
                         updateValueMapping(index, { value: parsedValue });
                       }}
                       placeholder="e.g., error, true, 123"
-                      width={30}
                     />
                   </InlineField>
                 </InlineFieldRow>

@@ -240,6 +240,10 @@ export interface HighlightRule {
   name: string;
   enabled: boolean;
   priority: number;
+  /** Optional editor-only grouping for organizing rules into collapsible sections without affecting evaluation order. */
+  groupId?: string;
+  /** Display name paired with `groupId`; the source of truth for a group's label in the editor. */
+  groupName?: string;
 
   // Which columns this rule applies to (always an array, use MultiCombobox with enableAllOption for "all columns")
   targetFields: string[];

@@ -104,9 +104,8 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
     const newLevel: ThresholdLevel = {
       id: crypto.randomUUID ? crypto.randomUUID() : `threshold-${Date.now()}`,
       minValue: 0,
-      style: {
-        backgroundColor: 'transparent',
-      },
+      // New levels start empty so they do not claim colors until configured.
+      style: {},
     };
 
     onChange({
@@ -161,9 +160,9 @@ export const ThresholdRuleEditor: React.FC<StandardEditorProps<HighlightRule>> =
         />
       </Field>
 
-      {/* Base Style */}
+      {/* Base Style - leave empty to avoid adding a fallback style below all thresholds. */}
       <Field label="Base Style" description="Style applied when value is below all thresholds">
-        <CellStyleEditor value={rule.baseStyle || { backgroundColor: 'transparent' }} onChange={updateBaseStyle} />
+        <CellStyleEditor value={rule.baseStyle || {}} onChange={updateBaseStyle} />
       </Field>
 
       {/* Threshold Levels */}

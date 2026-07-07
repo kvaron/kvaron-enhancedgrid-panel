@@ -18,6 +18,88 @@ export interface EnhancedRowContext extends RowContext {
   sparkChartGlobalRanges?: Record<string, { min: number; max: number }>;
 }
 
+// Only these plain style fields can safely stack across matching rules.
+const mergeableStyleProperties: Array<keyof CellStyle> = [
+  'backgroundColor',
+  'textColor',
+  'fontWeight',
+  'fontStyle',
+  'textDecoration',
+  'borderColor',
+  'borderWidth',
+  'iconPosition',
+];
+
+function hasStyleValue(value: unknown): boolean {
+  return value !== undefined && value !== null && !(typeof value === 'string' && value.trim() === '');
+}
+
+function hasStylePropertyValue(property: keyof CellStyle, value: unknown): boolean {
+  if (!hasStyleValue(value)) {
+    return false;
+  }
+
+  // Treat transparent defaults as unset so a later real color can still win.
+  if (
+    (property === 'backgroundColor' || property === 'borderColor') &&
+    typeof value === 'string' &&
+    value.trim().toLowerCase() === 'transparent'
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function assignIfUnset<K extends keyof CellStyle>(target: CellStyle, source: CellStyle, property: K): void {
+  if (!hasStylePropertyValue(property, target[property]) && hasStylePropertyValue(property, source[property])) {
+    target[property] = source[property];
+  }
+}
+
+// Resolve one property at a time so matching rules can layer instead of replace.
+function mergeDefinedStyleProperties(target: CellStyle, source: CellStyle): void {
+  for (const property of mergeableStyleProperties) {
+    assignIfUnset(target, source, property);
+  }
+
+  // A custom renderer owns the cell content and cannot combine with an icon.
+  // Whichever the higher-priority rule set wins the slot, so a lower-priority
+  // renderer must not clear an icon already claimed by a higher-priority rule.
+  if (!target.customRenderer && !hasStyleValue(target.icon) && source.customRenderer) {
+    target.customRenderer = source.customRenderer;
+
+    if (hasStyleValue(source.customRendererConfig)) {
+      target.customRendererConfig = source.customRendererConfig;
+    }
+
+    target.icon = undefined;
+    target.iconSource = undefined;
+    target.iconType = undefined;
+    return;
+  }
+
+  if (target.customRenderer || hasStyleValue(target.icon) || !hasStyleValue(source.icon)) {
+    return;
+  }
+
+  target.icon = source.icon;
+  if (hasStyleValue(source.iconSource)) {
+    target.iconSource = source.iconSource;
+  }
+  if (hasStyleValue(source.iconType)) {
+    target.iconType = source.iconType;
+  }
+}
+
+function hasAnyResolvedStyle(style: CellStyle): boolean {
+  return (
+    mergeableStyleProperties.some((property) => hasStylePropertyValue(property, style[property])) ||
+    hasStyleValue(style.icon) ||
+    hasStyleValue(style.customRenderer)
+  );
+}
+
 /**
  * Evaluate a threshold rule against a row context.
  * Returns the style from the matching threshold level, or baseStyle if no match.
@@ -445,6 +527,9 @@ function evaluateSparkChartRule(rule: HighlightRule, context: EnhancedRowContext
 /**
  * Compute the cell style for a given cell based on all applicable rules.
  * Rules are evaluated in priority order (lower number = higher priority).
+ * Matching rules fill individual style properties instead of replacing the
+ * whole style, so a color-only rule can combine with an icon-only rule.
+ * Blank and transparent defaults are treated as unset during the merge.
  * Supports five rule types: conditional, threshold, valueMapping, dataRangeGradient, and sparkChart.
  */
 export function computeCellStyle(rules: HighlightRule[], context: EnhancedRowContext): CellStyle | null {
@@ -454,7 +539,9 @@ export function computeCellStyle(rules: HighlightRule[], context: EnhancedRowCon
   // Sort by priority (lower = higher priority)
   const sortedRules = [...enabledRules].sort((a, b) => a.priority - b.priority);
 
-  // Find first matching rule
+  // Keep the first defined value for each property while walking matching rules.
+  const resolvedStyle: CellStyle = {};
+
   for (const rule of sortedRules) {
     // Dispatch to appropriate evaluator based on rule type
     const ruleType = rule.ruleType || 'conditional'; // Default to 'conditional' for backward compatibility
@@ -504,13 +591,12 @@ export function computeCellStyle(rules: HighlightRule[], context: EnhancedRowCon
         break;
     }
 
-    // Return first match (first-match-wins behavior)
     if (resultStyle) {
-      return resultStyle;
+      mergeDefinedStyleProperties(resolvedStyle, resultStyle);
     }
   }
 
-  return null;
+  return hasAnyResolvedStyle(resolvedStyle) ? resolvedStyle : null;
 }
 
 /**

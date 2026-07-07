@@ -1,6 +1,12 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StandardEditorProps, GrafanaTheme2 } from '@grafana/data';
-import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
+import {
+  DragDropContext,
+  Draggable,
+  DraggableProvidedDragHandleProps,
+  Droppable,
+  DropResult,
+} from '@hello-pangea/dnd';
 import { css, cx } from '@emotion/css';
 import {
   Button,
@@ -17,6 +23,11 @@ import {
   useStyles2,
 } from '@grafana/ui';
 import { HighlightRule } from '../../types';
+import {
+  TopLevelFormattingItem,
+  buildTopLevelFormattingItems,
+  flattenTopLevelItems,
+} from '../../utils/highlightRuleGrouping';
 import { ConditionGroupBuilder } from './ConditionGroupBuilder';
 import { ThresholdRuleEditor } from './ThresholdRuleEditor';
 import { ValueMappingRuleEditor } from './ValueMappingRuleEditor';
@@ -36,7 +47,94 @@ const ruleTypeOptions: Array<
   { label: 'Flags Column', value: 'flagsColumn' },
 ];
 
+const EMPTY_RULES: HighlightRule[] = [];
+
 const getStyles = (theme: GrafanaTheme2) => ({
+  sectionHeader: css({
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    padding: theme.spacing(0.75, 0.75),
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
+    borderRadius: theme.shape.radius.default,
+    background: theme.colors.background.secondary,
+    border: `1px solid ${theme.colors.border.medium}`,
+    borderLeft: `3px solid ${theme.colors.primary.main}`,
+  }),
+  sectionHeaderDisabled: css({
+    borderLeftColor: theme.colors.border.medium,
+  }),
+  sectionTitle: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+    fontWeight: theme.typography.fontWeightMedium,
+  }),
+  sectionTitleRow: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    minWidth: 0,
+    width: '100%',
+  }),
+  sectionTitleText: css({
+    display: 'flex',
+    alignItems: 'center',
+    minWidth: 0,
+    flex: 1,
+  }),
+  sectionTitleButton: css({
+    minWidth: 0,
+    padding: 0,
+    justifyContent: 'flex-start',
+  }),
+  sectionName: css({
+    color: theme.colors.text.link,
+    fontWeight: theme.typography.fontWeightBold,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }),
+  sectionActions: css({
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(0.5),
+    flexShrink: 0,
+  }),
+  sectionDragHandle: css({
+    cursor: 'grab',
+    color: theme.colors.text.disabled,
+    display: 'flex',
+    alignItems: 'center',
+    '&:hover': {
+      color: theme.colors.text.primary,
+    },
+  }),
+  emptyGroup: css({
+    padding: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    color: theme.colors.text.secondary,
+    border: `1px dashed ${theme.colors.border.weak}`,
+    borderRadius: theme.shape.radius.default,
+  }),
+  groupedRules: css({
+    marginLeft: theme.spacing(2.25),
+    paddingLeft: theme.spacing(1.25),
+    borderLeft: `2px solid ${theme.colors.primary.main}`,
+  }),
+  groupedRulesDisabled: css({
+    borderLeftColor: theme.colors.border.medium,
+  }),
+  groupAddRuleRow: css({
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: theme.spacing(0.5),
+  }),
+  groupedRulesList: css({
+    width: '100%',
+  }),
   header: css({
     label: 'Header',
     padding: theme.spacing(0.5, 0.5),
@@ -90,6 +188,10 @@ const getStyles = (theme: GrafanaTheme2) => ({
   ruleContent: css({
     padding: theme.spacing(2),
   }),
+  compactMetaRow: css({
+    marginBottom: theme.spacing(1),
+    opacity: 0.9,
+  }),
   cellStyleWrapper: css({
     backgroundColor: theme.colors.background.secondary,
     padding: theme.spacing(0.75),
@@ -99,19 +201,41 @@ const getStyles = (theme: GrafanaTheme2) => ({
 });
 
 export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>> = ({ value, onChange, context }) => {
-  const rules = value || [];
+  const rules = value ?? EMPTY_RULES;
   const styles = useStyles2(getStyles);
 
-  // State for expanded rules (collapsed by default)
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
-
-  // State for rule name editing
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [editingRuleName, setEditingRuleName] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
 
-  // Get available fields from data
   const availableFields = context.data[0]?.fields.map((f) => f.name) || [];
 
-  // Toggle rule expansion
+  // Group labels are stored on each rule (groupId + groupName).
+  const groupNames = useMemo(() => {
+    const names = new Map<string, string>();
+    for (const rule of rules) {
+      if (rule.groupId && rule.groupName) {
+        names.set(rule.groupId, rule.groupName);
+      }
+    }
+    return names;
+  }, [rules]);
+
+  const groupOptions = useMemo<Array<ComboboxOption<string>>>(
+    () => [
+      { label: 'Ungrouped', value: '' },
+      ...Array.from(groupNames.entries()).map(([id, name]) => ({ label: name, value: id })),
+    ],
+    [groupNames]
+  );
+
+  // Render grouped rules as one top-level item so group reorder stays intact.
+  const topLevelItems = useMemo<TopLevelFormattingItem[]>(
+    () => buildTopLevelFormattingItems(rules, groupNames),
+    [groupNames, rules]
+  );
+
   const toggleRuleExpansion = (ruleId: string) => {
     setExpandedRules((prev) => {
       const next = new Set(prev);
@@ -124,402 +248,620 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
     });
   };
 
-  // Handle drag end
+  const toggleGroupCollapse = (groupId: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
+  // Persist editor order back into the flat priority list used at runtime.
+  const emitRules = (nextRules: HighlightRule[]) => {
+    onChange(nextRules.map((rule, index) => ({ ...rule, priority: index + 1 })));
+  };
+
+  const createGroupRuleLists = () =>
+    new Map(
+      topLevelItems
+        .filter((item): item is Extract<TopLevelFormattingItem, { type: 'group' }> => item.type === 'group')
+        .map((item) => [item.id, [...item.rules]])
+    );
+
+  const flattenGroupRuleLists = (groupRuleLists: Map<string, HighlightRule[]>) =>
+    topLevelItems.flatMap((item) => {
+      if (item.type === 'group') {
+        return groupRuleLists.get(item.id) || [];
+      }
+      return [item.rule];
+    });
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) {
       return;
     }
 
-    const sourceIndex = result.source.index;
-    const destinationIndex = result.destination.index;
-
-    if (sourceIndex === destinationIndex) {
+    // Top-level drags move either a standalone rule or a whole formatting group.
+    if (result.type === 'TOP_LEVEL') {
+      const reorderedItems = [...topLevelItems];
+      const [movedItem] = reorderedItems.splice(result.source.index, 1);
+      if (!movedItem) {
+        return;
+      }
+      reorderedItems.splice(result.destination.index, 0, movedItem);
+      emitRules(flattenTopLevelItems(reorderedItems));
       return;
     }
 
-    const reordered = Array.from(rules);
-    const [movedRule] = reordered.splice(sourceIndex, 1);
-    reordered.splice(destinationIndex, 0, movedRule);
+    // Rule drags only reorder entries inside the grouped section structure.
+    const groupRuleLists = createGroupRuleLists();
+    const sourceList = groupRuleLists.get(result.source.droppableId);
+    const destinationList = groupRuleLists.get(result.destination.droppableId);
+    if (!sourceList || !destinationList) {
+      return;
+    }
 
-    // Recalculate priorities based on new order
-    const withPriorities = reordered.map((rule, index) => ({
-      ...rule,
-      priority: index + 1,
-    }));
+    const [movedRule] = sourceList.splice(result.source.index, 1);
+    if (!movedRule) {
+      return;
+    }
 
-    onChange(withPriorities);
+    const destinationGroupId = result.destination.droppableId;
+    const destinationGroupName = destinationGroupId ? groupNames.get(destinationGroupId) : undefined;
+    destinationList.splice(result.destination.index, 0, {
+      ...movedRule,
+      groupId: destinationGroupId,
+      groupName: destinationGroupName,
+    });
+
+    emitRules(flattenGroupRuleLists(groupRuleLists));
   };
 
-  // No-op handler for drag mouse position (required by drag handle)
   const reportDragMousePosition = () => {};
 
-  const addRule = () => {
+  const addRule = (groupId?: string, groupName?: string) => {
     const ruleId = crypto.randomUUID();
-    const groupId = crypto.randomUUID();
+    const conditionGroupId = crypto.randomUUID();
     const newRuleId = `rule-${ruleId}`;
     const newRule: HighlightRule = {
       id: newRuleId,
       name: `Rule ${rules.length + 1}`,
       enabled: true,
       priority: rules.length + 1,
+      ruleType: 'conditional',
+      groupId,
+      groupName,
       targetFields: [],
       conditionGroup: {
-        id: `group-${groupId}`,
+        id: `group-${conditionGroupId}`,
         type: 'group',
         logicalOperator: 'AND',
         items: [],
       },
-      style: {
-        backgroundColor: '#ff0000',
-        textColor: '#ffffff',
-      },
+      // New rules start neutral so they only affect cells after styling.
+      style: {},
     };
 
-    // Add new rule to expanded set
+    if (!groupId) {
+      setExpandedRules((prev) => new Set([...prev, newRuleId]));
+      emitRules([...rules, newRule]);
+      return;
+    }
+
+    const groupRuleLists = createGroupRuleLists();
+    const targetList = groupRuleLists.get(groupId);
+    if (!targetList) {
+      setExpandedRules((prev) => new Set([...prev, newRuleId]));
+      emitRules([...rules, newRule]);
+      return;
+    }
+    targetList.push(newRule);
+    groupRuleLists.set(groupId, targetList);
+
     setExpandedRules((prev) => new Set([...prev, newRuleId]));
-    onChange([...rules, newRule]);
+    emitRules(flattenGroupRuleLists(groupRuleLists));
   };
 
-  const removeRule = (index: number) => {
-    const removedRule = rules[index];
+  const addGroup = () => {
+    const groupId = `rule-group-${crypto.randomUUID()}`;
+    const groupName = `Group ${topLevelItems.filter((item) => item.type === 'group').length + 1}`;
+    setEditingGroupId(groupId);
+    addRule(groupId, groupName);
+  };
+
+  const removeRule = (ruleId: string) => {
     setExpandedRules((prev) => {
       const next = new Set(prev);
-      next.delete(removedRule.id);
+      next.delete(ruleId);
       return next;
     });
-    onChange(rules.filter((_, i) => i !== index));
+    emitRules(rules.filter((rule) => rule.id !== ruleId));
   };
 
-  const updateRule = (index: number, updates: Partial<HighlightRule>) => {
-    const updated = [...rules];
-    updated[index] = { ...updated[index], ...updates };
-    onChange(updated);
+  const setGroupEnabled = (groupId: string, enabled: boolean) => {
+    onChange(rules.map((rule) => (rule.groupId === groupId ? { ...rule, enabled } : rule)));
+  };
+
+  const updateRule = (ruleId: string, updates: Partial<HighlightRule>) => {
+    if ('groupId' in updates) {
+      const currentRule = rules.find((rule) => rule.id === ruleId);
+      if (!currentRule) {
+        return;
+      }
+
+      const destinationGroupName = updates.groupId ? groupNames.get(updates.groupId) : undefined;
+      const updatedRule = { ...currentRule, ...updates, groupName: destinationGroupName };
+      const originalIndex = rules.findIndex((rule) => rule.id === ruleId);
+      const nextRules = rules.filter((rule) => rule.id !== ruleId);
+      let destinationIndex = originalIndex;
+
+      if (updatedRule.groupId) {
+        destinationIndex = -1;
+        for (let index = nextRules.length - 1; index >= 0; index--) {
+          if (nextRules[index].groupId === updatedRule.groupId) {
+            destinationIndex = index + 1;
+            break;
+          }
+        }
+      }
+
+      if (destinationIndex < 0 || destinationIndex > nextRules.length) {
+        nextRules.push(updatedRule);
+      } else {
+        nextRules.splice(destinationIndex, 0, updatedRule);
+      }
+
+      emitRules(nextRules);
+      return;
+    }
+
+    onChange(rules.map((rule) => (rule.id === ruleId ? { ...rule, ...updates } : rule)));
+  };
+
+  const renameGroup = (groupId: string, groupName: string) => {
+    onChange(rules.map((rule) => (rule.groupId === groupId ? { ...rule, groupName } : rule)));
+  };
+
+  const removeGroup = (groupId: string) => {
+    onChange(
+      rules.map((rule) => (rule.groupId === groupId ? { ...rule, groupId: undefined, groupName: undefined } : rule))
+    );
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      next.delete(groupId);
+      return next;
+    });
+  };
+
+  const replaceRule = (updatedRule: HighlightRule) => {
+    onChange(rules.map((rule) => (rule.id === updatedRule.id ? updatedRule : rule)));
+  };
+
+  const createEmptyConditionGroup = () => ({
+    id: `group-${crypto.randomUUID()}`,
+    type: 'group' as const,
+    logicalOperator: 'AND' as const,
+    items: [],
+  });
+
+  // Drop stale per-type settings when a rule changes editors.
+  const buildRuleTypeUpdates = (
+    rule: HighlightRule,
+    newRuleType: NonNullable<HighlightRule['ruleType']>
+  ): Partial<HighlightRule> => {
+    const updates: Partial<HighlightRule> = { ruleType: newRuleType };
+
+    if (newRuleType === 'conditional') {
+      updates.conditionGroup = rule.conditionGroup || createEmptyConditionGroup();
+      updates.thresholdField = undefined;
+      updates.thresholdLevels = undefined;
+      updates.baseStyle = undefined;
+      updates.valueMappingField = undefined;
+      updates.valueMappings = undefined;
+      updates.dataRangeSourceField = undefined;
+      updates.dataRangeMode = undefined;
+      updates.dataRangeMin = undefined;
+      updates.dataRangeMax = undefined;
+      updates.dataRangeColorScheme = undefined;
+      updates.dataRangeApplyTo = undefined;
+      updates.sparkChartSourceField = undefined;
+      updates.sparkChartMode = undefined;
+      updates.sparkChartDataSeparator = undefined;
+      updates.sparkChartColorMode = undefined;
+      updates.sparkChartSolidColor = undefined;
+      updates.sparkChartColorScheme = undefined;
+      updates.sparkChartHeight = undefined;
+      updates.sparkChartStackColors = undefined;
+      return updates;
+    }
+
+    if (newRuleType === 'threshold') {
+      updates.valueMappingField = undefined;
+      updates.valueMappings = undefined;
+      updates.dataRangeSourceField = undefined;
+      updates.dataRangeMode = undefined;
+      updates.dataRangeMin = undefined;
+      updates.dataRangeMax = undefined;
+      updates.dataRangeColorScheme = undefined;
+      updates.dataRangeApplyTo = undefined;
+      return updates;
+    }
+
+    if (newRuleType === 'valueMapping') {
+      updates.thresholdField = undefined;
+      updates.thresholdLevels = undefined;
+      updates.baseStyle = undefined;
+      updates.dataRangeSourceField = undefined;
+      updates.dataRangeMode = undefined;
+      updates.dataRangeMin = undefined;
+      updates.dataRangeMax = undefined;
+      updates.dataRangeColorScheme = undefined;
+      updates.dataRangeApplyTo = undefined;
+      return updates;
+    }
+
+    if (newRuleType === 'dataRangeGradient') {
+      updates.thresholdField = undefined;
+      updates.thresholdLevels = undefined;
+      updates.baseStyle = undefined;
+      updates.valueMappingField = undefined;
+      updates.valueMappings = undefined;
+      updates.sparkChartSourceField = undefined;
+      updates.sparkChartMode = undefined;
+      updates.sparkChartDataSeparator = undefined;
+      updates.sparkChartColorMode = undefined;
+      updates.sparkChartSolidColor = undefined;
+      updates.sparkChartColorScheme = undefined;
+      updates.sparkChartHeight = undefined;
+      updates.sparkChartStackColors = undefined;
+      return updates;
+    }
+
+    if (newRuleType === 'sparkChart' || newRuleType === 'flagsColumn') {
+      updates.thresholdField = undefined;
+      updates.thresholdLevels = undefined;
+      updates.baseStyle = undefined;
+      updates.valueMappingField = undefined;
+      updates.valueMappings = undefined;
+      updates.dataRangeSourceField = undefined;
+      updates.dataRangeMode = undefined;
+      updates.dataRangeMin = undefined;
+      updates.dataRangeMax = undefined;
+      updates.dataRangeColorScheme = undefined;
+      updates.dataRangeApplyTo = undefined;
+    }
+
+    if (newRuleType === 'flagsColumn') {
+      updates.sparkChartSourceField = undefined;
+      updates.sparkChartMode = undefined;
+      updates.sparkChartDataSeparator = undefined;
+      updates.sparkChartColorMode = undefined;
+      updates.sparkChartSolidColor = undefined;
+      updates.sparkChartColorScheme = undefined;
+      updates.sparkChartHeight = undefined;
+      updates.sparkChartStackColors = undefined;
+    }
+
+    return updates;
+  };
+
+  const renderRuleBody = (rule: HighlightRule) => {
+    const currentRuleType = rule.ruleType || 'conditional';
+    return (
+      <div id={`rule-content-${rule.id}`} className={styles.ruleContent}>
+        <InlineFieldRow className={styles.compactMetaRow}>
+          <InlineField label="Group" labelWidth={8}>
+            <Combobox
+              options={groupOptions}
+              value={rule.groupId || ''}
+              onChange={(v) => updateRule(rule.id, { groupId: v?.value || undefined })}
+              width={20}
+            />
+          </InlineField>
+
+          <InlineField label="Type" labelWidth={6}>
+            <Combobox
+              options={ruleTypeOptions}
+              value={currentRuleType}
+              onChange={(v) => {
+                if (v) {
+                  updateRule(rule.id, buildRuleTypeUpdates(rule, v.value));
+                }
+              }}
+              width={20}
+            />
+          </InlineField>
+        </InlineFieldRow>
+
+        {currentRuleType === 'conditional' && (
+          <>
+            <InlineFieldRow>
+              <InlineField label="Apply to" labelWidth={12}>
+                <MultiCombobox
+                  options={availableFields.map((f) => ({ label: f, value: f }))}
+                  value={Array.isArray(rule.targetFields) ? rule.targetFields : []}
+                  onChange={(selected) => updateRule(rule.id, { targetFields: selected.map((s) => s.value) })}
+                  enableAllOption={false}
+                  width={30}
+                />
+              </InlineField>
+            </InlineFieldRow>
+
+            <Field label="Conditions" style={{ marginTop: 16, marginBottom: 16 }}>
+              <div>
+                {rule.conditionGroup ? (
+                  <ConditionGroupBuilder
+                    group={rule.conditionGroup}
+                    onChange={(conditionGroup) => updateRule(rule.id, { conditionGroup })}
+                    availableFields={availableFields}
+                  />
+                ) : (
+                  <Button
+                    icon="plus"
+                    variant="secondary"
+                    onClick={() => updateRule(rule.id, { conditionGroup: createEmptyConditionGroup() })}
+                  >
+                    Add Condition Group
+                  </Button>
+                )}
+              </div>
+            </Field>
+
+            <Field label="Style" style={{ marginTop: 16 }}>
+              <div className={styles.cellStyleWrapper}>
+                <CellStyleEditor value={rule.style} onChange={(style) => updateRule(rule.id, { style })} />
+              </div>
+            </Field>
+          </>
+        )}
+
+        {currentRuleType === 'threshold' && (
+          <ThresholdRuleEditor value={rule} onChange={(updatedRule) => updatedRule && replaceRule(updatedRule)} context={context} item={{} as any} />
+        )}
+
+        {currentRuleType === 'valueMapping' && (
+          <ValueMappingRuleEditor value={rule} onChange={(updatedRule) => updatedRule && replaceRule(updatedRule)} context={context} item={{} as any} />
+        )}
+
+        {currentRuleType === 'dataRangeGradient' && (
+          <DataRangeGradientRuleEditor value={rule} onChange={(updatedRule) => updatedRule && replaceRule(updatedRule)} context={context} item={{} as any} />
+        )}
+
+        {currentRuleType === 'sparkChart' && (
+          <SparkChartRuleEditor value={rule} onChange={(updatedRule) => updatedRule && replaceRule(updatedRule)} context={context} item={{} as any} />
+        )}
+
+        {currentRuleType === 'flagsColumn' && (
+          <FlagsColumnRuleEditor value={rule} onChange={(updatedRule) => updatedRule && replaceRule(updatedRule)} context={context} item={{} as any} />
+        )}
+      </div>
+    );
+  };
+
+  const renderRuleCard = (rule: HighlightRule, dragHandleProps?: DraggableProvidedDragHandleProps | null) => {
+    const isExpanded = expandedRules.has(rule.id);
+    const isEditing = editingRuleName === rule.id;
+
+    return (
+      <>
+        <div className={styles.header}>
+          <div className={styles.column}>
+            <IconButton
+              name={isExpanded ? 'angle-down' : 'angle-right'}
+              tooltip={isExpanded ? 'Collapse rule' : 'Expand rule'}
+              className={styles.collapseIcon}
+              onClick={() => toggleRuleExpansion(rule.id)}
+              aria-expanded={isExpanded}
+              aria-controls={`rule-content-${rule.id}`}
+            />
+            <Icon name="list-ul" size="sm" title="Highlight rule" className={styles.collapseIcon} />
+            <div className={styles.titleWrapper}>
+              {isEditing ? (
+                <Input
+                  value={rule.name}
+                  onChange={(e) => updateRule(rule.id, { name: e.currentTarget.value })}
+                  onBlur={() => setEditingRuleName(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      setEditingRuleName(null);
+                    }
+                  }}
+                  autoFocus
+                  width={30}
+                />
+              ) : (
+                <Button
+                  fill="text"
+                  onClick={() => setEditingRuleName(rule.id)}
+                  tooltip="Edit rule name"
+                  aria-label={`Edit rule name: ${rule.name}`}
+                  style={{ padding: 0, minHeight: 0 }}
+                >
+                  <span className={cx(styles.title, !rule.enabled && styles.disabled)}>{rule.name}</span>
+                  <Icon name="pen" size="sm" />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <Stack gap={1} alignItems="center">
+            <IconButton
+              name={rule.enabled ? 'eye' : 'eye-slash'}
+              tooltip={rule.enabled ? 'Disable rule' : 'Enable rule'}
+              onClick={() => updateRule(rule.id, { enabled: !rule.enabled })}
+              aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
+            />
+            <IconButton
+              name="trash-alt"
+              tooltip="Remove rule"
+              onClick={() => removeRule(rule.id)}
+              aria-label="Remove rule"
+            />
+            <div onMouseMove={reportDragMousePosition} {...dragHandleProps}>
+              <Icon title="Drag and drop to reorder" name="draggabledots" size="lg" className={styles.dragIcon} />
+            </div>
+          </Stack>
+        </div>
+
+        {isExpanded && renderRuleBody(rule)}
+      </>
+    );
+  };
+
+  const renderRule = (rule: HighlightRule, index: number) => {
+    return (
+      <Draggable key={rule.id} draggableId={rule.id} index={index}>
+        {(provided) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            style={{ marginBottom: 8, width: '100%', ...provided.draggableProps.style }}
+          >
+            {renderRuleCard(rule, provided.dragHandleProps)}
+          </div>
+        )}
+      </Draggable>
+    );
   };
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <Stack direction="column" gap={0}>
-        <Droppable droppableId="highlight-rules">
+        <Droppable droppableId="top-level-formatting-items" type="TOP_LEVEL">
           {(provided) => (
-            <div {...provided.droppableProps} ref={provided.innerRef} style={{ width: '100%' }}>
-              {rules.map((rule, index) => {
-                const currentRuleType = rule.ruleType || 'conditional';
-                const isExpanded = expandedRules.has(rule.id);
-                const isEditing = editingRuleName === rule.id;
+            <div {...provided.droppableProps} ref={provided.innerRef}>
+              {topLevelItems.map((item, index) => {
+                if (item.type === 'rule') {
+                  return (
+                    <Draggable key={item.id} draggableId={`top-rule-${item.id}`} index={index}>
+                      {(itemProvided) => (
+                        <div
+                          ref={itemProvided.innerRef}
+                          {...itemProvided.draggableProps}
+                          style={{ marginBottom: 8, width: '100%', ...itemProvided.draggableProps.style }}
+                        >
+                          {renderRuleCard(item.rule, itemProvided.dragHandleProps)}
+                        </div>
+                      )}
+                    </Draggable>
+                  );
+                }
+
+                const isCollapsed = collapsedGroups.has(item.id);
+                const isEditing = editingGroupId === item.id;
+                const isGroupEnabled = item.rules.some((rule) => rule.enabled);
 
                 return (
-                  <Draggable key={rule.id} draggableId={rule.id} index={index}>
-                    {(provided, snapshot) => (
+                  <Draggable key={item.id} draggableId={`top-group-${item.id}`} index={index}>
+                    {(itemProvided) => (
                       <div
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        style={{
-                          marginBottom: 8,
-                          width: '100%',
-                          ...provided.draggableProps.style,
-                        }}
+                        ref={itemProvided.innerRef}
+                        {...itemProvided.draggableProps}
+                        style={{ marginBottom: 8, width: '100%', ...itemProvided.draggableProps.style }}
                       >
-                        {/* Rule header matching QueryOperationRowHeader */}
-                        <div className={styles.header}>
-                          <div className={styles.column}>
-                            <IconButton
-                              name={isExpanded ? 'angle-down' : 'angle-right'}
-                              tooltip={isExpanded ? 'Collapse rule' : 'Expand rule'}
-                              className={styles.collapseIcon}
-                              onClick={() => toggleRuleExpansion(rule.id)}
-                              aria-expanded={isExpanded}
-                              aria-controls={`rule-content-${rule.id}`}
-                            />
-                            <div className={styles.titleWrapper}>
-                              {isEditing ? (
-                                <Input
-                                  value={rule.name}
-                                  onChange={(e) => updateRule(index, { name: e.currentTarget.value })}
-                                  onBlur={() => setEditingRuleName(null)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === 'Escape') {
-                                      setEditingRuleName(null);
-                                    }
-                                  }}
-                                  autoFocus
-                                  width={30}
+                        <div>
+                          <div className={cx(styles.sectionHeader, !isGroupEnabled && styles.sectionHeaderDisabled)}>
+                            <div className={styles.sectionTitle}>
+                              <div className={styles.sectionTitleRow}>
+                                <IconButton
+                                  name={isCollapsed ? 'angle-right' : 'angle-down'}
+                                  tooltip={isCollapsed ? 'Expand group' : 'Collapse group'}
+                                  onClick={() => toggleGroupCollapse(item.id)}
+                                  aria-expanded={!isCollapsed}
                                 />
-                              ) : (
-                                <Button
-                                  fill="text"
-                                  onClick={() => setEditingRuleName(rule.id)}
-                                  tooltip="Edit rule name"
-                                  aria-label={`Edit rule name: ${rule.name}`}
-                                  style={{
-                                    padding: 0,
-                                    minHeight: 0,
-                                  }}
-                                >
-                                  <span className={cx(styles.title, !rule.enabled && styles.disabled)}>
-                                    {rule.name}
-                                  </span>
-                                  <Icon name="pen" size="sm" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          <Stack gap={1} alignItems="center">
-                            <IconButton
-                              name={rule.enabled ? 'eye' : 'eye-slash'}
-                              tooltip={rule.enabled ? 'Disable rule' : 'Enable rule'}
-                              onClick={() => updateRule(index, { enabled: !rule.enabled })}
-                              aria-label={rule.enabled ? 'Disable rule' : 'Enable rule'}
-                            />
-                            <IconButton
-                              name="trash-alt"
-                              tooltip="Remove rule"
-                              onClick={() => removeRule(index)}
-                              aria-label="Remove rule"
-                            />
-                            <div onMouseMove={reportDragMousePosition} {...provided.dragHandleProps}>
-                              <Icon
-                                title="Drag and drop to reorder"
-                                name="draggabledots"
-                                size="lg"
-                                className={styles.dragIcon}
-                              />
-                            </div>
-                          </Stack>
-                        </div>
-
-                        {/* Rule content - only visible when expanded */}
-                        {isExpanded && (
-                          <div id={`rule-content-${rule.id}`} className={styles.ruleContent}>
-                            {/* Rule Type Selector */}
-                            <Field label="Rule Type" description="Select the type of rule to apply">
-                              <Combobox
-                                options={ruleTypeOptions}
-                                value={currentRuleType}
-                                onChange={(v) => {
-                                  if (!v) {
-                                    return;
-                                  }
-                                  const newRuleType = v.value;
-                                  const updates: Partial<HighlightRule> = { ruleType: newRuleType };
-
-                                  // Clear type-specific properties when changing type
-                                  if (newRuleType === 'conditional') {
-                                    updates.thresholdField = undefined;
-                                    updates.thresholdLevels = undefined;
-                                    updates.baseStyle = undefined;
-                                    updates.valueMappingField = undefined;
-                                    updates.valueMappings = undefined;
-                                    updates.dataRangeSourceField = undefined;
-                                    updates.dataRangeMode = undefined;
-                                    updates.dataRangeMin = undefined;
-                                    updates.dataRangeMax = undefined;
-                                    updates.dataRangeColorScheme = undefined;
-                                    updates.dataRangeApplyTo = undefined;
-                                  } else if (newRuleType === 'threshold') {
-                                    updates.conditionGroup = undefined;
-                                    updates.valueMappingField = undefined;
-                                    updates.valueMappings = undefined;
-                                    updates.dataRangeSourceField = undefined;
-                                    updates.dataRangeMode = undefined;
-                                    updates.dataRangeMin = undefined;
-                                    updates.dataRangeMax = undefined;
-                                    updates.dataRangeColorScheme = undefined;
-                                    updates.dataRangeApplyTo = undefined;
-                                  } else if (newRuleType === 'valueMapping') {
-                                    updates.conditionGroup = undefined;
-                                    updates.thresholdField = undefined;
-                                    updates.thresholdLevels = undefined;
-                                    updates.baseStyle = undefined;
-                                    updates.dataRangeSourceField = undefined;
-                                    updates.dataRangeMode = undefined;
-                                    updates.dataRangeMin = undefined;
-                                    updates.dataRangeMax = undefined;
-                                    updates.dataRangeColorScheme = undefined;
-                                    updates.dataRangeApplyTo = undefined;
-                                  } else if (newRuleType === 'dataRangeGradient') {
-                                    updates.conditionGroup = undefined;
-                                    updates.thresholdField = undefined;
-                                    updates.thresholdLevels = undefined;
-                                    updates.baseStyle = undefined;
-                                    updates.valueMappingField = undefined;
-                                    updates.valueMappings = undefined;
-                                    updates.sparkChartSourceField = undefined;
-                                    updates.sparkChartMode = undefined;
-                                    updates.sparkChartDataSeparator = undefined;
-                                    updates.sparkChartColorMode = undefined;
-                                    updates.sparkChartSolidColor = undefined;
-                                    updates.sparkChartColorScheme = undefined;
-                                    updates.sparkChartHeight = undefined;
-                                    updates.sparkChartStackColors = undefined;
-                                  } else if (newRuleType === 'sparkChart') {
-                                    updates.conditionGroup = undefined;
-                                    updates.thresholdField = undefined;
-                                    updates.thresholdLevels = undefined;
-                                    updates.baseStyle = undefined;
-                                    updates.valueMappingField = undefined;
-                                    updates.valueMappings = undefined;
-                                    updates.dataRangeSourceField = undefined;
-                                    updates.dataRangeMode = undefined;
-                                    updates.dataRangeMin = undefined;
-                                    updates.dataRangeMax = undefined;
-                                    updates.dataRangeColorScheme = undefined;
-                                    updates.dataRangeApplyTo = undefined;
-                                  } else if (newRuleType === 'flagsColumn') {
-                                    updates.conditionGroup = undefined;
-                                    updates.thresholdField = undefined;
-                                    updates.thresholdLevels = undefined;
-                                    updates.baseStyle = undefined;
-                                    updates.valueMappingField = undefined;
-                                    updates.valueMappings = undefined;
-                                    updates.dataRangeSourceField = undefined;
-                                    updates.dataRangeMode = undefined;
-                                    updates.dataRangeMin = undefined;
-                                    updates.dataRangeMax = undefined;
-                                    updates.dataRangeColorScheme = undefined;
-                                    updates.dataRangeApplyTo = undefined;
-                                    updates.sparkChartSourceField = undefined;
-                                    updates.sparkChartMode = undefined;
-                                    updates.sparkChartDataSeparator = undefined;
-                                    updates.sparkChartColorMode = undefined;
-                                    updates.sparkChartSolidColor = undefined;
-                                    updates.sparkChartColorScheme = undefined;
-                                    updates.sparkChartHeight = undefined;
-                                    updates.sparkChartStackColors = undefined;
-                                  }
-
-                                  updateRule(index, updates);
-                                }}
-                                width={30}
-                              />
-                            </Field>
-
-                            {/* Target fields (only for conditional rules) */}
-                            {currentRuleType === 'conditional' && (
-                              <InlineFieldRow>
-                                <InlineField label="Apply to" labelWidth={12}>
-                                  <MultiCombobox
-                                    options={availableFields.map((f) => ({ label: f, value: f }))}
-                                    value={Array.isArray(rule.targetFields) ? rule.targetFields : []}
-                                    onChange={(selected) => {
-                                      updateRule(index, { targetFields: selected.map((s) => s.value) });
-                                    }}
-                                    enableAllOption={false}
-                                    width={30}
-                                  />
-                                </InlineField>
-                              </InlineFieldRow>
-                            )}
-
-                            {/* Conditional rendering based on rule type */}
-                            {currentRuleType === 'conditional' && (
-                              <>
-                                {/* Conditions */}
-                                <Field label="Conditions" style={{ marginTop: 16, marginBottom: 16 }}>
-                                  <div>
-                                    {rule.conditionGroup ? (
-                                      <ConditionGroupBuilder
-                                        group={rule.conditionGroup}
-                                        onChange={(conditionGroup) => updateRule(index, { conditionGroup })}
-                                        availableFields={availableFields}
-                                      />
-                                    ) : (
-                                      <div>No conditions defined</div>
-                                    )}
-                                  </div>
-                                </Field>
-
-                                {/* Style */}
-                                <Field label="Style" style={{ marginTop: 16 }}>
-                                  <div className={styles.cellStyleWrapper}>
-                                    <CellStyleEditor
-                                      value={rule.style}
-                                      onChange={(style) => updateRule(index, { style })}
+                                <Icon name="folder" size="md" title="Formatting group" />
+                                {isEditing ? (
+                                  <div className={styles.sectionTitleText}>
+                                    <Input
+                                      value={item.name}
+                                      onChange={(e) => renameGroup(item.id, e.currentTarget.value)}
+                                      onBlur={() => setEditingGroupId(null)}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === 'Escape') {
+                                          setEditingGroupId(null);
+                                        }
+                                      }}
+                                      autoFocus
+                                      width={24}
                                     />
                                   </div>
-                                </Field>
-                              </>
-                            )}
-
-                            {currentRuleType === 'threshold' && (
-                              <ThresholdRuleEditor
-                                value={rule}
-                                onChange={(updatedRule) => {
-                                  if (updatedRule) {
-                                    const updated = [...rules];
-                                    updated[index] = updatedRule;
-                                    onChange(updated);
-                                  }
-                                }}
-                                context={context}
-                                item={{} as any}
+                                ) : (
+                                  <div className={styles.sectionTitleText}>
+                                    <Button
+                                      fill="text"
+                                      className={styles.sectionTitleButton}
+                                      onClick={() => setEditingGroupId(item.id)}
+                                      tooltip="Rename group"
+                                      aria-label={`Rename formatting group ${item.name}`}
+                                    >
+                                      <span className={styles.sectionName}>{item.name}</span>
+                                      <Icon name="pen" size="sm" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className={styles.sectionActions}>
+                              <IconButton
+                                name={isGroupEnabled ? 'eye' : 'eye-slash'}
+                                tooltip={isGroupEnabled ? 'Disable group' : 'Enable group'}
+                                onClick={() => setGroupEnabled(item.id, !isGroupEnabled)}
+                                aria-label={isGroupEnabled ? 'Disable group' : 'Enable group'}
                               />
-                            )}
-
-                            {currentRuleType === 'valueMapping' && (
-                              <ValueMappingRuleEditor
-                                value={rule}
-                                onChange={(updatedRule) => {
-                                  if (updatedRule) {
-                                    const updated = [...rules];
-                                    updated[index] = updatedRule;
-                                    onChange(updated);
-                                  }
-                                }}
-                                context={context}
-                                item={{} as any}
+                              <IconButton
+                                name="trash-alt"
+                                tooltip="Remove group"
+                                onClick={() => removeGroup(item.id)}
+                                aria-label={`Remove formatting group ${item.name}`}
                               />
-                            )}
-
-                            {currentRuleType === 'dataRangeGradient' && (
-                              <DataRangeGradientRuleEditor
-                                value={rule}
-                                onChange={(updatedRule) => {
-                                  if (updatedRule) {
-                                    const updated = [...rules];
-                                    updated[index] = updatedRule;
-                                    onChange(updated);
-                                  }
-                                }}
-                                context={context}
-                                item={{} as any}
-                              />
-                            )}
-
-                            {currentRuleType === 'sparkChart' && (
-                              <SparkChartRuleEditor
-                                value={rule}
-                                onChange={(updatedRule) => {
-                                  if (updatedRule) {
-                                    const updated = [...rules];
-                                    updated[index] = updatedRule;
-                                    onChange(updated);
-                                  }
-                                }}
-                                context={context}
-                                item={{} as any}
-                              />
-                            )}
-
-                            {currentRuleType === 'flagsColumn' && (
-                              <FlagsColumnRuleEditor
-                                value={rule}
-                                onChange={(updatedRule) => {
-                                  if (updatedRule) {
-                                    const updated = [...rules];
-                                    updated[index] = updatedRule;
-                                    onChange(updated);
-                                  }
-                                }}
-                                context={context}
-                                item={{} as any}
-                              />
-                            )}
+                              <div
+                                {...itemProvided.dragHandleProps}
+                                className={styles.sectionDragHandle}
+                                title="Drag and drop to reorder group"
+                              >
+                                <Icon name="draggabledots" size="lg" />
+                              </div>
+                            </div>
                           </div>
-                        )}
+
+                          {!isCollapsed && (
+                            <div className={cx(styles.groupedRules, !isGroupEnabled && styles.groupedRulesDisabled)}>
+                              <div className={styles.groupAddRuleRow}>
+                                <Button
+                                  icon="plus"
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => addRule(item.id, item.name)}
+                                >
+                                  Add Rule
+                                </Button>
+                              </div>
+                              <Droppable droppableId={item.id} type="RULE">
+                                {(ruleListProvided) => (
+                                  <div
+                                    {...ruleListProvided.droppableProps}
+                                    ref={ruleListProvided.innerRef}
+                                    className={styles.groupedRulesList}
+                                  >
+                                    {item.rules.length === 0 ? (
+                                      <div className={styles.emptyGroup}>No formatting rules in this group.</div>
+                                    ) : (
+                                      item.rules.map((rule, index) => renderRule(rule, index))
+                                    )}
+                                    {ruleListProvided.placeholder}
+                                  </div>
+                                )}
+                              </Droppable>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </Draggable>
+                      )}
+                    </Draggable>
                 );
               })}
               {provided.placeholder}
@@ -527,9 +869,14 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
           )}
         </Droppable>
 
-        <Button icon="plus" onClick={addRule} variant="primary">
-          Add Highlight Rule
-        </Button>
+        <Stack direction="row" gap={1}>
+          <Button icon="plus" onClick={() => addRule()} variant="primary">
+            Add Rule
+          </Button>
+          <Button icon="folder-plus" onClick={addGroup} variant="secondary">
+            Add Group
+          </Button>
+        </Stack>
       </Stack>
     </DragDropContext>
   );

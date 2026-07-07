@@ -55,7 +55,6 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
   const [operator, setOperator] = useState<FilterOperator>(currentFilter?.operator || defaultOperator);
   const [value, setValue] = useState<string>(currentFilter?.value?.toString() || '');
   const [value2, setValue2] = useState<string>(currentFilter?.value2?.toString() || '');
-  const [comboboxPortalContainer, setComboboxPortalContainer] = useState<HTMLDivElement | null>(null);
 
   const needsValue = operator !== 'blank' && operator !== 'not_blank';
   const needsValue2 = operator === 'between';
@@ -130,18 +129,11 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({
     <div
       className={styles.container}
       onClick={(e) => e.stopPropagation()}
-      ref={setComboboxPortalContainer}
       data-testid={`column-filter-dropdown-${fieldName}`}
     >
       <div className={styles.row}>
         <label className={styles.label}>Operator</label>
-        <Combobox
-          value={operator}
-          options={operatorOptions}
-          onChange={handleOperatorChange}
-          width={30}
-          portalContainer={comboboxPortalContainer ?? undefined}
-        />
+        <Combobox value={operator} options={operatorOptions} onChange={handleOperatorChange} width={30} />
       </div>
 
       {needsValue && (
