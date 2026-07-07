@@ -81,10 +81,8 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
     const newMapping: ValueMappingEntry = {
       id: crypto.randomUUID ? crypto.randomUUID() : `mapping-${Date.now()}`,
       value: '',
-      style: {
-        backgroundColor: '#ffffff',
-        textColor: '#000000',
-      },
+      // New mappings start empty so they only add formatting the user picks.
+      style: {},
     };
 
     onChange({
@@ -163,7 +161,7 @@ export const ValueMappingRuleEditor: React.FC<StandardEditorProps<HighlightRule>
         />
       </Field>
 
-      {/* Value Mappings */}
+      {/* Value Mappings - each entry stays neutral until the user picks a style. */}
       <Field label="Value Mappings" description="Define exact values and their styles">
         <Stack direction="column">
           {(rule.valueMappings || []).map((mapping, index) => (
