@@ -1,3 +1,13 @@
+## 0.3.1 (2026-07-07)
+
+### Features
+- feat: formatting rule groups, per-property style merge, and conditional editor fixes (#92)
+
+### Bug Fixes
+- Update readme and description
+- feat: formatting rule groups, per-property style merge, and conditional editor fixes (#92)
+- chore(deps): bump the grafana group with 5 updates (#89)
+
 ## 0.3.0 (2026-06-26)
 
 ### Features
