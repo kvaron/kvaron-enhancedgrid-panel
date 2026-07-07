@@ -6,6 +6,37 @@ import { ResolvedVariablesEditor } from './components/ConfigEditor/ResolvedVaria
 import { ViewPresetsEditor, DefaultPresetSelect } from './components/ConfigEditor/ViewPresetsEditor';
 
 export const plugin = new PanelPlugin<EnhancedGridOptions, EnhancedGridFieldConfig>(EnhancedGridPanel)
+  // Keep panel defaults explicit so new editor-only options start from a stable state.
+  .setDefaults({
+    showHeader: true,
+    showRowNumbers: false,
+    compactMode: false,
+    compactHeaders: false,
+    filterStyle: 'filterRow',
+    rowHeight: 32,
+    headerHeight: 80,
+    rowStripeEnabled: true,
+    freezeLeftColumns: 0,
+    freezeRightColumns: 0,
+    borderStyle: 'horizontal',
+    columns: [],
+    highlightRules: [],
+    highlightRuleGroups: [],
+    enableViewPresets: false,
+    viewPresets: [],
+    paginationEnabled: false,
+    pageSize: 50,
+    virtualScrollEnabled: true,
+    overscanRows: 5,
+    autoSizeAllColumns: false,
+    autoSizeSampleSize: 100,
+    serverSideMode: false,
+    gridId: '',
+    queryFormat: 'odata',
+    sqlDialect: 'postgres',
+    serverSidePagination: false,
+    includeCount: true,
+  })
   // Configure field-level options (per-column overrides)
   .useFieldConfig({
     standardOptions: {
