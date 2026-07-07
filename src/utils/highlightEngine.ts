@@ -63,14 +63,16 @@ function mergeDefinedStyleProperties(target: CellStyle, source: CellStyle): void
     assignIfUnset(target, source, property);
   }
 
-  if (!target.customRenderer && source.customRenderer) {
+  // A custom renderer owns the cell content and cannot combine with an icon.
+  // Whichever the higher-priority rule set wins the slot, so a lower-priority
+  // renderer must not clear an icon already claimed by a higher-priority rule.
+  if (!target.customRenderer && !hasStyleValue(target.icon) && source.customRenderer) {
     target.customRenderer = source.customRenderer;
 
     if (hasStyleValue(source.customRendererConfig)) {
       target.customRendererConfig = source.customRendererConfig;
     }
 
-    // Custom renderers own the cell content, so normal inline icons should not combine with them.
     target.icon = undefined;
     target.iconSource = undefined;
     target.iconType = undefined;

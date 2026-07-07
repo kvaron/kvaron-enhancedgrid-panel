@@ -242,7 +242,7 @@ export interface HighlightRule {
   priority: number;
   /** Optional editor-only grouping for organizing rules into collapsible sections without affecting evaluation order. */
   groupId?: string;
-  /** Display name paired with `groupId` so older saved rules can still render the editor label. */
+  /** Display name paired with `groupId`; the source of truth for a group's label in the editor. */
   groupName?: string;
 
   // Which columns this rule applies to (always an array, use MultiCombobox with enableAllOption for "all columns")
@@ -361,16 +361,6 @@ export interface HighlightRule {
 }
 
 /**
- * Editor-only group metadata for organizing formatting rules. Rule evaluation
- * still uses the flat `highlightRules` array and each rule's priority, so
- * group changes do not alter runtime behavior by themselves.
- */
-export interface HighlightRuleGroup {
-  id: string;
-  name: string;
-}
-
-/**
  * A saved "view" of the grid: a named bundle of visible columns, an optional
  * nested filter, and a sequential (multi-key) sort. Surfaced as a tab the user
  * can click to apply all three in one go. Stored in panel options and treated
@@ -422,8 +412,6 @@ export interface EnhancedGridOptions {
 
   // Global highlight rules
   highlightRules: HighlightRule[];
-  // Editor-only grouping metadata for the formatting UI.
-  highlightRuleGroups?: HighlightRuleGroup[];
 
   // View presets (tab bar of saved column/filter/sort views)
   enableViewPresets: boolean;

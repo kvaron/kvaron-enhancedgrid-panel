@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ColorPicker, IconName, useTheme2, Button, Input } from '@grafana/ui';
+import { ColorPicker, IconName, useTheme2, Button, Input, RadioButtonGroup } from '@grafana/ui';
 import { CellStyle, IconValue, IconSource } from '../../types';
 import { css } from '@emotion/css';
 import { EnhancedIconPicker } from '../IconPickers/EnhancedIconPicker';
@@ -291,6 +291,22 @@ export const CellStyleEditor: React.FC<CellStyleEditorProps> = ({ value, onChang
                 />
               </div>
             </div>
+
+            {/* Icon Side: places the icon at that cell edge and aligns the cell content to match. */}
+            {value.icon && (
+              <div className={styles.column}>
+                <div className={styles.columnLabel}>Icon Side</div>
+                <RadioButtonGroup<'left' | 'right'>
+                  size="sm"
+                  options={[
+                    { label: 'Left', value: 'left' },
+                    { label: 'Right', value: 'right' },
+                  ]}
+                  value={value.iconPosition ?? 'left'}
+                  onChange={(iconPosition) => onChange({ ...value, iconPosition })}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

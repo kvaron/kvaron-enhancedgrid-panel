@@ -22,7 +22,12 @@ import {
   Stack,
   useStyles2,
 } from '@grafana/ui';
-import { EnhancedGridOptions, HighlightRule } from '../../types';
+import { HighlightRule } from '../../types';
+import {
+  TopLevelFormattingItem,
+  buildTopLevelFormattingItems,
+  flattenTopLevelItems,
+} from '../../utils/highlightRuleGrouping';
 import { ConditionGroupBuilder } from './ConditionGroupBuilder';
 import { ThresholdRuleEditor } from './ThresholdRuleEditor';
 import { ValueMappingRuleEditor } from './ValueMappingRuleEditor';
@@ -42,22 +47,7 @@ const ruleTypeOptions: Array<
   { label: 'Flags Column', value: 'flagsColumn' },
 ];
 
-// Keep grouped sections and standalone rules in one drag-and-drop list.
-type TopLevelFormattingItem =
-  | {
-      type: 'group';
-      id: string;
-      name: string;
-      rules: HighlightRule[];
-    }
-  | {
-      type: 'rule';
-      id: string;
-      rule: HighlightRule;
-    };
-
 const EMPTY_RULES: HighlightRule[] = [];
-const EMPTY_GROUPS: EnhancedGridOptions['highlightRuleGroups'] = [];
 
 const getStyles = (theme: GrafanaTheme2) => ({
   sectionHeader: css({
@@ -212,8 +202,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
 
 export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>> = ({ value, onChange, context }) => {
   const rules = value ?? EMPTY_RULES;
-  const options = context.options as EnhancedGridOptions | undefined;
-  const groups = options?.highlightRuleGroups ?? EMPTY_GROUPS;
   const styles = useStyles2(getStyles);
 
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
@@ -223,19 +211,16 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
 
   const availableFields = context.data[0]?.fields.map((f) => f.name) || [];
 
-  // Prefer shared group metadata, but keep older rule-level names working.
+  // Group labels are stored on each rule (groupId + groupName).
   const groupNames = useMemo(() => {
     const names = new Map<string, string>();
-    for (const group of groups) {
-      names.set(group.id, group.name);
-    }
     for (const rule of rules) {
       if (rule.groupId && rule.groupName) {
         names.set(rule.groupId, rule.groupName);
       }
     }
     return names;
-  }, [groups, rules]);
+  }, [rules]);
 
   const groupOptions = useMemo<Array<ComboboxOption<string>>>(
     () => [
@@ -246,39 +231,10 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
   );
 
   // Render grouped rules as one top-level item so group reorder stays intact.
-  const topLevelItems = useMemo<TopLevelFormattingItem[]>(() => {
-    const byGroup = new Map<string, HighlightRule[]>();
-    for (const rule of rules) {
-      if (!rule.groupId) {
-        continue;
-      }
-      if (!byGroup.has(rule.groupId)) {
-        byGroup.set(rule.groupId, []);
-      }
-      byGroup.get(rule.groupId)!.push(rule);
-    }
-
-    const seenGroups = new Set<string>();
-    const items: TopLevelFormattingItem[] = [];
-    for (const rule of rules) {
-      if (!rule.groupId) {
-        items.push({ type: 'rule', id: rule.id, rule });
-        continue;
-      }
-
-      if (!seenGroups.has(rule.groupId)) {
-        seenGroups.add(rule.groupId);
-        items.push({
-          type: 'group',
-          id: rule.groupId,
-          name: groupNames.get(rule.groupId) || rule.groupName || 'Formatting group',
-          rules: byGroup.get(rule.groupId) || [],
-        });
-      }
-    }
-
-    return items;
-  }, [groupNames, rules]);
+  const topLevelItems = useMemo<TopLevelFormattingItem[]>(
+    () => buildTopLevelFormattingItems(rules, groupNames),
+    [groupNames, rules]
+  );
 
   const toggleRuleExpansion = (ruleId: string) => {
     setExpandedRules((prev) => {
@@ -308,9 +264,6 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
   const emitRules = (nextRules: HighlightRule[]) => {
     onChange(nextRules.map((rule, index) => ({ ...rule, priority: index + 1 })));
   };
-
-  const flattenTopLevelItems = (items: TopLevelFormattingItem[]) =>
-    items.flatMap((item) => (item.type === 'group' ? item.rules : [item.rule]));
 
   const createGroupRuleLists = () =>
     new Map(
@@ -705,6 +658,7 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
               aria-expanded={isExpanded}
               aria-controls={`rule-content-${rule.id}`}
             />
+            <Icon name="list-ul" size="sm" title="Highlight rule" className={styles.collapseIcon} />
             <div className={styles.titleWrapper}>
               {isEditing ? (
                 <Input
@@ -819,6 +773,7 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
                                   onClick={() => toggleGroupCollapse(item.id)}
                                   aria-expanded={!isCollapsed}
                                 />
+                                <Icon name="folder" size="md" title="Formatting group" />
                                 {isEditing ? (
                                   <div className={styles.sectionTitleText}>
                                     <Input
@@ -914,12 +869,14 @@ export const HighlightRuleEditor: React.FC<StandardEditorProps<HighlightRule[]>>
           )}
         </Droppable>
 
-        <Button icon="plus" onClick={() => addRule()} variant="primary">
-          Add Highlight Rule
-        </Button>
-        <Button icon="folder-plus" onClick={addGroup} variant="secondary">
-          Add Formatting Group
-        </Button>
+        <Stack direction="row" gap={1}>
+          <Button icon="plus" onClick={() => addRule()} variant="primary">
+            Add Rule
+          </Button>
+          <Button icon="folder-plus" onClick={addGroup} variant="secondary">
+            Add Group
+          </Button>
+        </Stack>
       </Stack>
     </DragDropContext>
   );

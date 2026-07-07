@@ -137,6 +137,22 @@ export const GridCell: React.FC<GridCellProps> = ({
       textDecoration = fieldConfig.columnTextDecoration;
     }
 
+    // When an icon rule sets a side, the icon sits at that cell edge and the cell
+    // content aligns to match (placement and alignment are coupled).
+    const iconSide = highlightStyle?.icon ? highlightStyle?.iconPosition : undefined;
+    const cellTextAlign = isRowNumber ? 'center' : iconSide ?? column.align;
+    const cellJustify = isRowNumber
+      ? 'center'
+      : iconSide === 'left'
+        ? 'flex-start'
+        : iconSide === 'right'
+          ? 'flex-end'
+          : column.align === 'center'
+            ? 'center'
+            : column.align === 'right'
+              ? 'flex-end'
+              : 'flex-start';
+
     const baseStyle = css`
       display: flex;
       align-items: center;
@@ -146,14 +162,8 @@ export const GridCell: React.FC<GridCellProps> = ({
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      text-align: ${isRowNumber ? 'center' : column.align};
-      justify-content: ${isRowNumber
-        ? 'center'
-        : column.align === 'center'
-          ? 'center'
-          : column.align === 'right'
-            ? 'flex-end'
-            : 'flex-start'};
+      text-align: ${cellTextAlign};
+      justify-content: ${cellJustify};
       background: ${backgroundColor};
       background-clip: padding-box;
       color: ${textColor};

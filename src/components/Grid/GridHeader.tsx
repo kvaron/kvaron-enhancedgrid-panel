@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState, forwardRef } from 'rea
 import { createPortal } from 'react-dom';
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
-import { useTheme2, Icon, Tooltip, useStyles2 } from '@grafana/ui';
+import { useTheme2, Icon, Tooltip, useStyles2, getPortalContainer } from '@grafana/ui';
 import { GridColumn } from '../../utils/dataTransformer';
 import { ColumnFilter, FilterStyle, EnhancedGridFieldConfig } from '../../types';
 import { ColumnFilterDropdown } from './ColumnFilterDropdown';
@@ -80,6 +80,14 @@ export const GridHeader = forwardRef<HTMLDivElement, GridHeaderProps>(
         if (portalledMenuElement) {
           return true;
         }
+      }
+
+      // Grafana's Combobox portals its dropdown (search input, options, scroller)
+      // into the shared portal container, outside our menu's DOM. Treat that whole
+      // container as inside so interacting with the operator dropdown doesn't close
+      // the filter menu. Mirrors Grafana's own ModalBase getInsideElements pattern.
+      if (getPortalContainer().contains(target)) {
+        return true;
       }
 
       return !!filterDropdownRef.current?.contains(target) || !!filterAnchorElement?.contains(target);
